@@ -1,0 +1,31 @@
+struct Foo {
+    a: uint256;
+    b: int8;
+    c: bool;
+}
+
+struct <T> Boo {
+    a: bool;
+}
+
+struct [M] Moo {
+    c: int16;
+}
+
+struct [N] <T> Goo {
+    e: bool;
+}
+
+fun foo() { }
+
+fun bar(a: bool) {}
+
+fun boo(a: bool, b: uint256)
+
+fun <T> hoo(c: bool)
+
+fun [M] <T> doo(e: int32) {}
+
+fun goo(): uint16 {}
+
+fun [M, S] <T1, T2> zoo(e: int32): bool {}

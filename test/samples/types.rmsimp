@@ -1,0 +1,21 @@
+struct Foo {
+    a: uint256;
+    b: int8;
+    c: bool;
+}
+
+struct<T> Boo {
+    a: T;
+}
+
+struct[M1, M2]<T1, T2> Goo {
+    a: T1 * M1;
+    b: T2 * M2[] * M1[];
+    c: (((T2 * M2)[]) * M1)[];
+}
+
+struct<T> Doo {
+    a: Foo * Memory;
+    b: Boo<uint16> * Storage;
+    c: Goo[Storage, Memory]<bool, uint8>;
+}
