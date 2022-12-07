@@ -1,0 +1,6 @@
+src/parser/rmsimp_parser.ts
+node_modules/
+.nyc_output/
+.vscode/
+coverage/
+dist/

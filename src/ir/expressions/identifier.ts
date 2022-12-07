@@ -1,7 +1,7 @@
+import { Expression } from "./expression";
 import { Node } from "../node";
-import { Type } from "./type";
 
-export class TypeVar<SrcT> extends Type<SrcT> {
+export class Identifier<SrcT> extends Expression<SrcT> {
     constructor(id: number, src: SrcT, public readonly name: string) {
         super(id, src);
     }

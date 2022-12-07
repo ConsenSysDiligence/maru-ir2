@@ -1,3 +1,4 @@
+import { Node } from "../node";
 import { Type } from "./type";
 
 export class UserDefinedType<SrcT> extends Type<SrcT> {
@@ -21,5 +22,9 @@ export class UserDefinedType<SrcT> extends Type<SrcT> {
 
     getStructId(): any {
         return [this.name, ...this.memArgs, ...this.typeArgs.map((x) => x.getStructId())];
+    }
+
+    children(): Iterable<Node<SrcT>> {
+        return this.typeArgs;
     }
 }

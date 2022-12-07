@@ -1,8 +1,10 @@
+import { TypeVariableDeclaration } from "../misc";
+import { Node } from "../node";
 import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class StructDefinition<SrcT> extends Definition<SrcT> {
-    public readonly typeParameters: string[];
+    public readonly typeParameters: Array<TypeVariableDeclaration<SrcT>>;
     public readonly memoryParameters: string[];
     public readonly name: string;
     public readonly fields: Array<[string, Type<SrcT>]>;
@@ -10,7 +12,7 @@ export class StructDefinition<SrcT> extends Definition<SrcT> {
     constructor(
         id: number,
         src: SrcT,
-        typeParameters: string[],
+        typeParameters: Array<TypeVariableDeclaration<SrcT>>,
         memoryParameters: string[],
         name: string,
         fields: Array<[string, Type<SrcT>]>
@@ -35,5 +37,9 @@ export class StructDefinition<SrcT> extends Definition<SrcT> {
 
     getStructId(): any {
         return this.pp();
+    }
+
+    children(): Iterable<Node<SrcT>> {
+        return this.fields.map((p) => p[1]);
     }
 }

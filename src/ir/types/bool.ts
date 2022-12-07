@@ -1,3 +1,4 @@
+import { Node } from "../node";
 import { Type } from "./type";
 
 export class BoolType<SrcT> extends Type<SrcT> {
@@ -7,5 +8,9 @@ export class BoolType<SrcT> extends Type<SrcT> {
 
     getStructId(): any {
         return 0; // All bools are the same
+    }
+
+    children(): Iterable<Node<SrcT>> {
+        return [];
     }
 }

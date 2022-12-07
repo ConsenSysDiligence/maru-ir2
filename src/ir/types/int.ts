@@ -1,3 +1,4 @@
+import { Node } from "../node";
 import { Type } from "./type";
 
 export class IntType<SrcT> extends Type<SrcT> {
@@ -17,5 +18,9 @@ export class IntType<SrcT> extends Type<SrcT> {
 
     getStructId(): any {
         return this.pp();
+    }
+
+    children(): Iterable<Node<SrcT>> {
+        return [];
     }
 }

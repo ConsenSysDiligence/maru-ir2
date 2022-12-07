@@ -91,7 +91,7 @@ export class BasicBlock<SrcT> implements PPAble {
     }
 
     pp(): string {
-        return `${this.label}: ${this.statements.map((stmt) => stmt.pp()).join("\n")}`;
+        return `${this.label}:\n${this.statements.map((stmt) => `    ` + stmt.pp()).join("\n")}`;
     }
 
     print(): string {

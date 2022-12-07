@@ -26,8 +26,6 @@ export class CFG<SrcT> implements PPAble {
 
     pp(): string {
         const nodes = [...this.nodes.values()];
-        return `{
-            ${nodes.map((bb) => bb.pp()).join("\n")}
-        }`;
+        return `{\n${nodes.map((bb) => bb.pp()).join("\n")}\n}`;
     }
 }
