@@ -1,9 +1,10 @@
 import { Expression } from "./expression";
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 
-export class Identifier<SrcT> extends Expression<SrcT> {
-    constructor(id: number, src: SrcT, public readonly name: string) {
-        super(id, src);
+export class Identifier extends Expression {
+    constructor(id: number, src: BaseSrc, public readonly name: string) {
+        super(src);
     }
 
     pp(): string {
@@ -14,7 +15,7 @@ export class Identifier<SrcT> extends Expression<SrcT> {
         return this.name;
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

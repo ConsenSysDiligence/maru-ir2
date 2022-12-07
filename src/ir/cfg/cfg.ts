@@ -2,18 +2,13 @@ import { PPAble } from "../../utils";
 import { BasicBlock } from "./basic_block";
 import { Edge } from "./edge";
 
-export class CFG<SrcT> implements PPAble {
-    edges: Array<Edge<SrcT>>;
-    nodes: Map<string, BasicBlock<SrcT>>;
-    entry: BasicBlock<SrcT>;
-    exits: Array<BasicBlock<SrcT>>;
+export class CFG implements PPAble {
+    edges: Edge[];
+    nodes: Map<string, BasicBlock>;
+    entry: BasicBlock;
+    exits: BasicBlock[];
 
-    constructor(
-        nodes: Array<BasicBlock<SrcT>>,
-        edges: Array<Edge<SrcT>>,
-        entry: BasicBlock<SrcT>,
-        exits: Array<BasicBlock<SrcT>>
-    ) {
+    constructor(nodes: BasicBlock[], edges: Edge[], entry: BasicBlock, exits: BasicBlock[]) {
         this.edges = edges;
         this.nodes = new Map();
         this.entry = entry;

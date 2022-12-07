@@ -1,10 +1,11 @@
 import { Expression } from "../expressions";
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { TerminatorStmt } from "./terminator";
 
-export class Return<SrcT> extends TerminatorStmt<SrcT> {
-    constructor(id: number, src: SrcT, public readonly values: Array<Expression<SrcT>>) {
-        super(id, src);
+export class Return extends TerminatorStmt {
+    constructor(src: BaseSrc, public readonly values: Expression[]) {
+        super(src);
     }
 
     pp(): string {
@@ -23,7 +24,7 @@ export class Return<SrcT> extends TerminatorStmt<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return this.values;
     }
 }

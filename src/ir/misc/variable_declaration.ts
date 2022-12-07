@@ -1,14 +1,10 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "../types";
 
-export class VariableDeclaration<SrcT> extends Node<SrcT> {
-    constructor(
-        id: number,
-        src: SrcT,
-        public readonly name: string,
-        public readonly type: Type<SrcT>
-    ) {
-        super(id, src);
+export class VariableDeclaration extends Node {
+    constructor(src: BaseSrc, public readonly name: string, public readonly type: Type) {
+        super(src);
     }
 
     pp(): string {
@@ -19,7 +15,7 @@ export class VariableDeclaration<SrcT> extends Node<SrcT> {
         return [this.name, this.type.getStructId()];
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.type];
     }
 }

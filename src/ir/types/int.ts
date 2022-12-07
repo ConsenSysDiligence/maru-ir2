@@ -1,12 +1,13 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "./type";
 
-export class IntType<SrcT> extends Type<SrcT> {
+export class IntType extends Type {
     public readonly signed: boolean;
     public readonly nbits: number;
 
-    constructor(id: number, src: SrcT, nbits: number, signed: boolean) {
-        super(id, src);
+    constructor(src: BaseSrc, nbits: number, signed: boolean) {
+        super(src);
 
         this.signed = signed;
         this.nbits = nbits;
@@ -20,7 +21,7 @@ export class IntType<SrcT> extends Type<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

@@ -1,23 +1,23 @@
 import { TypeVariableDeclaration } from "../misc";
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "../types";
 import { Definition } from "./definition";
 
-export class StructDefinition<SrcT> extends Definition<SrcT> {
-    public readonly typeParameters: Array<TypeVariableDeclaration<SrcT>>;
+export class StructDefinition extends Definition {
+    public readonly typeParameters: TypeVariableDeclaration[];
     public readonly memoryParameters: string[];
     public readonly name: string;
-    public readonly fields: Array<[string, Type<SrcT>]>;
+    public readonly fields: Array<[string, Type]>;
 
     constructor(
-        id: number,
-        src: SrcT,
-        typeParameters: Array<TypeVariableDeclaration<SrcT>>,
+        src: BaseSrc,
+        typeParameters: TypeVariableDeclaration[],
         memoryParameters: string[],
         name: string,
-        fields: Array<[string, Type<SrcT>]>
+        fields: Array<[string, Type]>
     ) {
-        super(id, src);
+        super(src);
         this.typeParameters = typeParameters;
         this.memoryParameters = memoryParameters;
         this.name = name;
@@ -39,7 +39,7 @@ export class StructDefinition<SrcT> extends Definition<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return this.fields.map((p) => p[1]);
     }
 }

@@ -1,8 +1,9 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 
-export class TypeVariableDeclaration<SrcT> extends Node<SrcT> {
-    constructor(id: number, src: SrcT, public readonly name: string) {
-        super(id, src);
+export class TypeVariableDeclaration extends Node {
+    constructor(src: BaseSrc, public readonly name: string) {
+        super(src);
     }
 
     pp(): string {
@@ -13,7 +14,7 @@ export class TypeVariableDeclaration<SrcT> extends Node<SrcT> {
         return this.name;
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

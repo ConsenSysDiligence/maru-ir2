@@ -1,9 +1,10 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "./type";
 
-export class ArrayType<SrcT> extends Type<SrcT> {
-    constructor(id: number, src: SrcT, public readonly baseType: Type<SrcT>) {
-        super(id, src);
+export class ArrayType extends Type {
+    constructor(src: BaseSrc, public readonly baseType: Type) {
+        super(src);
     }
 
     pp(): string {
@@ -14,7 +15,7 @@ export class ArrayType<SrcT> extends Type<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.baseType];
     }
 }

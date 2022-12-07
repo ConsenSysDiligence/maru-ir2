@@ -2,12 +2,12 @@ import { PPAble } from "../../utils";
 import { Expression } from "../expressions";
 import { BasicBlock } from "./basic_block";
 
-export class Edge<SrcT> implements PPAble {
-    from: BasicBlock<SrcT>;
-    to: BasicBlock<SrcT>;
-    predicate?: Expression<SrcT>;
+export class Edge implements PPAble {
+    from: BasicBlock;
+    to: BasicBlock;
+    predicate?: Expression;
 
-    constructor(from: BasicBlock<SrcT>, to: BasicBlock<SrcT>, predicate?: Expression<SrcT>) {
+    constructor(from: BasicBlock, to: BasicBlock, predicate?: Expression) {
         this.from = from;
         this.to = to;
         this.predicate = predicate;

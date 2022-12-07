@@ -1,15 +1,15 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "./type";
 
-export class UserDefinedType<SrcT> extends Type<SrcT> {
+export class UserDefinedType extends Type {
     constructor(
-        id: number,
-        src: SrcT,
+        src: BaseSrc,
         public readonly name: string,
         public readonly memArgs: string[],
-        public readonly typeArgs: Array<Type<SrcT>>
+        public readonly typeArgs: Type[]
     ) {
-        super(id, src);
+        super(src);
     }
 
     pp(): string {
@@ -24,7 +24,7 @@ export class UserDefinedType<SrcT> extends Type<SrcT> {
         return [this.name, ...this.memArgs, ...this.typeArgs.map((x) => x.getStructId())];
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return this.typeArgs;
     }
 }

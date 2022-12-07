@@ -1,14 +1,14 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "./type";
 
-export class PointerType<SrcT> extends Type<SrcT> {
+export class PointerType extends Type {
     constructor(
-        id: number,
-        src: SrcT,
-        public readonly toType: Type<SrcT>,
+        src: BaseSrc,
+        public readonly toType: Type,
         public readonly region: string // TODO (@dimo): Pick better type for storing regions
     ) {
-        super(id, src);
+        super(src);
     }
 
     pp(): string {
@@ -19,7 +19,7 @@ export class PointerType<SrcT> extends Type<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.toType];
     }
 }

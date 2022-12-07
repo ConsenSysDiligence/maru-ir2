@@ -1,30 +1,30 @@
 import { CFG } from "../cfg";
 import { TypeVariableDeclaration, VariableDeclaration } from "../misc";
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "../types";
 import { Definition } from "./definition";
 
-export class FunctionDefinition<SrcT> extends Definition<SrcT> {
-    public readonly typeParameters: Array<TypeVariableDeclaration<SrcT>>;
+export class FunctionDefinition extends Definition {
+    public readonly typeParameters: TypeVariableDeclaration[];
     public readonly memoryParameters: string[];
     public readonly name;
-    public readonly parameters: Array<VariableDeclaration<SrcT>>;
-    public readonly locals: Array<VariableDeclaration<SrcT>>;
-    public readonly returns: Array<Type<SrcT>>;
-    public body?: CFG<SrcT>;
+    public readonly parameters: VariableDeclaration[];
+    public readonly locals: VariableDeclaration[];
+    public readonly returns: Type[];
+    public body?: CFG;
 
     constructor(
-        id: number,
-        src: SrcT,
+        src: BaseSrc,
         memoryParameters: string[],
-        typeParameters: Array<TypeVariableDeclaration<SrcT>>,
+        typeParameters: TypeVariableDeclaration[],
         name: string,
-        params: Array<VariableDeclaration<SrcT>>,
-        locals: Array<VariableDeclaration<SrcT>>,
-        returns: Array<Type<SrcT>>,
-        body?: CFG<SrcT>
+        params: VariableDeclaration[],
+        locals: VariableDeclaration[],
+        returns: Type[],
+        body?: CFG
     ) {
-        super(id, src);
+        super(src);
 
         this.typeParameters = typeParameters;
         this.memoryParameters = memoryParameters;
@@ -57,8 +57,8 @@ export class FunctionDefinition<SrcT> extends Definition<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
-        const bodyChildren: Array<Node<SrcT>> = [];
+    children(): Iterable<Node> {
+        const bodyChildren: Node[] = [];
 
         if (this.body) {
             for (const bb of this.body.nodes.values()) {

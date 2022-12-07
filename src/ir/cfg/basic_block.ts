@@ -3,11 +3,11 @@ import { Expression } from "../expressions";
 import { Statement } from "../statements";
 import { Edge } from "./edge";
 
-export class BasicBlock<SrcT> implements PPAble {
+export class BasicBlock implements PPAble {
     label: string;
-    statements: Array<Statement<SrcT>>;
-    incoming: Array<Edge<SrcT>>;
-    outgoing: Array<Edge<SrcT>>;
+    statements: Statement[];
+    incoming: Edge[];
+    outgoing: Edge[];
 
     constructor(label: string) {
         this.label = label;
@@ -16,7 +16,7 @@ export class BasicBlock<SrcT> implements PPAble {
         this.outgoing = [];
     }
 
-    addOutgoing(to: BasicBlock<SrcT>, predicate?: Expression<SrcT>): Edge<SrcT> {
+    addOutgoing(to: BasicBlock, predicate?: Expression): Edge {
         if (this.hasOutgoing(to)) {
             throw new Error("Can't add double edges");
         }
@@ -30,7 +30,7 @@ export class BasicBlock<SrcT> implements PPAble {
         return edge;
     }
 
-    hasOutgoing(to: BasicBlock<SrcT>): boolean {
+    hasOutgoing(to: BasicBlock): boolean {
         for (const edge of this.outgoing) {
             if (edge.to === to) {
                 return true;
@@ -40,7 +40,7 @@ export class BasicBlock<SrcT> implements PPAble {
         return false;
     }
 
-    addIncoming(from: BasicBlock<SrcT>, predicate?: Expression<SrcT>): Edge<SrcT> {
+    addIncoming(from: BasicBlock, predicate?: Expression): Edge {
         if (this.hasIncoming(from)) {
             throw new Error("Can't add double edges");
         }
@@ -54,7 +54,7 @@ export class BasicBlock<SrcT> implements PPAble {
         return edge;
     }
 
-    hasIncoming(from: BasicBlock<SrcT>): boolean {
+    hasIncoming(from: BasicBlock): boolean {
         for (const edge of this.incoming) {
             if (edge.from === from) {
                 return true;
@@ -67,12 +67,12 @@ export class BasicBlock<SrcT> implements PPAble {
     /**
      * Perform a BFS traversal starting at the current basic block
      */
-    bfs(cb: (n: BasicBlock<SrcT>) => any): void {
-        const visited = new Set<BasicBlock<SrcT>>();
-        const q: Array<BasicBlock<SrcT>> = [this];
+    bfs(cb: (n: BasicBlock) => any): void {
+        const visited = new Set<BasicBlock>();
+        const q: BasicBlock[] = [this];
 
         while (q.length > 0) {
-            const cur = q.shift() as BasicBlock<SrcT>;
+            const cur = q.shift() as BasicBlock;
 
             if (visited.has(cur)) {
                 continue;
@@ -118,13 +118,13 @@ export class BasicBlock<SrcT> implements PPAble {
         return bb;
     }
 
-    *successors(): Iterable<BasicBlock<SrcT>> {
+    *successors(): Iterable<BasicBlock> {
         for (const edge of this.outgoing) {
             yield edge.to;
         }
     }
 
-    *predecessors(): Iterable<BasicBlock<SrcT>> {
+    *predecessors(): Iterable<BasicBlock> {
         for (const edge of this.incoming) {
             yield edge.from;
         }

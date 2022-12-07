@@ -9,7 +9,7 @@ Definition
 
 TVar
     = name: Identifier {
-        return new TypeVariableDeclaration(getFreshId(options as ParseOptions), location(), name);
+        return new TypeVariableDeclaration(Src.fromPegsRange(location()), name);
     }
 
 TVList
@@ -29,8 +29,7 @@ StructField
 StructDefinition
     = STRUCT __ mArgs: MemoryFormalParams? __ tArgs: TypeFormalParams? __ name: Identifier __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
         return new StructDefinition<SrcRange>(
-            getFreshId(options as ParseOptions),
-            location(),
+            Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
             tArgs === null ? [] : tArgs,
             name,
@@ -39,7 +38,7 @@ StructDefinition
 
 VariableDecl
     = name: Identifier __ COLON __ typ: Type {
-        return new VariableDeclaration(getFreshId(options as ParseOptions), location(), name, typ);
+        return new VariableDeclaration(Src.fromPegsRange(location()), name, typ);
     }
 
 FunctionParameters
@@ -56,8 +55,7 @@ FunBody
 FunctionDefinition
     = FUNCTION __ mArgs: MemoryFormalParams? __ tArgs: TypeFormalParams? __ name: Identifier __  LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
         return new FunctionDefinition(
-            getFreshId(options as ParseOptions),
-            location(),
+            Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
             tArgs === null ? [] : tArgs,
             name,
@@ -78,26 +76,26 @@ TypeArgs
 
 UserDefinedType
     = name: Identifier memArgs: (LBRACKET __  ids: IdList __ RBRACKET { return ids; })? typeArgs: (LT __ types:TypeArgs __ GT { return types; })? {
-        return new UserDefinedType(getFreshId(options as ParseOptions), location(), name, memArgs === null ? [] : memArgs, typeArgs === null ? [] : typeArgs);
+        return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs === null ? [] : memArgs, typeArgs === null ? [] : typeArgs);
     }
 
 PrimitiveType
     = IntType
-    / BOOL { return new BoolType(getFreshId(options as ParseOptions), location()); }
+    / BOOL { return new BoolType(Src.fromPegsRange(location())); }
     / UserDefinedType
     / LPAREN innerT: Type RPAREN { return innerT; }
 
 IntType
-    = unsigned:("u"?) "int" nbits:([0-9]+ {return Number(text())})  { return new IntType(getFreshId(options as ParseOptions), location(), nbits, unsigned == null); }
+    = unsigned:("u"?) "int" nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, unsigned == null); }
 
 PointerOrArrayType
     = head: PrimitiveType tail: ((__ STAR __ Identifier) / __ LBRACKET __ RBRACKET)* {
         return tail.reduce(
             (acc: Type, el: any) => {
                 if (el[1] === "*") {
-                    return new PointerType(getFreshId(options as ParseOptions), location(), acc, el[3]);
+                    return new PointerType(Src.fromPegsRange(location()), acc, el[3]);
                 } else {
-                    return new ArrayType(getFreshId(options as ParseOptions), location(), acc);
+                    return new ArrayType(Src.fromPegsRange(location()), acc);
                 }
             },
             head
@@ -123,40 +121,40 @@ Statement
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
-        const lhsNode = new Identifier(getFreshId(options as ParseOptions), location(), lhs);
-        return new Assignment(getFreshId(options as ParseOptions), location(), lhsNode, rhs);
+        const lhsNode = new Identifier(Src.fromPegsRange(location()), lhs);
+        return new Assignment(Src.fromPegsRange(location()), lhsNode, rhs);
     }
 
 Branch
     = BRANCH __ condition: Expression __ trueLabel: Identifier __ falseLabel: Identifier __ SEMICOLON {
-        return new Branch(getFreshId(options as ParseOptions), location(), condition, trueLabel, falseLabel);
+        return new Branch(Src.fromPegsRange(location()), condition, trueLabel, falseLabel);
     }
 
 LoadIndex
     = LOAD __ base: Expression __ LBRACKET __ index: Expression __ RBRACKET IN lhs: Identifier __ SEMICOLON {
-        const lhsNode = new Identifier(getFreshId(options as ParseOptions), location(), lhs);
-        return new LoadIndex(getFreshId(options as ParseOptions), location(), lhsNode, base, index);
+        const lhsNode = new Identifier(Src.fromPegsRange(location()), lhs);
+        return new LoadIndex(Src.fromPegsRange(location()), lhsNode, base, index);
     }
 
 LoadField
     = LOAD __ base: Expression "." member: Identifier IN lhs: Identifier __ SEMICOLON {
-        const lhsNode = new Identifier(getFreshId(options as ParseOptions), location(), lhs);
-        return new LoadField(getFreshId(options as ParseOptions), location(), lhsNode, base, member);
+        const lhsNode = new Identifier(Src.fromPegsRange(location()), lhs);
+        return new LoadField(Src.fromPegsRange(location()), lhsNode, base, member);
     }
 
 StoreIndex
     = STORE __ rhs: Expression __ IN __ base: Expression __ LBRACKET __ index: Expression __ RBRACKET __ SEMICOLON {
-        return new StoreIndex(getFreshId(options as ParseOptions), location(), base, index, rhs);
+        return new StoreIndex(Src.fromPegsRange(location()), base, index, rhs);
     }
 
 StoreField
     = STORE __ rhs: Expression __ IN __ base: Expression "." member: Identifier  __ SEMICOLON {
-        return new LoadField(getFreshId(options as ParseOptions), location(), base, member, rhs);
+        return new LoadField(Src.fromPegsRange(location()), base, member, rhs);
     }
 
 Jump
     = JUMP  __ label: Identifier __ SEMICOLON {
-        return new Jump(getFreshId(options as ParseOptions), location(), label);
+        return new Jump(Src.fromPegsRange(location()), label);
     }
 
 ExprList
@@ -168,7 +166,7 @@ ExprList
 Return
     = RETURN __ values: (Expression / (LPAREN __ exprs: ExprList __ RPAREN { return exprs; }))? __ SEMICOLON {
         const vs = values === null ? [] : values instanceof Expression ? [values] : values;
-        return new Return(getFreshId(options as ParseOptions), location(), vs);
+        return new Return(Src.fromPegsRange(location()), vs);
     }
 
 /// Expressions
@@ -177,7 +175,7 @@ HexDigit =
 
 HexNumber =
     "0x"i digits: HexDigit+ {
-        return new NumberLiteral(getFreshId(options as ParseOptions), location(), BigInt(text()), 16)
+        return new NumberLiteral(Src.fromPegsRange(location()), BigInt(text()), 16)
     }
 
 DecDigit =
@@ -185,7 +183,7 @@ DecDigit =
 
 DecNumber =
     DecDigit+ {
-        return new NumberLiteral(getFreshId(options as ParseOptions), location(), BigInt(text()), 10);
+        return new NumberLiteral(Src.fromPegsRange(location()), BigInt(text()), 10);
     }
 
 Number =
@@ -193,7 +191,7 @@ Number =
 
 BooleanLiteral =
     val: (TRUE / FALSE) {
-        return new BooleanLiteral(getFreshId(options as ParseOptions), location(), val === "true");
+        return new BooleanLiteral(Src.fromPegsRange(location()), val === "true");
     }
 
 Literal
@@ -201,13 +199,13 @@ Literal
 
 PrimitiveExpression
     = Literal
-    / (id: Identifier { return new Identifier(getFreshId(options as ParseOptions), location(), id); })
+    / (id: Identifier { return new Identifier(Src.fromPegsRange(location()), id); })
     / LPAREN __ e: Expression __ RPAREN { return e; }
 
 UnaryExpression =
     (
         operator: UnaryOperator __ subexp: UnaryExpression {
-            return new UnaryOperation(getFreshId(options as ParseOptions), location(), operator, subexp);
+            return new UnaryOperation(Src.fromPegsRange(location()), operator, subexp);
         }
     )
     / PrimitiveExpression
@@ -267,14 +265,14 @@ BitwiseXORExpression =
 
 BitwiseORExpression =
     head: BitwiseXORExpression
-    tail: (__ op: "|" __ e: BitwiseXORExpression)* {
+    tail: (__ op: "|" __ e: BitwiseXORExpression { return [op, e, location()]; })* {
         return buildBinaryExpression(head, tail, location(), options as ParseOptions);
     }
 
 RelationalExpression =
     (
         left: BitwiseORExpression __ op: RelationalOperator __ right: BitwiseORExpression {
-            return new BinaryOperation(getFreshId(options as ParseOptions), location(), left, op, right);
+            return new BinaryOperation(Src.fromPegsRange(location()), left, op, right);
         }
     )
     / BitwiseORExpression
@@ -288,7 +286,7 @@ RelationalOperator =
 EqualityExpression =
     (
         left: BitwiseORExpression __ op: EqualityOperator __ right: BitwiseORExpression {
-            return new BinaryOperation(getFreshId(options as ParseOptions), location(), left, op, right);
+            return new BinaryOperation(Src.fromPegsRange(location()), left, op, right);
         }
     )
     / RelationalExpression

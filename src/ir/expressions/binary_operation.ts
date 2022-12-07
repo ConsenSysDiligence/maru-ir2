@@ -1,4 +1,5 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Expression } from "./expression";
 
 export type BinaryOperator =
@@ -20,15 +21,15 @@ export type BinaryOperator =
     | "=="
     | "!=";
 
-export class BinaryOperation<SrcT> extends Expression<SrcT> {
+export class BinaryOperation extends Expression {
     constructor(
         id: number,
-        src: SrcT,
-        public readonly leftExpr: Expression<SrcT>,
+        src: BaseSrc,
+        public readonly leftExpr: Expression,
         public readonly op: BinaryOperator,
-        public readonly rightExpr: Expression<SrcT>
+        public readonly rightExpr: Expression
     ) {
-        super(id, src);
+        super(src);
     }
 
     pp(): string {
@@ -39,7 +40,7 @@ export class BinaryOperation<SrcT> extends Expression<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.leftExpr, this.rightExpr];
     }
 }

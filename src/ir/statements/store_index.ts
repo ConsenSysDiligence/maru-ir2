@@ -1,16 +1,16 @@
 import { Expression } from "../expressions";
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Statement } from "./statement";
 
-export class StoreIndex<SrcT> extends Statement<SrcT> {
+export class StoreIndex extends Statement {
     constructor(
-        id: number,
-        src: SrcT,
-        public readonly baseExpr: Expression<SrcT>,
-        public readonly indexExpr: Expression<SrcT>,
-        public readonly rhs: Expression<SrcT>
+        src: BaseSrc,
+        public readonly baseExpr: Expression,
+        public readonly indexExpr: Expression,
+        public readonly rhs: Expression
     ) {
-        super(id, src);
+        super(src);
     }
 
     pp(): string {
@@ -21,7 +21,7 @@ export class StoreIndex<SrcT> extends Statement<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.baseExpr, this.indexExpr, this.rhs];
     }
 }

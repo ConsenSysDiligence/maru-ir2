@@ -1,9 +1,10 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Type } from "./type";
 
-export class TypeVar<SrcT> extends Type<SrcT> {
-    constructor(id: number, src: SrcT, public readonly name: string) {
-        super(id, src);
+export class TypeVar extends Type {
+    constructor(src: BaseSrc, public readonly name: string) {
+        super(src);
     }
 
     pp(): string {
@@ -14,7 +15,7 @@ export class TypeVar<SrcT> extends Type<SrcT> {
         return this.name;
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

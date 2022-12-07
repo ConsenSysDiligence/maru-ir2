@@ -1,9 +1,10 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { TerminatorStmt } from "./terminator";
 
-export class Jump<SrcT> extends TerminatorStmt<SrcT> {
-    constructor(id: number, src: SrcT, public readonly label: string) {
-        super(id, src);
+export class Jump extends TerminatorStmt {
+    constructor(src: BaseSrc, public readonly label: string) {
+        super(src);
     }
 
     pp(): string {
@@ -14,7 +15,7 @@ export class Jump<SrcT> extends TerminatorStmt<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

@@ -1,14 +1,10 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Expression } from "./expression";
 
-export class NumberLiteral<SrcT> extends Expression<SrcT> {
-    constructor(
-        id: number,
-        src: SrcT,
-        public readonly value: bigint,
-        public readonly radix: number
-    ) {
-        super(id, src);
+export class NumberLiteral extends Expression {
+    constructor(src: BaseSrc, public readonly value: bigint, public readonly radix: number) {
+        super(src);
     }
 
     pp(): string {
@@ -19,7 +15,7 @@ export class NumberLiteral<SrcT> extends Expression<SrcT> {
         return [this.radix, this.value];
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

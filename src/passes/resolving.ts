@@ -7,10 +7,9 @@ import {
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
-import { TypeError } from "../tc/tc";
 import { walk } from "../utils";
 
-export type TypeDecl = TypeVariableDeclaration<any> | StructDefinition<any>;
+export type TypeDecl = TypeVariableDeclaration | StructDefinition;
 /**
  * Simple pass to compute:
  * 1. The VariableDeclaration for each Identifier
@@ -18,11 +17,11 @@ export type TypeDecl = TypeVariableDeclaration<any> | StructDefinition<any>;
  * 3. The @todo TypeVar definition/StructDefinition for every UserDefinedType
  */
 export class Resolving {
-    private _idDecls: Map<Identifier<any>, VariableDeclaration<any>>;
-    private _typeDecls: Map<UserDefinedType<any>, TypeDecl>;
-    private nameToTypeDef: Map<string, StructDefinition<any>>;
+    private _idDecls: Map<Identifier, VariableDeclaration>;
+    private _typeDecls: Map<UserDefinedType, TypeDecl>;
+    private nameToTypeDef: Map<string, StructDefinition>;
 
-    constructor(public readonly defs: Array<Definition<any>>) {
+    constructor(public readonly defs: Definition[]) {
         this._idDecls = new Map();
         this._typeDecls = new Map();
         this.nameToTypeDef = new Map();
@@ -30,11 +29,11 @@ export class Resolving {
         this.runAnalysis();
     }
 
-    getIdDecl(id: Identifier<any>): VariableDeclaration<any> | undefined {
+    getIdDecl(id: Identifier): VariableDeclaration | undefined {
         return this._idDecls.get(id);
     }
 
-    getTypeDecl(id: UserDefinedType<any>): TypeDecl | undefined {
+    getTypeDecl(id: UserDefinedType): TypeDecl | undefined {
         return this._typeDecls.get(id);
     }
 
@@ -52,10 +51,10 @@ export class Resolving {
         }
     }
 
-    private analyzeOneFun(fun: FunctionDefinition<any>) {
-        const nameToDeclM = new Map<string, VariableDeclaration<any>>();
+    private analyzeOneFun(fun: FunctionDefinition) {
+        const nameToDeclM = new Map<string, VariableDeclaration>();
 
-        const addDef = (d: VariableDeclaration<any>): void => {
+        const addDef = (d: VariableDeclaration): void => {
             if (nameToDeclM.has(d.name)) {
                 throw new TypeError(
                     `Multiple variables/parameters with name ${d.name} in function ${fun.name}`

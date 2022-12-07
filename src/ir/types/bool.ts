@@ -1,7 +1,7 @@
 import { Node } from "../node";
 import { Type } from "./type";
 
-export class BoolType<SrcT> extends Type<SrcT> {
+export class BoolType extends Type {
     pp(): string {
         return "bool";
     }
@@ -10,7 +10,7 @@ export class BoolType<SrcT> extends Type<SrcT> {
         return 0; // All bools are the same
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [];
     }
 }

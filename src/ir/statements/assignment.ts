@@ -1,15 +1,11 @@
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Statement } from "./statement";
 
-export class Assignment<SrcT> extends Statement<SrcT> {
-    constructor(
-        id: number,
-        src: SrcT,
-        public readonly lhs: Identifier<SrcT>,
-        public readonly rhs: Expression<SrcT>
-    ) {
-        super(id, src);
+export class Assignment extends Statement {
+    constructor(src: BaseSrc, public readonly lhs: Identifier, public readonly rhs: Expression) {
+        super(src);
     }
 
     pp(): string {
@@ -20,7 +16,7 @@ export class Assignment<SrcT> extends Statement<SrcT> {
         return this.pp();
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.lhs, this.rhs];
     }
 }

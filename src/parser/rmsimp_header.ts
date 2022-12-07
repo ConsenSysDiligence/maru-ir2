@@ -28,22 +28,20 @@ import {
     Statement,
     TerminatorStmt,
     Jump,
-    VariableDeclaration
+    VariableDeclaration,
+    PegsRange,
+    noSrc
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { getOrErr } from "../utils";
 
-export type PegsLoc = { offset: number; line: number; column: number };
-export type PegsRange = { start: PegsLoc; end: PegsLoc };
-
 type ParseOptions = {
     startRule: string;
-    idCtr: number;
 };
 
-export function parseProgram(str: string): Array<Definition<PegsRange>> {
+export function parseProgram(str: string): Definition[] {
     try {
-        return parse(str, { startRule: "Program", idCtr: 0 } as ParseOptions);
+        return parse(str, { startRule: "Program" } as ParseOptions);
     } catch (e) {
         if (e instanceof SyntaxError) {
             console.error(e);
@@ -53,10 +51,6 @@ export function parseProgram(str: string): Array<Definition<PegsRange>> {
     }
 }
 
-function getFreshId(opts: ParseOptions): number {
-    return opts.idCtr++;
-}
-
 function buildBinaryExpression(
     head: Expression,
     tail: Array<[BinaryOperator, Expression, PegsRange]>,
@@ -64,8 +58,8 @@ function buildBinaryExpression(
     opts: ParseOptions
 ): SNode {
     return tail.reduce((acc, [curOp, curVal, curLoc]) => {
-        const loc: PegsRange = { start: src.start, end: curLoc.end };
-        return new BinaryOperation(getFreshId(opts), loc, acc, curOp, curVal);
+        const loc = new Src(src.start, curLoc.end);
+        return new BinaryOperation(loc, acc, curOp, curVal);
     }, head);
 }
 
@@ -74,36 +68,37 @@ function buildBinaryExpression(
  * .rsimp file.
  */
 export function buildCFG(
-    rawStmts: Array<Statement<PegsRange> | [string, Statement<PegsRange>]>,
+    rawStmts: Array<Statement | [string, Statement]>,
     opts: ParseOptions,
-    bodyLoc: PegsRange
-): CFG<PegsRange> {
+    rawBodyLoc: PegsRange
+): CFG {
     // 1. Build basic blocks
-    const nodes: Array<BasicBlock<PegsRange>> = [];
-    const edges: Array<Edge<PegsRange>> = [];
-    let entry: BasicBlock<PegsRange> | undefined;
-    const exits: Array<BasicBlock<PegsRange>> = [];
+    const nodes: BasicBlock[] = [];
+    const edges: Edge[] = [];
+    let entry: BasicBlock | undefined;
+    const exits: BasicBlock[] = [];
+    const bodyLoc = Src.fromPegsRange(rawBodyLoc);
 
     // For empty functions build a CFG with a single empty BB
     if (rawStmts.length === 0) {
         entry = new BasicBlock("entry");
-        entry.statements.push(new Return(getFreshId(opts), bodyLoc, []));
+        entry.statements.push(new Return(bodyLoc, []));
         return new CFG([entry], [], entry, [entry]);
     }
 
-    let curStmts: Array<Statement<PegsRange>> = [];
+    let curStmts: Statement[] = [];
     let curLabel: string | undefined;
     const firstStmt = rawStmts[0];
 
     // We require all functions to start with a label.
     if (firstStmt instanceof Statement) {
         throw new Error(
-            `Syntax error: ${firstStmt.src.start.line}:${firstStmt.src.start.column}: Expected first statement in function to be labeled.`
+            `Syntax error: ${firstStmt.src.pp()}: Expected first statement in function to be labeled.`
         );
     }
 
     const addBB = () => {
-        const newBB = new BasicBlock<PegsRange>(curLabel as string);
+        const newBB = new BasicBlock(curLabel as string);
         newBB.statements = curStmts;
 
         if (entry === undefined) {
@@ -131,7 +126,7 @@ export function buildCFG(
     addBB();
 
     // Find edges
-    const bbMap = new Map<string, BasicBlock<PegsRange>>(nodes.map((n) => [n.label, n]));
+    const bbMap = new Map<string, BasicBlock>(nodes.map((n) => [n.label, n]));
 
     for (let i = 0; i < nodes.length; i++) {
         const bb = nodes[i];
@@ -142,9 +137,7 @@ export function buildCFG(
         const lastStmt = bb.statements[bb.statements.length - 1];
         if (!(lastStmt instanceof TerminatorStmt)) {
             throw new Error(
-                `Syntax error: ${lastStmt.src.start.line}:${
-                    lastStmt.src.start.column
-                }: Found basic block that ends in non-terminator statement ${lastStmt.pp()}.`
+                `Syntax error: ${lastStmt.src.pp()}: Found basic block that ends in non-terminator statement ${lastStmt.pp()}.`
             );
         }
 
@@ -180,7 +173,7 @@ export function buildCFG(
                 `Error: Unknown basic block ${lastStmt.falseLabel}`
             );
 
-            bb.addOutgoing(destBB, new BooleanLiteral(getFreshId(opts), lastStmt.src, true));
+            bb.addOutgoing(destBB, new BooleanLiteral(noSrc, true));
             continue;
         }
 

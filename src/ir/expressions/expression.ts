@@ -1,3 +1,3 @@
 import { Node } from "../node";
 
-export abstract class Expression<SrcT> extends Node<SrcT> {}
+export abstract class Expression extends Node {}

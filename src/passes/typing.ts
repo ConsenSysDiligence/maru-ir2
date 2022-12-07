@@ -19,9 +19,10 @@ import {
     Type,
     UserDefinedType
 } from "../ir";
-import { TypeError } from "../tc/tc";
 import { eq } from "../utils";
 import { Resolving } from "./resolving";
+
+export class TypeError extends Error {}
 
 /**
  * Simple pass to compute the type of each expression in each function in a
@@ -30,9 +31,9 @@ import { Resolving } from "./resolving";
  */
 export class Typing {
     /// @ts-ignore
-    private typing: Map<Expression<any>, Type<any>>;
+    private typing: Map<Expression, Type>;
 
-    constructor(public readonly defs: Array<Definition<any>>, private readonly resolve: Resolving) {
+    constructor(public readonly defs: Definition[], private readonly resolve: Resolving) {
         this.typing = new Map();
 
         this.runAnalysis();
@@ -52,7 +53,7 @@ export class Typing {
         }
     }
 
-    private typeOfField(baseExpr: Expression<any>, member: string): Type<any> {
+    private typeOfField(baseExpr: Expression, member: string): Type {
         const baseT = this.tcExpression(baseExpr);
 
         if (!(baseT instanceof PointerType && baseT.toType instanceof UserDefinedType)) {
@@ -79,7 +80,7 @@ export class Typing {
         return matchingFields[0][1];
     }
 
-    private typeOfIndex(baseExpr: Expression<any>, indexExpr: Expression<any>): Type<any> {
+    private typeOfIndex(baseExpr: Expression, indexExpr: Expression): Type {
         const baseT = this.tcExpression(baseExpr);
         const indexT = this.tcExpression(indexExpr);
 
@@ -98,7 +99,7 @@ export class Typing {
         return baseT.toType.baseType;
     }
 
-    private tcStatement(stmt: Statement<any>, fun: FunctionDefinition<any>): void {
+    private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
         if (stmt instanceof Assignment) {
             const lhsT = this.resolve.getIdDecl(stmt.lhs);
             if (lhsT === undefined) {
@@ -145,7 +146,7 @@ export class Typing {
             if (!eq(lhs.type, fieldT)) {
                 throw new TypeError(
                     `Cannot load field ${stmt.member} of struct ${
-                        ((baseT as PointerType<any>).toType as UserDefinedType<any>).name
+                        ((baseT as PointerType).toType as UserDefinedType).name
                     } of type ${fieldT.pp()} in ${lhs.name} of type ${lhs.type.pp()}`
                 );
             }
@@ -208,7 +209,7 @@ export class Typing {
                     `Cannot store ${stmt.rhs.pp()} of type ${rhsT.pp()} into field ${
                         stmt.member
                     } of struct ${
-                        ((baseT as PointerType<any>).toType as UserDefinedType<any>).name
+                        ((baseT as PointerType).toType as UserDefinedType).name
                     } of type ${fieldT.pp()}`
                 );
             }
@@ -230,7 +231,7 @@ export class Typing {
         }
     }
 
-    private tcExpression(expr: Expression<any>): Type<any> {
-        return undefined as unknown as Type<any>;
+    private tcExpression(expr: Expression): Type {
+        return undefined as unknown as Type;
     }
 }

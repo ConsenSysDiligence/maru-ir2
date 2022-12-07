@@ -1,16 +1,16 @@
 import { Node } from "../node";
+import { BaseSrc } from "../source";
 import { Expression } from "./expression";
 
 export type UnaryOperator = "-" | "!";
 
-export class UnaryOperation<SrcT> extends Expression<SrcT> {
+export class UnaryOperation extends Expression {
     constructor(
-        id: number,
-        src: SrcT,
+        src: BaseSrc,
         public readonly op: UnaryOperator,
-        public readonly subExpr: Expression<SrcT>
+        public readonly subExpr: Expression
     ) {
-        super(id, src);
+        super(src);
     }
 
     pp(): string {
@@ -21,7 +21,7 @@ export class UnaryOperation<SrcT> extends Expression<SrcT> {
         return [this.op, this.subExpr];
     }
 
-    children(): Iterable<Node<SrcT>> {
+    children(): Iterable<Node> {
         return [this.subExpr];
     }
 }
