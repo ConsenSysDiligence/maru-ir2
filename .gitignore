@@ -1,4 +1,4 @@
-src/parser/rmsimp_parser.ts
+src/parser/maruir_parser.ts
 node_modules/
 .nyc_output/
 .vscode/

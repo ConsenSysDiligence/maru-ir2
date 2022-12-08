@@ -1,1 +1,1 @@
-export { parseProgram } from "./rmsimp_parser";
+export { parseProgram } from "./maruir_parser";

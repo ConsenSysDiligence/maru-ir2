@@ -4,7 +4,7 @@ import { Expression, FunctionDefinition, parseProgram, Resolving, Typing, walk }
 const fse = require("fs-extra");
 
 describe("Typing positive tests", () => {
-    const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".rmsimp"));
+    const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
     for (const file of files) {
         it(file, () => {

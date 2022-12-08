@@ -4,7 +4,7 @@ import { parseProgram } from "../src";
 const fse = require("fs-extra");
 
 describe("Parser/printer roundtrip test", () => {
-    const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".rmsimp"));
+    const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
     for (const file of files) {
         it(file, () => {

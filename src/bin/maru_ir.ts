@@ -16,9 +16,9 @@ if (args.version) {
 
     console.log(version);
 } else if (args.help || (!args._.length && !args.stdin)) {
-    const message = `Utility for working with RMSIMP files.
+    const message = `Utility for working with maruir files.
 USAGE:
-$ rmsimp <filename>
+$ maru-ir <filename>
 
 OPTIONS:
     --help                  Print help message.

@@ -1,7 +1,7 @@
 {
-    "name": "@consensys/rmsimp",
+    "name": "@consensys/maru-ir2",
     "version": "0.7.3",
-    "description": "Regioned Memory Safe Imp: A small implemntation of the IMP language with regioned memory, explicit load and store, and memory safety (typed load/store, no arithmetic). Includes an interpreter for testing.",
+    "description": "Maru-IR 2: The core implementation of the Maru-IR. It is a small language with regioned memory, explicit load and store, and memory safety (typed load/store, no arithmetic). Includes an interpreter for testing.",
     "keywords": [],
     "files": [
         "dist"
@@ -9,13 +9,13 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "bin": {
-        "rmsimp": "dist/bin/rmsimp.js"
+        "maru-ir": "dist/bin/maru_ir.js"
     },
     "scripts": {
         "clean": "rm -rf dist/",
         "transpile": "tsc",
-        "build-parser": "tspegjs -o src/parser/rmsimp_parser.ts --custom-header-file src/parser/rmsimp_header.ts --allowed-start-rules Program --cache src/parser/rmsimp.pegjs",
-        "build": "npm run clean && npm run build-parser && npm run transpile && chmod a+x dist/bin/rmsimp.js",
+        "build-parser": "tspegjs -o src/parser/maruir_parser.ts --custom-header-file src/parser/maruir_header.ts --allowed-start-rules Program --cache src/parser/maruir.pegjs",
+        "build": "npm run clean && npm run build-parser && npm run transpile && chmod a+x dist/bin/maru_ir.js",
         "lint": "eslint src/ test/ --ext=ts",
         "lint:fix": "eslint src/ test/ --ext=ts --fix",
         "test": "nyc mocha",

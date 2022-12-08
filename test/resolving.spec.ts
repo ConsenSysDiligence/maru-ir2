@@ -11,7 +11,7 @@ import {
 const fse = require("fs-extra");
 
 describe("Resolving test", () => {
-    const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".rmsimp"));
+    const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
     for (const file of files) {
         it(file, () => {
