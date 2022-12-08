@@ -7,7 +7,7 @@ import {
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
-import { walk } from "../utils";
+import { walk, MIRTypeError } from "../utils";
 
 export type TypeDecl = TypeVariableDeclaration | StructDefinition;
 /**
@@ -56,7 +56,8 @@ export class Resolving {
 
         const addDef = (d: VariableDeclaration): void => {
             if (nameToDeclM.has(d.name)) {
-                throw new TypeError(
+                throw new MIRTypeError(
+                    d.src,
                     `Multiple variables/parameters with name ${d.name} in function ${fun.name}`
                 );
             }
@@ -78,7 +79,7 @@ export class Resolving {
                         const decl = nameToDeclM.get(nd.name);
 
                         if (decl === undefined) {
-                            throw new TypeError(`Unknown identifier ${nd.name}`);
+                            throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
                         }
 
                         this._idDecls.set(nd, decl);
@@ -103,7 +104,7 @@ export class Resolving {
                         }
 
                         if (res === undefined) {
-                            throw new TypeError(`Unknown user defined type ${nd.name}`);
+                            throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);
                         }
 
                         this._typeDecls.set(nd, res);

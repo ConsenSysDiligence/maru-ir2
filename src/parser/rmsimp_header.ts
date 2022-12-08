@@ -32,10 +32,11 @@ import {
     PegsRange,
     noSrc,
     Src,
-    TypeVariableDeclaration
+    TypeVariableDeclaration,
+    BaseSrc
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
-import { getOrErr } from "../utils";
+import { MIRSyntaxError } from "../utils";
 
 type ParseOptions = {
     startRule: string;
@@ -46,7 +47,7 @@ export function parseProgram(str: string): Definition[] {
         return parse(str, { startRule: "Program" } as ParseOptions);
     } catch (e) {
         if (e instanceof SyntaxError) {
-            console.error(e);
+            throw new MIRSyntaxError(e.location, e.message);
         }
 
         throw e;
@@ -94,8 +95,9 @@ export function buildCFG(
 
     // We require all functions to start with a label.
     if (firstStmt instanceof Statement) {
-        throw new Error(
-            `Syntax error: ${firstStmt.src.pp()}: Expected first statement in function to be labeled.`
+        throw new MIRSyntaxError(
+            firstStmt.src,
+            `Expected first statement in function to be labeled.`
         );
     }
 
@@ -129,17 +131,28 @@ export function buildCFG(
 
     // Find edges
     const bbMap = new Map<string, BasicBlock>(nodes.map((n) => [n.label, n]));
+    const getBB = (label: string, loc: BaseSrc): BasicBlock => {
+        const res = bbMap.get(label);
+
+        if (res === undefined) {
+            throw new MIRSyntaxError(loc, `Unknown label ${label}`);
+        }
+        return res;
+    };
 
     for (let i = 0; i < nodes.length; i++) {
         const bb = nodes[i];
+
+        // This should be disallowed by the grammar
         if (bb.statements.length === 0) {
-            throw new Error(`Syntax error: Found empty basic block.`);
+            throw new Error(`Unexpected error: Found empty basic block.`);
         }
 
         const lastStmt = bb.statements[bb.statements.length - 1];
         if (!(lastStmt instanceof TerminatorStmt)) {
-            throw new Error(
-                `Syntax error: ${lastStmt.src.pp()}: Found basic block that ends in non-terminator statement ${lastStmt.pp()}.`
+            throw new MIRSyntaxError(
+                lastStmt.src,
+                `Found basic block that ends in non-terminator statement ${lastStmt.pp()}.`
             );
         }
 
@@ -149,16 +162,8 @@ export function buildCFG(
         }
 
         if (lastStmt instanceof Branch) {
-            const trueBB = getOrErr(
-                bbMap,
-                lastStmt.trueLabel,
-                `Error: Unknown basic block ${lastStmt.trueLabel}`
-            );
-            const falseBB = getOrErr(
-                bbMap,
-                lastStmt.falseLabel,
-                `Error: Unknown basic block ${lastStmt.falseLabel}`
-            );
+            const trueBB = getBB(lastStmt.trueLabel, lastStmt.src);
+            const falseBB = getBB(lastStmt.falseLabel, lastStmt.src);
 
             bb.addOutgoing(trueBB, lastStmt.condition);
             bb.addOutgoing(falseBB, new UnaryOperation(lastStmt.condition.src, lastStmt.condition));
@@ -166,11 +171,7 @@ export function buildCFG(
         }
 
         if (lastStmt instanceof Jump) {
-            const destBB = getOrErr(
-                bbMap,
-                lastStmt.label,
-                `Error: Unknown basic block ${lastStmt.falseLabel}`
-            );
+            const destBB = getBB(lastStmt.label, lastStmt.src);
 
             bb.addOutgoing(destBB, new BooleanLiteral(noSrc, true));
             continue;
