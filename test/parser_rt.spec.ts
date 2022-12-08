@@ -14,6 +14,7 @@ describe("Parser/printer roundtrip test", () => {
 
             const newContents = defs.map((d) => d.pp()).join("\n");
 
+            //console.error(newContents);
             const newDefs = parseProgram(newContents);
 
             const newContents2 = newDefs.map((d) => d.pp()).join("\n");

@@ -12,8 +12,8 @@ export class StructDefinition extends Definition {
 
     constructor(
         src: BaseSrc,
-        typeParameters: TypeVariableDeclaration[],
         memoryParameters: string[],
+        typeParameters: TypeVariableDeclaration[],
         name: string,
         fields: Array<[string, Type]>
     ) {
@@ -26,11 +26,13 @@ export class StructDefinition extends Definition {
 
     pp(): string {
         const typeParamStr =
-            this.typeParameters.length > 0 ? `[${this.typeParameters.join(", ")}]` : "";
+            this.typeParameters.length > 0
+                ? `<${this.typeParameters.map((tp) => tp.pp()).join(", ")}>`
+                : "";
         const memoryParamStr =
-            this.memoryParameters.length > 0 ? `<${this.memoryParameters.join(", ")}>` : "";
+            this.memoryParameters.length > 0 ? `[${this.memoryParameters.join(", ")}]` : "";
 
-        return `struct${typeParamStr}${memoryParamStr} ${this.name} {\n${this.fields
+        return `struct${memoryParamStr}${typeParamStr} ${this.name} {\n${this.fields
             .map(([name, typ]) => `    ${name}: ${typ.pp()};`)
             .join("\n\n")}\n}`;
     }

@@ -23,7 +23,6 @@ export type BinaryOperator =
 
 export class BinaryOperation extends Expression {
     constructor(
-        id: number,
         src: BaseSrc,
         public readonly leftExpr: Expression,
         public readonly op: BinaryOperator,

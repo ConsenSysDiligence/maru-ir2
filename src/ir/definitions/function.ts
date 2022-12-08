@@ -37,7 +37,9 @@ export class FunctionDefinition extends Definition {
 
     pp(): string {
         const typeParamStr =
-            this.typeParameters.length > 0 ? `<${this.typeParameters.join(", ")}>` : "";
+            this.typeParameters.length > 0
+                ? `<${this.typeParameters.map((tp) => tp.pp()).join(", ")}>`
+                : "";
         const memoryParamStr =
             this.memoryParameters.length > 0 ? `[${this.memoryParameters.join(", ")}]` : "";
         const returnStr =

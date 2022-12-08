@@ -196,6 +196,7 @@ BooleanLiteral =
 
 Literal
     = Number
+    / BooleanLiteral
 
 PrimitiveExpression
     = Literal

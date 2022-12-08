@@ -30,7 +30,9 @@ import {
     Jump,
     VariableDeclaration,
     PegsRange,
-    noSrc
+    noSrc,
+    Src,
+    TypeVariableDeclaration
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { getOrErr } from "../utils";
@@ -159,10 +161,7 @@ export function buildCFG(
             );
 
             bb.addOutgoing(trueBB, lastStmt.condition);
-            bb.addOutgoing(
-                falseBB,
-                new UnaryOperation(getFreshId(opts), lastStmt.condition.src, lastStmt.condition)
-            );
+            bb.addOutgoing(falseBB, new UnaryOperation(lastStmt.condition.src, lastStmt.condition));
             continue;
         }
 
