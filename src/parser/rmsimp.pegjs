@@ -62,7 +62,7 @@ FunctionDefinition
             params === null ? [] : params,
             locals === null ? [] : locals,
             rets === null ? [] : [rets],
-            body);
+            body === null ? undefined : body);
     }
 
 IdList
@@ -175,7 +175,7 @@ HexDigit =
 
 HexNumber =
     "0x"i digits: HexDigit+ {
-        return new NumberLiteral(Src.fromPegsRange(location()), BigInt(text()), 16)
+        return [BigInt(text()), 16]
     }
 
 DecDigit =
@@ -183,11 +183,13 @@ DecDigit =
 
 DecNumber =
     DecDigit+ {
-        return new NumberLiteral(Src.fromPegsRange(location()), BigInt(text()), 10);
+        return [BigInt(text()), 10];
     }
 
-Number =
-    value: (HexNumber / DecNumber)
+NumberLiteral =
+    type: IntType __ LPAREN __ value: (HexNumber / DecNumber) __ RPAREN {
+        return new NumberLiteral(Src.fromPegsRange(location()), value[0], value[1], type);
+    }
 
 BooleanLiteral =
     val: (TRUE / FALSE) {
@@ -195,7 +197,7 @@ BooleanLiteral =
     }
 
 Literal
-    = Number
+    = NumberLiteral
     / BooleanLiteral
 
 PrimitiveExpression

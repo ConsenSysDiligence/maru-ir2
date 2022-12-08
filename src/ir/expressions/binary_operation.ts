@@ -19,7 +19,9 @@ export type BinaryOperator =
     | "<="
     | ">="
     | "=="
-    | "!=";
+    | "!="
+    | "&&"
+    | "||";
 
 export class BinaryOperation extends Expression {
     constructor(

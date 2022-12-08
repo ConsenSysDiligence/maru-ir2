@@ -14,7 +14,6 @@ export class MIRSyntaxError extends SingleLocError {
     }
 }
 
-
 export class MIRTypeError extends SingleLocError {
     constructor(public readonly loc: BaseSrc, msg: string) {
         super(loc, "TypeError", msg);

@@ -1,4 +1,4 @@
-fun add(a: uint8, b: uin8): uint8
+fun add(a: uint8, b: uint8): uint8
 locals res: uint8;
 {
     entry:
@@ -8,7 +8,7 @@ locals res: uint8;
 
 fun mod(a: int16): int16 {
     entry:
-        branch a < 0 negative non_negative;
+        branch a < int16(0) negative non_negative;
 
     negative:
         a := -a;
@@ -22,15 +22,15 @@ fun gauss(n: int32): int32
 locals ctr: int32, sum: int32;
 {
     entry:
-        ctr := 0;
-        sum := 0;
+        ctr := int32(0);
+        sum := int32(0);
         jump header;
 
     header:
         branch ctr < n body exit;
 
     body:
-        ctr := ctr + 1;
+        ctr := ctr + int32(1);
         sum := sum + ctr;
         jump header;
 

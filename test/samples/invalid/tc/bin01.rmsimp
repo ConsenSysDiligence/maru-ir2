@@ -1,0 +1,7 @@
+fun add(a: uint8, b: int8): uint8
+locals res: uint8;
+{
+    entry:
+        res := a + b;
+        return res;
+}

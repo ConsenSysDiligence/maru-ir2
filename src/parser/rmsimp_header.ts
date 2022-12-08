@@ -47,7 +47,7 @@ export function parseProgram(str: string): Definition[] {
         return parse(str, { startRule: "Program" } as ParseOptions);
     } catch (e) {
         if (e instanceof SyntaxError) {
-            throw new MIRSyntaxError(e.location, e.message);
+            throw new MIRSyntaxError(Src.fromPegsRange(e.location), e.message);
         }
 
         throw e;

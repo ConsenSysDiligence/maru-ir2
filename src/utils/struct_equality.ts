@@ -31,7 +31,7 @@ export interface StructEqualityComparable {
 }
 
 export function isStructEqualityComparable(a: any): a is StructEqualityComparable {
-    return typeof a.getFields === "function";
+    return typeof a.getStructId === "function";
 }
 
 /**

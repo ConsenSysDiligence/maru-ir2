@@ -1,15 +1,20 @@
 import {
     ArrayType,
     Assignment,
+    BinaryOperation,
+    BooleanLiteral,
     BoolType,
     Branch,
     Definition,
     Expression,
     FunctionDefinition,
+    Identifier,
     IntType,
     Jump,
     LoadField,
     LoadIndex,
+    noSrc,
+    NumberLiteral,
     PointerType,
     Return,
     Statement,
@@ -17,10 +22,13 @@ import {
     StoreIndex,
     StructDefinition,
     Type,
+    UnaryOperation,
     UserDefinedType
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
 import { Resolving } from "./resolving";
+
+export const boolT = new BoolType(noSrc);
 
 /**
  * Simple pass to compute the type of each expression in each function in a
@@ -28,13 +36,20 @@ import { Resolving } from "./resolving";
  * Requires `Resolving`.
  */
 export class Typing {
+    typeCache: Map<Expression, Type>;
+
     constructor(public readonly defs: Definition[], private readonly resolve: Resolving) {
+        this.typeCache = new Map();
         this.runAnalysis();
+    }
+
+    public typeOf(e: Expression): Type | undefined {
+        return this.typeCache.get(e);
     }
 
     private runAnalysis(): void {
         for (const def of this.defs) {
-            if (!(def instanceof FunctionDefinition) || def.body === undefined) {
+            if (!(def instanceof FunctionDefinition && def.body !== undefined)) {
                 continue;
             }
 
@@ -100,11 +115,7 @@ export class Typing {
 
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
         if (stmt instanceof Assignment) {
-            const lhsT = this.resolve.getIdDecl(stmt.lhs);
-            if (lhsT === undefined) {
-                throw new MIRTypeError(stmt.lhs.src, `Unknown id ${stmt.lhs.name}`);
-            }
-
+            const lhsT = this.tcExpression(stmt.lhs);
             const rhsT = this.tcExpression(stmt.rhs);
 
             if (!eq(lhsT, rhsT)) {
@@ -135,24 +146,16 @@ export class Typing {
         }
 
         if (stmt instanceof LoadField) {
-            const lhs = this.resolve.getIdDecl(stmt.lhs);
+            const lhsT = this.tcExpression(stmt.lhs);
             const baseT = this.tcExpression(stmt.baseExpr);
-
-            if (!lhs) {
-                throw new MIRTypeError(
-                    stmt.lhs.src,
-                    `Unknown identifier ${stmt.lhs.name} in load operation.`
-                );
-            }
-
             const fieldT = this.typeOfField(stmt.baseExpr, stmt.member);
 
-            if (!eq(lhs.type, fieldT)) {
+            if (!eq(lhsT, fieldT)) {
                 throw new MIRTypeError(
                     stmt.src,
                     `Cannot load field ${stmt.member} of struct ${
                         ((baseT as PointerType).toType as UserDefinedType).name
-                    } of type ${fieldT.pp()} in ${lhs.name} of type ${lhs.type.pp()}`
+                    } of type ${fieldT.pp()} in ${stmt.lhs.name} of type ${lhsT.pp()}`
                 );
             }
 
@@ -160,23 +163,15 @@ export class Typing {
         }
 
         if (stmt instanceof LoadIndex) {
-            const lhs = this.resolve.getIdDecl(stmt.lhs);
-
-            if (!lhs) {
-                throw new MIRTypeError(
-                    stmt.lhs.src,
-                    `Unknown identifier ${stmt.lhs.name} in load operation.`
-                );
-            }
-
+            const lhsT = this.tcExpression(stmt.lhs);
             const rhsT = this.typeOfIndex(stmt.baseExpr, stmt.indexExpr);
 
-            if (!eq(lhs.type, rhsT)) {
+            if (!eq(lhsT, rhsT)) {
                 throw new MIRTypeError(
                     stmt.src,
                     `Cannot load index ${stmt.indexExpr.pp()} of array ${stmt.baseExpr.pp()} of type ${rhsT.pp()} in ${
-                        lhs.name
-                    } of type ${lhs.type.pp()}`
+                        stmt.lhs.name
+                    } of type ${lhsT.pp()}`
                 );
             }
 
@@ -245,7 +240,140 @@ export class Typing {
     }
 
     private tcExpression(expr: Expression): Type {
-        expr;
-        return undefined as unknown as Type;
+        let res = this.typeCache.get(expr);
+
+        if (res) {
+            return res;
+        }
+
+        res = this.tcExpressionImpl(expr);
+
+        this.typeCache.set(expr, res);
+        return res;
+    }
+
+    private tcExpressionImpl(expr: Expression): Type {
+        if (expr instanceof BooleanLiteral) {
+            return boolT;
+        }
+
+        if (expr instanceof NumberLiteral) {
+            return expr.type;
+        }
+
+        if (expr instanceof Identifier) {
+            const decl = this.resolve.getIdDecl(expr);
+
+            if (decl === undefined) {
+                throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
+            }
+
+            return decl.type;
+        }
+
+        if (expr instanceof UnaryOperation) {
+            const innerT = this.tcExpression(expr.subExpr);
+
+            if (expr.op === "-") {
+                if (!(innerT instanceof IntType)) {
+                    throw new MIRTypeError(
+                        expr.src,
+                        `Unary - expects an int type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
+                    );
+                }
+
+                return innerT;
+            }
+
+            if (expr.op === "!") {
+                if (!(innerT instanceof BoolType)) {
+                    throw new MIRTypeError(
+                        expr.src,
+                        `Unary ! expects a bool type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
+                    );
+                }
+
+                return innerT;
+            }
+
+            throw new Error(`Unknown unary operator ${expr.op}`);
+        }
+
+        if (expr instanceof BinaryOperation) {
+            const lhsT = this.tcExpression(expr.leftExpr);
+            const rhsT = this.tcExpression(expr.rightExpr);
+
+            /// Power and bitshifts are the only binary operators
+            /// where we don't insist that the left and right sub-expressions
+            /// are of the same type.
+            if (["**", ">>", "<<"].includes(expr.op)) {
+                if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Binary operator ${
+                            expr.op
+                        } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                    );
+                }
+
+                return lhsT;
+            }
+
+            if (!eq(lhsT, rhsT)) {
+                throw new MIRTypeError(
+                    expr,
+                    `Binary operator ${
+                        expr.op
+                    } expects arguments of the same type, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                );
+            }
+
+            if (["==", "!="].includes(expr.op)) {
+                return boolT;
+            }
+
+            if (["<", ">", "<=", ">="].includes(expr.op)) {
+                if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Binary operator ${
+                            expr.op
+                        } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                    );
+                }
+
+                return boolT;
+            }
+
+            if (["*", "/", "%", "+", "-", "&", "|", "^"].includes(expr.op)) {
+                if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Binary operator ${
+                            expr.op
+                        } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                    );
+                }
+
+                return lhsT;
+            }
+
+            if (["&&", "||"].includes(expr.op)) {
+                if (!(lhsT instanceof BoolType && rhsT instanceof BoolType)) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Binary operator ${
+                            expr.op
+                        } expects boolean arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                    );
+                }
+
+                return lhsT;
+            }
+
+            throw new Error(`Unknown binary operator ${expr.op}`);
+        }
+
+        throw new Error(`Unknown expression ${expr.pp()}`);
     }
 }

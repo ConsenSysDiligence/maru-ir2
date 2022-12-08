@@ -26,6 +26,6 @@ fun <T> hoo(c: bool)
 
 fun [M] <T> doo(e: int32) {}
 
-fun goo(): uint16 {}
+fun goo(): uint16
 
-fun [M, S] <T1, T2> zoo(e: int32): bool {}
+fun [M, S] <T1, T2> zoo(e: int32): bool
