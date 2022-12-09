@@ -329,6 +329,18 @@ export class Typing {
             }
 
             if (["==", "!="].includes(expr.op)) {
+                if (
+                    !(
+                        lhsT instanceof IntType ||
+                        lhsT instanceof BoolType ||
+                        lhsT instanceof PointerType
+                    )
+                ) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Cannot perform equality check between ${lhsT.pp()} types.`
+                    );
+                }
                 return boolT;
             }
 
