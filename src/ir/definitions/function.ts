@@ -1,12 +1,11 @@
 import { CFG } from "../cfg";
-import { TypeVariableDeclaration, VariableDeclaration } from "../misc";
+import { VariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class FunctionDefinition extends Definition {
-    public readonly typeParameters: TypeVariableDeclaration[];
     public readonly memoryParameters: string[];
     public readonly name;
     public readonly parameters: VariableDeclaration[];
@@ -17,7 +16,6 @@ export class FunctionDefinition extends Definition {
     constructor(
         src: BaseSrc,
         memoryParameters: string[],
-        typeParameters: TypeVariableDeclaration[],
         name: string,
         params: VariableDeclaration[],
         locals: VariableDeclaration[],
@@ -26,7 +24,6 @@ export class FunctionDefinition extends Definition {
     ) {
         super(src);
 
-        this.typeParameters = typeParameters;
         this.memoryParameters = memoryParameters;
         this.name = name;
         this.parameters = params;
@@ -36,10 +33,6 @@ export class FunctionDefinition extends Definition {
     }
 
     pp(): string {
-        const typeParamStr =
-            this.typeParameters.length > 0
-                ? `<${this.typeParameters.map((tp) => tp.pp()).join(", ")}>`
-                : "";
         const memoryParamStr =
             this.memoryParameters.length > 0 ? `[${this.memoryParameters.join(", ")}]` : "";
         const returnStr =
@@ -50,7 +43,7 @@ export class FunctionDefinition extends Definition {
                 : `: (${this.returns.map((x) => x.pp()).join(", ")})`;
         const bodyStr = this.body ? " " + this.body.pp() : "";
 
-        return `fun${memoryParamStr}${typeParamStr} ${this.name}(${this.parameters
+        return `fun${memoryParamStr} ${this.name}(${this.parameters
             .map((decl) => decl.pp())
             .join(", ")})${returnStr}${bodyStr}`;
     }

@@ -4,7 +4,7 @@ struct Foo {
     c: bool;
 }
 
-struct <T> Boo {
+struct Boo {
     a: bool;
 }
 
@@ -12,7 +12,7 @@ struct [M] Moo {
     c: int16;
 }
 
-struct [N] <T> Goo {
+struct [N] Goo {
     e: bool;
 }
 
@@ -22,10 +22,10 @@ fun bar(a: bool) {}
 
 fun boo(a: bool, b: uint256)
 
-fun <T> hoo(c: bool)
+fun hoo(c: bool)
 
-fun [M] <T> doo(e: int32) {}
+fun [M] doo(e: int32) {}
 
 fun goo(): uint16
 
-fun [M, S] <T1, T2> zoo(e: int32): bool
+fun [M, S] zoo(e: int32): bool

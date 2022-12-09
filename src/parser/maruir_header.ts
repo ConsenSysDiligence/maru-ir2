@@ -32,7 +32,6 @@ import {
     PegsRange,
     noSrc,
     Src,
-    TypeVariableDeclaration,
     BaseSrc
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";

@@ -4,17 +4,17 @@ struct Foo {
     c: bool;
 }
 
-struct<T> Boo {
-    a: T;
+struct Boo {
+    a: bool;
 }
 
-struct[M1, M2]<T1, T2> Goo {
-    a: T1 * M1;
-    b: T2 * M2[] * M1[];
-    c: (((T2 * M2)[]) * M1)[];
+struct[M1, M2] Goo {
+    a: bool[] * M1;
+    b: uint8[] * M2[] * M1[];
+    c: (((int16 * M2)[]) * M1)[];
 }
 
-struct<T> Doo {
+struct Doo {
     a: Foo * Memory;
     b: Boo<uint16> * Storage;
     c: Goo[Storage, Memory]<bool, uint8>;

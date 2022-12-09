@@ -3,18 +3,17 @@ import {
     FunctionDefinition,
     Identifier,
     StructDefinition,
-    TypeVariableDeclaration,
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
 import { walk, MIRTypeError } from "../utils";
 
-export type TypeDecl = TypeVariableDeclaration | StructDefinition;
+export type TypeDecl = StructDefinition;
 /**
  * Simple pass to compute:
  * 1. The VariableDeclaration for each Identifier
  * @todo 2. The FunctionDefinition for every name inside of a FunctionCall
- * 3. The @todo TypeVar definition/StructDefinition for every UserDefinedType
+ * 3. The @todo StructDefinition for every UserDefinedType
  */
 export class Resolving {
     private _idDecls: Map<Identifier, VariableDeclaration>;
@@ -87,21 +86,9 @@ export class Resolving {
                     }
 
                     /// Resolution order is
-                    /// 1. Function type params
-                    /// 2. Global struct definitions
+                    /// 1. Global struct definitions
                     if (nd instanceof UserDefinedType) {
-                        let res: TypeDecl | undefined;
-
-                        for (const tVarDecl of fun.typeParameters) {
-                            if (tVarDecl.name === nd.name) {
-                                res = tVarDecl;
-                                break;
-                            }
-                        }
-
-                        if (res === undefined) {
-                            res = this.nameToTypeDef.get(nd.name);
-                        }
+                        const res = this.nameToTypeDef.get(nd.name);
 
                         if (res === undefined) {
                             throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);

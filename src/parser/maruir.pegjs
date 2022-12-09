@@ -7,18 +7,6 @@ Definition
     = StructDefinition
     / FunctionDefinition;
 
-TVar
-    = name: Identifier {
-        return new TypeVariableDeclaration(Src.fromPegsRange(location()), name);
-    }
-
-TVList
-    = head: TVar tail: (__ COMMA __ tv: TVar {return tv;})* {
-        return [head, ...tail];
-    }
-
-TypeFormalParams
-    = LT __ tVars: TVList __ GT { return tVars; }
 
 MemoryFormalParams
     = LBRACKET __ mVars: IdList __ RBRACKET { return mVars; }
@@ -27,11 +15,10 @@ StructField
     = name: Identifier __ COLON __ type: Type __ SEMICOLON { return [name, type]; }
 
 StructDefinition
-    = STRUCT __ mArgs: MemoryFormalParams? __ tArgs: TypeFormalParams? __ name: Identifier __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
+    = STRUCT __ mArgs: MemoryFormalParams? __ name: Identifier __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
         return new StructDefinition<SrcRange>(
             Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
-            tArgs === null ? [] : tArgs,
             name,
             fields === null ? [] : fields);
     }
@@ -53,11 +40,10 @@ FunBody
     }
 
 FunctionDefinition
-    = FUNCTION __ mArgs: MemoryFormalParams? __ tArgs: TypeFormalParams? __ name: Identifier __  LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
+    = FUNCTION __ mArgs: MemoryFormalParams? __ name: Identifier __  LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
         return new FunctionDefinition(
             Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
-            tArgs === null ? [] : tArgs,
             name,
             params === null ? [] : params,
             locals === null ? [] : locals,
