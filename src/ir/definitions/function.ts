@@ -34,7 +34,7 @@ export class FunctionDefinition extends Definition {
 
     pp(): string {
         const memoryParamStr =
-            this.memoryParameters.length > 0 ? `[${this.memoryParameters.join(", ")}]` : "";
+            this.memoryParameters.length > 0 ? `<${this.memoryParameters.join(", ")}>` : "";
         const returnStr =
             this.returns.length === 0
                 ? ""
@@ -43,7 +43,7 @@ export class FunctionDefinition extends Definition {
                 : `: (${this.returns.map((x) => x.pp()).join(", ")})`;
         const bodyStr = this.body ? " " + this.body.pp() : "";
 
-        return `fun${memoryParamStr} ${this.name}(${this.parameters
+        return `fun ${this.name}${memoryParamStr}(${this.parameters
             .map((decl) => decl.pp())
             .join(", ")})${returnStr}${bodyStr}`;
     }

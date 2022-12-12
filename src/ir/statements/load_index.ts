@@ -14,7 +14,7 @@ export class LoadIndex extends Statement {
     }
 
     pp(): string {
-        return `${this.lhs.pp()} := load ${this.baseExpr.pp()}[${this.indexExpr.pp()}];`;
+        return `load ${this.baseExpr.pp()}[${this.indexExpr.pp()}] in ${this.lhs.pp()};`;
     }
 
     getStructId(): any {

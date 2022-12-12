@@ -14,7 +14,7 @@ export class LoadField extends Statement {
     }
 
     pp(): string {
-        return `${this.lhs.pp()} := load ${this.baseExpr.pp()}.${this.member};`;
+        return `load ${this.baseExpr.pp()}.${this.member} in ${this.lhs.pp()};`;
     }
 
     getStructId(): any {

@@ -8,11 +8,11 @@ struct Boo {
     a: bool;
 }
 
-struct [M] Moo {
+struct Moo<M>  {
     c: int16;
 }
 
-struct [N] Goo {
+struct Goo<N>  {
     e: bool;
 }
 
@@ -24,8 +24,8 @@ fun boo(a: bool, b: uint256)
 
 fun hoo(c: bool)
 
-fun [M] doo(e: int32) {}
+fun doo<M> (e: int32) {}
 
 fun goo(): uint16
 
-fun [M, S] zoo(e: int32): bool
+fun zoo<M, S>(e: int32): bool

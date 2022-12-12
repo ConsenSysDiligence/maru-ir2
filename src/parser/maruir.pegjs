@@ -9,13 +9,13 @@ Definition
 
 
 MemoryFormalParams
-    = LBRACKET __ mVars: IdList __ RBRACKET { return mVars; }
+    = LT __ mVars: IdList __ GT { return mVars; }
 
 StructField
     = name: Identifier __ COLON __ type: Type __ SEMICOLON { return [name, type]; }
 
 StructDefinition
-    = STRUCT __ mArgs: MemoryFormalParams? __ name: Identifier __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
+    = STRUCT __ name: Identifier __ mArgs: MemoryFormalParams? __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
         return new StructDefinition<SrcRange>(
             Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
@@ -40,7 +40,7 @@ FunBody
     }
 
 FunctionDefinition
-    = FUNCTION __ mArgs: MemoryFormalParams? __ name: Identifier __  LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
+    = FUNCTION __ name: Identifier __  mArgs: MemoryFormalParams? __ LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
         return new FunctionDefinition(
             Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
@@ -61,8 +61,8 @@ TypeArgs
     = head: Type tail: (__ COMMA __ typ: Type { return typ; })* { return [head, ...tail]; }
 
 UserDefinedType
-    = name: Identifier memArgs: (LBRACKET __  ids: IdList __ RBRACKET { return ids; })? typeArgs: (LT __ types:TypeArgs __ GT { return types; })? {
-        return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs === null ? [] : memArgs, typeArgs === null ? [] : typeArgs);
+    = name: Identifier __ memArgs: (LT __  ids: IdList __ GT { return ids; })? {
+        return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs === null ? [] : memArgs);
     }
 
 PrimitiveType
@@ -123,7 +123,7 @@ LoadIndex
     }
 
 LoadField
-    = LOAD __ base: Expression "." member: Identifier IN lhs: Identifier __ SEMICOLON {
+    = LOAD __ base: Expression "." member: Identifier __ IN __ lhs: Identifier __ SEMICOLON {
         const lhsNode = new Identifier(Src.fromPegsRange(location()), lhs);
         return new LoadField(Src.fromPegsRange(location()), lhsNode, base, member);
     }

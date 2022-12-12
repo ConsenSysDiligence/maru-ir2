@@ -8,7 +8,7 @@ struct Boo {
     a: bool;
 }
 
-struct[M1, M2] Goo {
+struct Goo<M1, M2>  {
     a: bool[] * M1;
     b: uint8[] * M2[] * M1[];
     c: (((int16 * M2)[]) * M1)[];
@@ -16,6 +16,6 @@ struct[M1, M2] Goo {
 
 struct Doo {
     a: Foo * Memory;
-    b: Boo<uint16> * Storage;
-    c: Goo[Storage, Memory]<bool, uint8>;
+    b: Boo * Storage;
+    c: Goo<Storage, Memory>;
 }

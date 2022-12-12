@@ -22,9 +22,9 @@ export class StructDefinition extends Definition {
 
     pp(): string {
         const memoryParamStr =
-            this.memoryParameters.length > 0 ? `[${this.memoryParameters.join(", ")}]` : "";
+            this.memoryParameters.length > 0 ? `<${this.memoryParameters.join(", ")}>` : "";
 
-        return `struct${memoryParamStr} ${this.name} {\n${this.fields
+        return `struct ${this.name}${memoryParamStr} {\n${this.fields
             .map(([name, typ]) => `    ${name}: ${typ.pp()};`)
             .join("\n\n")}\n}`;
     }
