@@ -13,6 +13,8 @@ import {
     Jump,
     LoadField,
     LoadIndex,
+    MemConstant,
+    MemVariableDeclaration,
     noSrc,
     NumberLiteral,
     PointerType,
@@ -25,10 +27,11 @@ import {
     UnaryOperation,
     UserDefinedType
 } from "../ir";
-import { eq, MIRTypeError } from "../utils";
+import { eq, MIRTypeError, zip } from "../utils";
 import { Resolving } from "./resolving";
 
 export const boolT = new BoolType(noSrc);
+type Substitution = Map<MemVariableDeclaration, MemConstant | MemVariableDeclaration>;
 
 /**
  * Simple pass to compute the type of each expression in each function in a
@@ -64,7 +67,6 @@ export class Typing {
     private typeOfField(baseExpr: Expression, member: string): Type {
         const baseT = this.tcExpression(baseExpr);
 
-        console.error(`Base: ${baseT.constructor.name}`);
         if (!(baseT instanceof PointerType && baseT.toType instanceof UserDefinedType)) {
             throw new MIRTypeError(
                 baseExpr.src,
@@ -82,13 +84,6 @@ export class Typing {
             );
         }
 
-        if (def.memoryParameters.length !== userType.memArgs.length) {
-            throw new MIRTypeError(
-                userType.src,
-                `Struct ${def.name} expects ${def.memoryParameters.length} memory parameters, instead ${userType.memArgs.length} given.`
-            );
-        }
-
         const matchingFields = def.fields.filter(([name]) => name == member);
 
         if (matchingFields.length === 0) {
@@ -98,7 +93,13 @@ export class Typing {
             );
         }
 
-        return matchingFields[0][1];
+        let res = matchingFields[0][1];
+
+        if (userType.memArgs.length > 0) {
+            res = this.concretizeType(res, this.makeSubst(userType));
+        }
+
+        return res;
     }
 
     private typeOfIndex(baseExpr: Expression, indexExpr: Expression): Type {
@@ -277,6 +278,13 @@ export class Typing {
                 throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
             }
 
+            if (decl instanceof MemVariableDeclaration) {
+                throw new MIRTypeError(
+                    expr.src,
+                    `Unexpected memory variable in expression  ${expr.name}`
+                );
+            }
+
             return decl.type;
         }
 
@@ -396,5 +404,65 @@ export class Typing {
         }
 
         throw new Error(`Unknown expression ${expr.pp()}`);
+    }
+
+    private makeSubst(t: UserDefinedType): Substitution {
+        const decl = this.resolve.getTypeDecl(t);
+
+        if (decl === undefined) {
+            throw new Error(`Unexpected undefined decl for type ${t.name}`);
+        }
+
+        const formals = decl.memoryParameters;
+        const actuals = t.memArgs;
+
+        if (formals.length !== actuals.length) {
+            throw new MIRTypeError(
+                t.src,
+                `Struct ${decl.name} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+            );
+        }
+
+        return new Map(zip(formals, actuals));
+    }
+
+    private concretizeType(t: Type, subst: Substitution): Type {
+        const convertId = (id: Identifier): MemConstant | Identifier => {
+            let result: MemConstant | Identifier = id;
+            const decl = this.resolve.getIdDecl(id);
+
+            if (!(decl instanceof MemVariableDeclaration)) {
+                throw new MIRTypeError(id.src, `Unexpected non-memory identifier in type`);
+            }
+
+            const newVal = subst.get(decl);
+
+            if (newVal) {
+                result =
+                    newVal instanceof MemConstant ? newVal : new Identifier(id.src, newVal.name);
+            }
+
+            return result;
+        };
+
+        if (t instanceof PointerType) {
+            let region = t.region;
+
+            if (region instanceof Identifier) {
+                region = convertId(region);
+            }
+
+            return new PointerType(t.src, this.concretizeType(t.toType, subst), region);
+        }
+
+        if (t instanceof ArrayType) {
+            return new ArrayType(t.src, this.concretizeType(t.baseType, subst));
+        }
+
+        if (t instanceof UserDefinedType) {
+            return new UserDefinedType(t.src, t.name, t.memArgs.map(convertId));
+        }
+
+        return t;
     }
 }

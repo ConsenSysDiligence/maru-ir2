@@ -33,7 +33,8 @@ import {
     PegsRange,
     noSrc,
     Src,
-    BaseSrc
+    BaseSrc,
+    MemConstant
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";

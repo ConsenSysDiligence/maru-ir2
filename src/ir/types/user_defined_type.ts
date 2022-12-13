@@ -1,10 +1,10 @@
-import { Identifier } from "../expressions";
+import { MemDesc } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "./type";
 
 export class UserDefinedType extends Type {
-    constructor(src: BaseSrc, public readonly name: string, public readonly memArgs: Identifier[]) {
+    constructor(src: BaseSrc, public readonly name: string, public readonly memArgs: MemDesc[]) {
         super(src);
     }
 

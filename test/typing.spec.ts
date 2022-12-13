@@ -1,6 +1,14 @@
 import expect from "expect";
 import { searchRecursive } from "./utils";
-import { Expression, FunctionDefinition, parseProgram, Resolving, Typing, walk } from "../src";
+import {
+    Expression,
+    FunctionDefinition,
+    MIRTypeError,
+    parseProgram,
+    Resolving,
+    Typing,
+    walk
+} from "../src";
 const fse = require("fs-extra");
 
 describe("Typing positive tests", () => {
@@ -35,7 +43,7 @@ describe("Typing positive tests", () => {
 });
 
 describe("Typing negative tests", () => {
-    const files = searchRecursive("test/samples/invalid/tc/", (name) => name.endsWith(".rmsimp"));
+    const files = searchRecursive("test/samples/invalid/tc/", (name) => name.endsWith(".maruir"));
 
     for (const file of files) {
         it(file, () => {
@@ -43,7 +51,7 @@ describe("Typing negative tests", () => {
             const defs = parseProgram(contents);
             const resolving = new Resolving(defs);
 
-            expect(() => new Typing(defs, resolving)).toThrow();
+            expect(() => new Typing(defs, resolving)).toThrow(MIRTypeError);
         });
     }
 });

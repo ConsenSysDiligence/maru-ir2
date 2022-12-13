@@ -15,7 +15,7 @@ struct Goo<M1, M2>  {
 }
 
 struct Doo {
-    a: Foo * Memory;
-    b: Boo * Storage;
-    c: Goo<Storage, Memory>;
+    a: Foo * #Memory;
+    b: Boo * #Storage;
+    c: Goo<#Storage, #Memory>;
 }

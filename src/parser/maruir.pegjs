@@ -63,8 +63,15 @@ IdList
         return [head, ...tail];
     }
 
-MemDesc
+MemVar
     = name: Identifier { return new Identifier(Src.fromPegsRange(location()), name); }
+
+MemConst
+    = HASHTAG name: Identifier { return new MemConstant(Src.fromPegsRange(location()), name); }
+
+MemDesc
+    = MemVar
+    / MemConst
 
 MemDescList
     = head: MemDesc tail: (__ COMMA __ d: MemDesc {return d;})* {
@@ -94,7 +101,7 @@ IntType
     = unsigned:("u"?) "int" nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, unsigned == null); }
 
 PointerOrArrayType
-    = head: PrimitiveType tail: ((__ STAR __ Identifier) / __ LBRACKET __ RBRACKET)* {
+    = head: PrimitiveType tail: ((__ STAR __ MemDesc) / __ LBRACKET __ RBRACKET)* {
         return tail.reduce(
             (acc: Type, el: any) => {
                 if (el[1] === "*") {
@@ -345,6 +352,7 @@ LOAD="load"
 STORE="store"
 IN="in"
 LOCALS="locals"
+HASHTAG="#"
 
 Keyword
     = STRUCT

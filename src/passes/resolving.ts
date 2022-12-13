@@ -2,6 +2,7 @@ import {
     Definition,
     FunctionDefinition,
     Identifier,
+    MemVariableDeclaration,
     StructDefinition,
     UserDefinedType,
     VariableDeclaration
@@ -16,7 +17,7 @@ export type TypeDecl = StructDefinition;
  * 3. The @todo StructDefinition for every UserDefinedType
  */
 export class Resolving {
-    private _idDecls: Map<Identifier, VariableDeclaration>;
+    private _idDecls: Map<Identifier, VariableDeclaration | MemVariableDeclaration>;
     private _typeDecls: Map<UserDefinedType, TypeDecl>;
     private nameToTypeDef: Map<string, StructDefinition>;
 
@@ -28,7 +29,7 @@ export class Resolving {
         this.runAnalysis();
     }
 
-    getIdDecl(id: Identifier): VariableDeclaration | undefined {
+    getIdDecl(id: Identifier): VariableDeclaration | MemVariableDeclaration | undefined {
         return this._idDecls.get(id);
     }
 
@@ -46,14 +47,48 @@ export class Resolving {
         for (const def of this.defs) {
             if (def instanceof FunctionDefinition) {
                 this.analyzeOneFun(def);
+            } else if (def instanceof StructDefinition) {
+                this.analyzeOneStruct(def);
             }
         }
     }
 
-    private analyzeOneFun(fun: FunctionDefinition) {
-        const nameToDeclM = new Map<string, VariableDeclaration>();
+    private analyzeOneStruct(struct: StructDefinition) {
+        const nameToDeclM = new Map<string, MemVariableDeclaration>();
 
-        const addDef = (d: VariableDeclaration): void => {
+        for (const memVar of struct.memoryParameters) {
+            nameToDeclM.set(memVar.name, memVar);
+        }
+
+        walk(struct, (nd) => {
+            if (nd instanceof Identifier) {
+                const decl = nameToDeclM.get(nd.name);
+
+                if (decl === undefined) {
+                    throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
+                }
+
+                this._idDecls.set(nd, decl);
+                return;
+            }
+
+            if (nd instanceof UserDefinedType) {
+                const res = this.nameToTypeDef.get(nd.name);
+
+                if (res === undefined) {
+                    throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);
+                }
+
+                this._typeDecls.set(nd, res);
+                return;
+            }
+        });
+    }
+
+    private analyzeOneFun(fun: FunctionDefinition) {
+        const nameToDeclM = new Map<string, VariableDeclaration | MemVariableDeclaration>();
+
+        const addDef = (d: VariableDeclaration | MemVariableDeclaration): void => {
             if (nameToDeclM.has(d.name)) {
                 throw new MIRTypeError(
                     d.src,
@@ -66,6 +101,7 @@ export class Resolving {
 
         fun.parameters.forEach(addDef);
         fun.locals.forEach(addDef);
+        fun.memoryParameters.forEach(addDef);
 
         for (const child of fun.children()) {
             walk(child, (nd) => {
@@ -80,8 +116,6 @@ export class Resolving {
                     return;
                 }
 
-                /// Resolution order is
-                /// 1. Global struct definitions
                 if (nd instanceof UserDefinedType) {
                     const res = this.nameToTypeDef.get(nd.name);
 

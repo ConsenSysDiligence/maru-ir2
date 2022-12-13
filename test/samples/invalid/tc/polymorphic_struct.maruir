@@ -3,7 +3,7 @@ struct S<M> {
 }
 
 fun foo(s: S<#memory> *#memory)
-locals ptr: uint256[] * #memory;
+locals ptr: uint256[] * #storage;
 {
 	entry:
 
