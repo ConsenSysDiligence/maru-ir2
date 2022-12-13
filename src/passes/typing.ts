@@ -64,6 +64,7 @@ export class Typing {
     private typeOfField(baseExpr: Expression, member: string): Type {
         const baseT = this.tcExpression(baseExpr);
 
+        console.error(`Base: ${baseT.constructor.name}`);
         if (!(baseT instanceof PointerType && baseT.toType instanceof UserDefinedType)) {
             throw new MIRTypeError(
                 baseExpr.src,
@@ -71,12 +72,20 @@ export class Typing {
             );
         }
 
-        const def = this.resolve.getTypeDecl(baseT.toType);
+        const userType = baseT.toType;
+        const def = this.resolve.getTypeDecl(userType);
 
         if (!(def instanceof StructDefinition)) {
             throw new MIRTypeError(
                 baseExpr.src,
                 `Expected a pointer to a struct not ${baseExpr.pp()} of type ${baseT.pp()}`
+            );
+        }
+
+        if (def.memoryParameters.length !== userType.memArgs.length) {
+            throw new MIRTypeError(
+                userType.src,
+                `Struct ${def.name} expects ${def.memoryParameters.length} memory parameters, instead ${userType.memArgs.length} given.`
             );
         }
 

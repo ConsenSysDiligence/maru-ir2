@@ -7,9 +7,16 @@ Definition
     = StructDefinition
     / FunctionDefinition;
 
+MemVariableDeclaration
+    = id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id); }
+
+MemIdList
+    = head: MemVariableDeclaration tail: (__ COMMA __ decl: MemVariableDeclaration { return decl; })* {
+        return [head, ...tail];
+    }
 
 MemoryFormalParams
-    = LT __ mVars: IdList __ GT { return mVars; }
+    = LT __ mVars: MemIdList __ GT { return mVars; }
 
 StructField
     = name: Identifier __ COLON __ type: Type __ SEMICOLON { return [name, type]; }
@@ -56,12 +63,24 @@ IdList
         return [head, ...tail];
     }
 
+MemDesc
+    = name: Identifier { return new Identifier(Src.fromPegsRange(location()), name); }
+
+MemDescList
+    = head: MemDesc tail: (__ COMMA __ d: MemDesc {return d;})* {
+        return [head, ...tail];
+    }
+
+MemDescs
+    = LT __  descs: MemDescList __ GT { return descs; }
+
+
 /// Types
 TypeArgs
     = head: Type tail: (__ COMMA __ typ: Type { return typ; })* { return [head, ...tail]; }
 
 UserDefinedType
-    = name: Identifier __ memArgs: (LT __  ids: IdList __ GT { return ids; })? {
+    = name: Identifier __ memArgs: MemDescs? {
         return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs === null ? [] : memArgs);
     }
 

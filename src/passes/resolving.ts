@@ -67,38 +67,32 @@ export class Resolving {
         fun.parameters.forEach(addDef);
         fun.locals.forEach(addDef);
 
-        if (!fun.body) {
-            return;
-        }
+        for (const child of fun.children()) {
+            walk(child, (nd) => {
+                if (nd instanceof Identifier) {
+                    const decl = nameToDeclM.get(nd.name);
 
-        for (const bb of fun.body.nodes.values()) {
-            for (const stmt of bb.statements) {
-                walk(stmt, (nd) => {
-                    if (nd instanceof Identifier) {
-                        const decl = nameToDeclM.get(nd.name);
-
-                        if (decl === undefined) {
-                            throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
-                        }
-
-                        this._idDecls.set(nd, decl);
-                        return;
+                    if (decl === undefined) {
+                        throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
                     }
 
-                    /// Resolution order is
-                    /// 1. Global struct definitions
-                    if (nd instanceof UserDefinedType) {
-                        const res = this.nameToTypeDef.get(nd.name);
+                    this._idDecls.set(nd, decl);
+                    return;
+                }
 
-                        if (res === undefined) {
-                            throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);
-                        }
+                /// Resolution order is
+                /// 1. Global struct definitions
+                if (nd instanceof UserDefinedType) {
+                    const res = this.nameToTypeDef.get(nd.name);
 
-                        this._typeDecls.set(nd, res);
-                        return;
+                    if (res === undefined) {
+                        throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);
                     }
-                });
-            }
+
+                    this._typeDecls.set(nd, res);
+                    return;
+                }
+            });
         }
     }
 }

@@ -29,6 +29,7 @@ import {
     TerminatorStmt,
     Jump,
     VariableDeclaration,
+    MemVariableDeclaration,
     PegsRange,
     noSrc,
     Src,
@@ -165,7 +166,10 @@ export function buildCFG(
             const falseBB = getBB(lastStmt.falseLabel, lastStmt.src);
 
             bb.addOutgoing(trueBB, lastStmt.condition);
-            bb.addOutgoing(falseBB, new UnaryOperation(lastStmt.condition.src, lastStmt.condition));
+            bb.addOutgoing(
+                falseBB,
+                new UnaryOperation(lastStmt.condition.src, "!", lastStmt.condition)
+            );
             continue;
         }
 

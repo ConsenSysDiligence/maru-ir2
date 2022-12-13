@@ -1,16 +1,17 @@
+import { MemVariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class StructDefinition extends Definition {
-    public readonly memoryParameters: string[];
+    public readonly memoryParameters: MemVariableDeclaration[];
     public readonly name: string;
     public readonly fields: Array<[string, Type]>;
 
     constructor(
         src: BaseSrc,
-        memoryParameters: string[],
+        memoryParameters: MemVariableDeclaration[],
         name: string,
         fields: Array<[string, Type]>
     ) {
@@ -22,7 +23,9 @@ export class StructDefinition extends Definition {
 
     pp(): string {
         const memoryParamStr =
-            this.memoryParameters.length > 0 ? `<${this.memoryParameters.join(", ")}>` : "";
+            this.memoryParameters.length > 0
+                ? `<${this.memoryParameters.map((x) => x.pp()).join(", ")}>`
+                : "";
 
         return `struct ${this.name}${memoryParamStr} {\n${this.fields
             .map(([name, typ]) => `    ${name}: ${typ.pp()};`)
@@ -34,6 +37,6 @@ export class StructDefinition extends Definition {
     }
 
     children(): Iterable<Node> {
-        return this.fields.map((p) => p[1]);
+        return [...this.fields.map((p) => p[1]), ...this.memoryParameters];
     }
 }

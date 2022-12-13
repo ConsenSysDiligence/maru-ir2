@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import minimist from "minimist";
 import { parseProgram } from "../parser";
+import { Resolving, Typing } from "../passes";
 const fse = require("fs-extra");
 
 const cli = {
@@ -31,8 +32,9 @@ OPTIONS:
 const fileName = args._[0];
 
 const contents = fse.readFileSync(fileName, { encoding: "utf-8" });
-const file = parseProgram(contents);
+const defs = parseProgram(contents);
 
-console.error(file);
+const resolving = new Resolving(defs);
+new Typing(defs, resolving);
 
-console.log(file.map((x: any) => x.pp()).join("\n"));
+console.log(defs.map((x: any) => x.pp()).join("\n"));

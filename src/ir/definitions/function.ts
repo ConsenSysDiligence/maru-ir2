@@ -1,12 +1,12 @@
 import { CFG } from "../cfg";
-import { VariableDeclaration } from "../misc";
+import { MemVariableDeclaration, VariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class FunctionDefinition extends Definition {
-    public readonly memoryParameters: string[];
+    public readonly memoryParameters: MemVariableDeclaration[];
     public readonly name;
     public readonly parameters: VariableDeclaration[];
     public readonly locals: VariableDeclaration[];
@@ -15,7 +15,7 @@ export class FunctionDefinition extends Definition {
 
     constructor(
         src: BaseSrc,
-        memoryParameters: string[],
+        memoryParameters: MemVariableDeclaration[],
         name: string,
         params: VariableDeclaration[],
         locals: VariableDeclaration[],
@@ -34,7 +34,9 @@ export class FunctionDefinition extends Definition {
 
     pp(): string {
         const memoryParamStr =
-            this.memoryParameters.length > 0 ? `<${this.memoryParameters.join(", ")}>` : "";
+            this.memoryParameters.length > 0
+                ? `<${this.memoryParameters.map((x) => x.pp()).join(", ")}>`
+                : "";
         const returnStr =
             this.returns.length === 0
                 ? ""
@@ -66,6 +68,12 @@ export class FunctionDefinition extends Definition {
             }
         }
 
-        return [...this.parameters, ...this.locals, ...this.returns, ...bodyChildren];
+        return [
+            ...this.memoryParameters,
+            ...this.parameters,
+            ...this.locals,
+            ...this.returns,
+            ...bodyChildren
+        ];
     }
 }
