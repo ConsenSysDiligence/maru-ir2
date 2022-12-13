@@ -3,6 +3,7 @@ import { searchRecursive } from "./utils";
 import {
     Expression,
     FunctionDefinition,
+    Identifier,
     MIRTypeError,
     parseProgram,
     Resolving,
@@ -21,6 +22,12 @@ describe("Typing positive tests", () => {
             const resolving = new Resolving(defs);
             const typing = new Typing(defs, resolving);
 
+            const funNames = new Set<string>(
+                defs
+                    .filter((x) => x instanceof FunctionDefinition)
+                    .map((x) => (x as FunctionDefinition).name)
+            );
+
             for (const def of defs) {
                 if (!(def instanceof FunctionDefinition && def.body)) {
                     continue;
@@ -29,6 +36,11 @@ describe("Typing positive tests", () => {
                 for (const bb of def.body.nodes.values()) {
                     for (const stmt of bb.statements) {
                         walk(stmt, (nd) => {
+                            // Skip function names in function calls
+                            if (nd instanceof Identifier && funNames.has(nd.name)) {
+                                return;
+                            }
+                            
                             if (nd instanceof Expression) {
                                 const type = typing.typeOf(nd);
                                 //console.error(`Type of ${nd.pp()} is ${pp(type)}`);

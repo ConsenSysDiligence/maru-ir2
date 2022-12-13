@@ -130,6 +130,7 @@ Statement
     / StoreField
     / Jump
     / Return
+    / FunctionCall
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -181,6 +182,25 @@ Return
         return new Return(Src.fromPegsRange(location()), vs);
     }
 
+IdentifierExp
+    = Identifier { return new Identifier(Src.fromPegsRange(location()), text()); }
+
+IdExpList
+    = head: IdentifierExp tail: (__ COMMA __ id: IdentifierExp {return id;})* {
+        return [head, ...tail];
+    }
+
+FunctionCall
+    = lhss: (ids: IdExpList __ ":=" __ { return ids; })? CALL __ callee: IdentifierExp memArgs: MemDescs? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
+        return new FunctionCall(
+            Src.fromPegsRange(location()),
+            lhss === null ? [] : lhss,
+            callee,
+            memArgs === null ? [] : memArgs,
+            args === null ? [] : args
+        );
+    }
+
 /// Expressions
 HexDigit =
     [0-9a-f]i
@@ -198,8 +218,17 @@ DecNumber =
         return [BigInt(text()), 10];
     }
 
+MaybeNegNumber
+    = sign: "-"? __ num: (HexNumber / DecNumber) {
+        if (sign === null) {
+            return num;
+        }
+
+        return [-num[0], num[1]];
+    }
+
 NumberLiteral =
-    type: IntType __ LPAREN __ value: (HexNumber / DecNumber) __ RPAREN {
+    type: IntType __ LPAREN __ value: MaybeNegNumber __ RPAREN {
         return new NumberLiteral(Src.fromPegsRange(location()), value[0], value[1], type);
     }
 
@@ -353,6 +382,7 @@ STORE="store"
 IN="in"
 LOCALS="locals"
 HASHTAG="#"
+CALL="call"
 
 Keyword
     = STRUCT
@@ -367,6 +397,7 @@ Keyword
     / JUMP
     / RETURN
     / LOCALS
+    / CALL
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

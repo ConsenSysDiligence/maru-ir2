@@ -8,3 +8,4 @@ export * from "./store_index";
 export * from "./terminator";
 export * from "./jump";
 export * from "./return";
+export * from "./function_call";

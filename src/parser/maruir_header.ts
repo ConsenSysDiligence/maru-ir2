@@ -34,7 +34,8 @@ import {
     noSrc,
     Src,
     BaseSrc,
-    MemConstant
+    MemConstant,
+    FunctionCall
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";

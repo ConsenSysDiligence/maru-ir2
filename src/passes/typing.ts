@@ -7,6 +7,7 @@ import {
     Branch,
     Definition,
     Expression,
+    FunctionCall,
     FunctionDefinition,
     Identifier,
     IntType,
@@ -14,6 +15,7 @@ import {
     LoadField,
     LoadIndex,
     MemConstant,
+    MemDesc,
     MemVariableDeclaration,
     noSrc,
     NumberLiteral,
@@ -64,8 +66,15 @@ export class Typing {
         }
     }
 
+    /**
+     * Helper to compute the type of `<baseExpr>.field`. It:
+     * 1. Gets the type of <baseExpr> - baseT
+     * 2. Makes sure baseT is a defined struct
+     * 3. Looks up the type of the field
+     * 4. Substitutes any memory vars for their concrete values
+     */
     private typeOfField(baseExpr: Expression, member: string): Type {
-        const baseT = this.tcExpression(baseExpr);
+        const baseT = this.typeOfExpression(baseExpr);
 
         if (!(baseT instanceof PointerType && baseT.toType instanceof UserDefinedType)) {
             throw new MIRTypeError(
@@ -102,9 +111,14 @@ export class Typing {
         return res;
     }
 
+    /**
+     * Helper to compute the type of `<baseExpr>[indexExpr]`. It:
+     * 1. Makes sure indexExpr is of a number type
+     * 2. Makes sure baseExpr is of an array type
+     */
     private typeOfIndex(baseExpr: Expression, indexExpr: Expression): Type {
-        const baseT = this.tcExpression(baseExpr);
-        const indexT = this.tcExpression(indexExpr);
+        const baseT = this.typeOfExpression(baseExpr);
+        const indexT = this.typeOfExpression(indexExpr);
 
         if (!(indexT instanceof IntType)) {
             throw new MIRTypeError(
@@ -123,31 +137,213 @@ export class Typing {
         return baseT.toType.baseType;
     }
 
-    private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
-        if (stmt instanceof Assignment) {
-            const lhsT = this.tcExpression(stmt.lhs);
-            const rhsT = this.tcExpression(stmt.rhs);
+    /**
+     * Type check an assignment. Make sure the lhs and rhs have the same type.
+     */
+    private tcAssignment(stmt: Assignment): void {
+        const lhsT = this.typeOfExpression(stmt.lhs);
+        const rhsT = this.typeOfExpression(stmt.rhs);
 
-            if (!eq(lhsT, rhsT)) {
+        if (!eq(lhsT, rhsT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Cannot assign ${stmt.rhs.pp()} of type ${rhsT.pp()} to ${stmt.lhs.pp()} of type ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a branch. Just make sure the condition is a boolean.
+     */
+    private tcBranch(stmt: Branch): void {
+        const condT = this.typeOfExpression(stmt.condition);
+
+        if (!(condT instanceof BoolType)) {
+            throw new MIRTypeError(
+                stmt.condition.src,
+                `Branch statement expects boolean not ${stmt.condition.pp()} of type ${condT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a load field. Make sure lhs and the loaded value are of the same type.
+     * The heavy lifting is done in the `typeOfField` helper.
+     */
+    private tcLoadField(stmt: LoadField): void {
+        const lhsT = this.typeOfExpression(stmt.lhs);
+        const baseT = this.typeOfExpression(stmt.baseExpr);
+        const fieldT = this.typeOfField(stmt.baseExpr, stmt.member);
+
+        if (!eq(lhsT, fieldT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Cannot load field ${stmt.member} of struct ${
+                    ((baseT as PointerType).toType as UserDefinedType).name
+                } of type ${fieldT.pp()} in ${stmt.lhs.name} of type ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a load index stmt. Make sure lhs and the loaded value are of the same type.
+     * The heavy lifting is done in the `typeOfIndex` helper.
+     */
+    private tcLoadIndex(stmt: LoadIndex): void {
+        const lhsT = this.typeOfExpression(stmt.lhs);
+        const rhsT = this.typeOfIndex(stmt.baseExpr, stmt.indexExpr);
+
+        if (!eq(lhsT, rhsT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Cannot load index ${stmt.indexExpr.pp()} of array ${stmt.baseExpr.pp()} of type ${rhsT.pp()} in ${
+                    stmt.lhs.name
+                } of type ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a store field. Make sure rhs and the field type are the same.
+     * The heavy lifting is done in the `typeOfField` helper.
+     */
+    private tcStoreField(stmt: StoreField): void {
+        const fieldT = this.typeOfField(stmt.baseExpr, stmt.member);
+        const baseT = this.typeOfExpression(stmt.baseExpr);
+        const rhsT = this.typeOfExpression(stmt.rhs);
+
+        if (!eq(rhsT, fieldT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Cannot store ${stmt.rhs.pp()} of type ${rhsT.pp()} into field ${
+                    stmt.member
+                } of struct ${
+                    ((baseT as PointerType).toType as UserDefinedType).name
+                } of type ${fieldT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a store index stmt. Make sure rhs and the array base type are the same.
+     * The heavy lifting is done in the `typeOfIndex` helper.
+     */
+    private tcStoreIndex(stmt: StoreIndex): void {
+        const lhsT = this.typeOfIndex(stmt.baseExpr, stmt.indexExpr);
+        const rhsT = this.typeOfExpression(stmt.rhs);
+
+        if (!eq(rhsT, lhsT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Cannot store ${stmt.rhs.pp()} of type ${rhsT.pp()} into index ${stmt.indexExpr.pp()} of array ${stmt.baseExpr.pp()} of type ${rhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a return stmt. Make sure the returned values match the function signature.
+     */
+    private tcReturn(stmt: Return, fun: FunctionDefinition): void {
+        const retTs = stmt.values.map((retExp) => this.typeOfExpression(retExp));
+        const formalRetTs = fun.returns;
+
+        if (retTs.length !== formalRetTs.length) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Function ${fun.name} expects ${
+                    formalRetTs.length
+                } returns, but return ${stmt.pp()} returns ${retTs.length} values.`
+            );
+        }
+
+        for (let i = 0; i < retTs.length; i++) {
+            if (!eq(retTs[i], formalRetTs[i])) {
                 throw new MIRTypeError(
                     stmt.src,
-                    `Cannot assign ${stmt.rhs.pp()} of type ${rhsT.pp()} to ${stmt.lhs.pp()} of type ${lhsT.pp()}`
+                    `Mismatch in ${i}-th return of ${stmt.pp()} - expected ${formalRetTs[
+                        i
+                    ].pp()} instead got ${retTs[i].pp()}`
                 );
             }
+        }
+    }
 
+    /**
+     * Type check a function call. Makes sure that:
+     * 1. Callee is a function
+     * 2. The number of memory args match the function memory vars
+     * 2. The number and types of the args match the function signature (after memory args instantiation)
+     * 3. The number and types of returns match the function signature (after memory args instantiation)
+     */
+    private tcFunctionCall(stmt: FunctionCall): void {
+        const calleeDef = this.resolve.getIdDecl(stmt.callee);
+
+        if (!(calleeDef instanceof FunctionDefinition)) {
+            throw new MIRTypeError(
+                stmt.callee.src,
+                `Expected function name not ${stmt.callee.pp()}`
+            );
+        }
+
+        const subst = this.makeSubst(stmt);
+
+        const concreteFormalArgTs = calleeDef.parameters.map((decl) =>
+            this.concretizeType(decl.type, subst)
+        );
+
+        const concreteFormalRetTs = calleeDef.returns.map((typ) => this.concretizeType(typ, subst));
+
+        if (concreteFormalArgTs.length !== stmt.args.length) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Function ${calleeDef.name} expected ${concreteFormalArgTs.length} arguments, instead ${stmt.args.length} given`
+            );
+        }
+
+        if (concreteFormalRetTs.length !== stmt.lhss.length) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Function ${calleeDef.name} returns ${concreteFormalRetTs.length} values, instead ${stmt.lhss.length} lhs identifiers given`
+            );
+        }
+
+        const actualArgTs = stmt.args.map((arg) => this.typeOfExpression(arg));
+        const actualRetTs = stmt.lhss.map((ret) => this.typeOfExpression(ret));
+
+        for (let i = 0; i < actualArgTs.length; i++) {
+            if (!eq(concreteFormalArgTs[i], actualArgTs[i])) {
+                throw new MIRTypeError(
+                    stmt.args[i].src,
+                    `In ${i}-th argument to ${calleeDef.name} expected ${concreteFormalArgTs[
+                        i
+                    ].pp()} instead given ${actualArgTs[i].pp()}`
+                );
+            }
+        }
+
+        for (let i = 0; i < actualRetTs.length; i++) {
+            if (!eq(concreteFormalRetTs[i], actualRetTs[i])) {
+                throw new MIRTypeError(
+                    stmt.args[i].src,
+                    `In ${i}-th return value of ${calleeDef.name} expected ${concreteFormalRetTs[
+                        i
+                    ].pp()} instead given ${actualRetTs[i].pp()}`
+                );
+            }
+        }
+    }
+
+    /**
+     * Type check a statement inside of a function
+     */
+    private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
+        if (stmt instanceof Assignment) {
+            this.tcAssignment(stmt);
             return;
         }
 
         if (stmt instanceof Branch) {
-            const condT = this.tcExpression(stmt.condition);
-
-            if (!(condT instanceof BoolType)) {
-                throw new MIRTypeError(
-                    stmt.condition.src,
-                    `Branch statement expects boolean not ${stmt.condition.pp()} of type ${condT.pp()}`
-                );
-            }
-
+            this.tcBranch(stmt);
             return;
         }
 
@@ -156,113 +352,197 @@ export class Typing {
         }
 
         if (stmt instanceof LoadField) {
-            const lhsT = this.tcExpression(stmt.lhs);
-            const baseT = this.tcExpression(stmt.baseExpr);
-            const fieldT = this.typeOfField(stmt.baseExpr, stmt.member);
-
-            if (!eq(lhsT, fieldT)) {
-                throw new MIRTypeError(
-                    stmt.src,
-                    `Cannot load field ${stmt.member} of struct ${
-                        ((baseT as PointerType).toType as UserDefinedType).name
-                    } of type ${fieldT.pp()} in ${stmt.lhs.name} of type ${lhsT.pp()}`
-                );
-            }
-
+            this.tcLoadField(stmt);
             return;
         }
 
         if (stmt instanceof LoadIndex) {
-            const lhsT = this.tcExpression(stmt.lhs);
-            const rhsT = this.typeOfIndex(stmt.baseExpr, stmt.indexExpr);
-
-            if (!eq(lhsT, rhsT)) {
-                throw new MIRTypeError(
-                    stmt.src,
-                    `Cannot load index ${stmt.indexExpr.pp()} of array ${stmt.baseExpr.pp()} of type ${rhsT.pp()} in ${
-                        stmt.lhs.name
-                    } of type ${lhsT.pp()}`
-                );
-            }
-
-            return;
-        }
-
-        if (stmt instanceof Return) {
-            const retTs = stmt.values.map((retExp) => this.tcExpression(retExp));
-            const formalRetTs = fun.returns;
-
-            if (retTs.length !== formalRetTs.length) {
-                throw new MIRTypeError(
-                    stmt.src,
-                    `Function ${fun.name} expects ${
-                        formalRetTs.length
-                    } returns, but return ${stmt.pp()} returns ${retTs.length} values.`
-                );
-            }
-
-            for (let i = 0; i < retTs.length; i++) {
-                if (!eq(retTs[i], formalRetTs[i])) {
-                    throw new MIRTypeError(
-                        stmt.src,
-                        `Mismatch in ${i}-th return of ${stmt.pp()} - expected ${formalRetTs[
-                            i
-                        ].pp()} instead got ${retTs[i].pp()}`
-                    );
-                }
-            }
-
+            this.tcLoadIndex(stmt);
             return;
         }
 
         if (stmt instanceof StoreField) {
-            const fieldT = this.typeOfField(stmt.baseExpr, stmt.member);
-            const baseT = this.tcExpression(stmt.baseExpr);
-            const rhsT = this.tcExpression(stmt.rhs);
-
-            if (!eq(rhsT, fieldT)) {
-                throw new MIRTypeError(
-                    stmt.src,
-                    `Cannot store ${stmt.rhs.pp()} of type ${rhsT.pp()} into field ${
-                        stmt.member
-                    } of struct ${
-                        ((baseT as PointerType).toType as UserDefinedType).name
-                    } of type ${fieldT.pp()}`
-                );
-            }
-
+            this.tcStoreField(stmt);
             return;
         }
 
         if (stmt instanceof StoreIndex) {
-            const lhsT = this.typeOfIndex(stmt.baseExpr, stmt.indexExpr);
-            const rhsT = this.tcExpression(stmt.rhs);
-
-            if (!eq(rhsT, lhsT)) {
-                throw new MIRTypeError(
-                    stmt.src,
-                    `Cannot store ${stmt.rhs.pp()} of type ${rhsT.pp()} into index ${stmt.indexExpr.pp()} of array ${stmt.baseExpr.pp()} of type ${rhsT.pp()}`
-                );
-            }
-
+            this.tcStoreIndex(stmt);
             return;
         }
+
+        if (stmt instanceof Return) {
+            this.tcReturn(stmt, fun);
+            return;
+        }
+
+        if (stmt instanceof FunctionCall) {
+            this.tcFunctionCall(stmt);
+            return;
+        }
+
+        throw new Error(`NYI statement ${stmt.pp()}`);
     }
 
-    private tcExpression(expr: Expression): Type {
+    /**
+     * Compute the type of an expression. Actual implementation in
+     * `tcExpressionImpl`. Caches the results in `typeCache`.
+     */
+    private typeOfExpression(expr: Expression): Type {
         let res = this.typeCache.get(expr);
 
         if (res) {
             return res;
         }
 
-        res = this.tcExpressionImpl(expr);
+        res = this.typeOfExpressionImpl(expr);
 
         this.typeCache.set(expr, res);
         return res;
     }
 
-    private tcExpressionImpl(expr: Expression): Type {
+    /**
+     * Compute the type of an identifier.
+     */
+    private typeOfIdentifier(expr: Identifier): Type {
+        const decl = this.resolve.getIdDecl(expr);
+
+        if (decl === undefined) {
+            throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
+        }
+
+        if (decl instanceof MemVariableDeclaration || decl instanceof FunctionDefinition) {
+            throw new MIRTypeError(
+                expr.src,
+                `Unexpected program variable in expression, not ${expr.name}`
+            );
+        }
+
+        return decl.type;
+    }
+
+    /**
+     * Compute the type of a UnaryExpression.
+     */
+    private typeOfUnaryOperation(expr: UnaryOperation): Type {
+        const innerT = this.typeOfExpression(expr.subExpr);
+
+        if (expr.op === "-") {
+            if (!(innerT instanceof IntType)) {
+                throw new MIRTypeError(
+                    expr.src,
+                    `Unary - expects an int type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
+                );
+            }
+
+            return innerT;
+        }
+
+        if (expr.op === "!") {
+            if (!(innerT instanceof BoolType)) {
+                throw new MIRTypeError(
+                    expr.src,
+                    `Unary ! expects a bool type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
+                );
+            }
+
+            return innerT;
+        }
+
+        throw new Error(`Unknown unary operator ${expr.op}`);
+    }
+
+    /**
+     * Compute the type of a BinaryExpression.
+     */
+    private typeOfBinaryOperation(expr: BinaryOperation): Type {
+        const lhsT = this.typeOfExpression(expr.leftExpr);
+        const rhsT = this.typeOfExpression(expr.rightExpr);
+
+        /// Power and bitshifts are the only binary operators
+        /// where we don't insist that the left and right sub-expressions
+        /// are of the same type.
+        if (["**", ">>", "<<"].includes(expr.op)) {
+            if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
+                throw new MIRTypeError(
+                    expr,
+                    `Binary operator ${
+                        expr.op
+                    } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                );
+            }
+
+            return lhsT;
+        }
+
+        if (!eq(lhsT, rhsT)) {
+            throw new MIRTypeError(
+                expr,
+                `Binary operator ${
+                    expr.op
+                } expects arguments of the same type, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+            );
+        }
+
+        if (["==", "!="].includes(expr.op)) {
+            if (
+                !(
+                    lhsT instanceof IntType ||
+                    lhsT instanceof BoolType ||
+                    lhsT instanceof PointerType
+                )
+            ) {
+                throw new MIRTypeError(
+                    expr,
+                    `Cannot perform equality check between ${lhsT.pp()} types.`
+                );
+            }
+            return boolT;
+        }
+
+        if (["<", ">", "<=", ">="].includes(expr.op)) {
+            if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
+                throw new MIRTypeError(
+                    expr,
+                    `Binary operator ${
+                        expr.op
+                    } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                );
+            }
+
+            return boolT;
+        }
+
+        if (["*", "/", "%", "+", "-", "&", "|", "^"].includes(expr.op)) {
+            if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
+                throw new MIRTypeError(
+                    expr,
+                    `Binary operator ${
+                        expr.op
+                    } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                );
+            }
+
+            return lhsT;
+        }
+
+        if (["&&", "||"].includes(expr.op)) {
+            if (!(lhsT instanceof BoolType && rhsT instanceof BoolType)) {
+                throw new MIRTypeError(
+                    expr,
+                    `Binary operator ${
+                        expr.op
+                    } expects boolean arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
+                );
+            }
+
+            return lhsT;
+        }
+
+        throw new Error(`Unknown binary operator ${expr.op}`);
+    }
+
+    private typeOfExpressionImpl(expr: Expression): Type {
         if (expr instanceof BooleanLiteral) {
             return boolT;
         }
@@ -272,154 +552,54 @@ export class Typing {
         }
 
         if (expr instanceof Identifier) {
-            const decl = this.resolve.getIdDecl(expr);
-
-            if (decl === undefined) {
-                throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
-            }
-
-            if (decl instanceof MemVariableDeclaration) {
-                throw new MIRTypeError(
-                    expr.src,
-                    `Unexpected memory variable in expression  ${expr.name}`
-                );
-            }
-
-            return decl.type;
+            return this.typeOfIdentifier(expr);
         }
 
         if (expr instanceof UnaryOperation) {
-            const innerT = this.tcExpression(expr.subExpr);
-
-            if (expr.op === "-") {
-                if (!(innerT instanceof IntType)) {
-                    throw new MIRTypeError(
-                        expr.src,
-                        `Unary - expects an int type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
-                    );
-                }
-
-                return innerT;
-            }
-
-            if (expr.op === "!") {
-                if (!(innerT instanceof BoolType)) {
-                    throw new MIRTypeError(
-                        expr.src,
-                        `Unary ! expects a bool type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
-                    );
-                }
-
-                return innerT;
-            }
-
-            throw new Error(`Unknown unary operator ${expr.op}`);
+            return this.typeOfUnaryOperation(expr);
         }
 
         if (expr instanceof BinaryOperation) {
-            const lhsT = this.tcExpression(expr.leftExpr);
-            const rhsT = this.tcExpression(expr.rightExpr);
-
-            /// Power and bitshifts are the only binary operators
-            /// where we don't insist that the left and right sub-expressions
-            /// are of the same type.
-            if (["**", ">>", "<<"].includes(expr.op)) {
-                if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
-                    throw new MIRTypeError(
-                        expr,
-                        `Binary operator ${
-                            expr.op
-                        } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
-                    );
-                }
-
-                return lhsT;
-            }
-
-            if (!eq(lhsT, rhsT)) {
-                throw new MIRTypeError(
-                    expr,
-                    `Binary operator ${
-                        expr.op
-                    } expects arguments of the same type, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
-                );
-            }
-
-            if (["==", "!="].includes(expr.op)) {
-                if (
-                    !(
-                        lhsT instanceof IntType ||
-                        lhsT instanceof BoolType ||
-                        lhsT instanceof PointerType
-                    )
-                ) {
-                    throw new MIRTypeError(
-                        expr,
-                        `Cannot perform equality check between ${lhsT.pp()} types.`
-                    );
-                }
-                return boolT;
-            }
-
-            if (["<", ">", "<=", ">="].includes(expr.op)) {
-                if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
-                    throw new MIRTypeError(
-                        expr,
-                        `Binary operator ${
-                            expr.op
-                        } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
-                    );
-                }
-
-                return boolT;
-            }
-
-            if (["*", "/", "%", "+", "-", "&", "|", "^"].includes(expr.op)) {
-                if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
-                    throw new MIRTypeError(
-                        expr,
-                        `Binary operator ${
-                            expr.op
-                        } expects integer arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
-                    );
-                }
-
-                return lhsT;
-            }
-
-            if (["&&", "||"].includes(expr.op)) {
-                if (!(lhsT instanceof BoolType && rhsT instanceof BoolType)) {
-                    throw new MIRTypeError(
-                        expr,
-                        `Binary operator ${
-                            expr.op
-                        } expects boolean arguments, not ${expr.leftExpr.pp()} of type ${lhsT.pp()} and ${expr.rightExpr.pp()} of type ${rhsT.pp()}`
-                    );
-                }
-
-                return lhsT;
-            }
-
-            throw new Error(`Unknown binary operator ${expr.op}`);
+            return this.typeOfBinaryOperation(expr);
         }
 
         throw new Error(`Unknown expression ${expr.pp()}`);
     }
 
-    private makeSubst(t: UserDefinedType): Substitution {
-        const decl = this.resolve.getTypeDecl(t);
+    private makeSubst(arg: UserDefinedType | FunctionCall): Substitution {
+        let formals: MemVariableDeclaration[];
+        let actuals: MemDesc[];
+        let argDesc: string;
 
-        if (decl === undefined) {
-            throw new Error(`Unexpected undefined decl for type ${t.name}`);
+        if (arg instanceof UserDefinedType) {
+            const decl = this.resolve.getTypeDecl(arg);
+
+            if (decl === undefined) {
+                throw new Error(`Unexpected undefined decl for type ${arg.name}`);
+            }
+
+            formals = decl.memoryParameters;
+            actuals = arg.memArgs;
+            argDesc = `Struct ${arg.name}`;
+        } else {
+            const calleeDef = this.resolve.getIdDecl(arg.callee);
+
+            if (!(calleeDef instanceof FunctionDefinition)) {
+                throw new MIRTypeError(
+                    arg.callee.src,
+                    `Expected function name not ${arg.callee.pp()}`
+                );
+            }
+
+            formals = calleeDef.memoryParameters;
+            actuals = arg.memArgs;
+            argDesc = `Function ${arg.callee.pp()}`;
         }
-
-        const formals = decl.memoryParameters;
-        const actuals = t.memArgs;
 
         if (formals.length !== actuals.length) {
             throw new MIRTypeError(
-                t.src,
-                `Struct ${decl.name} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+                arg.src,
+                `${argDesc} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
             );
         }
 

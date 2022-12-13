@@ -1,4 +1,5 @@
 import {
+    BaseSrc,
     Definition,
     FunctionDefinition,
     Identifier,
@@ -17,19 +18,24 @@ export type TypeDecl = StructDefinition;
  * 3. The @todo StructDefinition for every UserDefinedType
  */
 export class Resolving {
-    private _idDecls: Map<Identifier, VariableDeclaration | MemVariableDeclaration>;
+    private _idDecls: Map<
+        Identifier,
+        VariableDeclaration | MemVariableDeclaration | FunctionDefinition
+    >;
     private _typeDecls: Map<UserDefinedType, TypeDecl>;
-    private nameToTypeDef: Map<string, StructDefinition>;
+    private nameToTopLevelDef: Map<string, StructDefinition | FunctionDefinition>;
 
     constructor(public readonly defs: Definition[]) {
         this._idDecls = new Map();
         this._typeDecls = new Map();
-        this.nameToTypeDef = new Map();
+        this.nameToTopLevelDef = new Map();
 
         this.runAnalysis();
     }
 
-    getIdDecl(id: Identifier): VariableDeclaration | MemVariableDeclaration | undefined {
+    getIdDecl(
+        id: Identifier
+    ): VariableDeclaration | MemVariableDeclaration | FunctionDefinition | undefined {
         return this._idDecls.get(id);
     }
 
@@ -39,8 +45,8 @@ export class Resolving {
 
     private runAnalysis(): void {
         for (const def of this.defs) {
-            if (def instanceof StructDefinition) {
-                this.nameToTypeDef.set(def.name, def);
+            if (def instanceof StructDefinition || def instanceof FunctionDefinition) {
+                this.nameToTopLevelDef.set(def.name, def);
             }
         }
 
@@ -73,16 +79,24 @@ export class Resolving {
             }
 
             if (nd instanceof UserDefinedType) {
-                const res = this.nameToTypeDef.get(nd.name);
-
-                if (res === undefined) {
-                    throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);
-                }
-
-                this._typeDecls.set(nd, res);
+                this._typeDecls.set(nd, this.getStruct(nd.name, nd.src));
                 return;
             }
         });
+    }
+
+    private getStruct(name: string, loc: BaseSrc): StructDefinition {
+        const res = this.nameToTopLevelDef.get(name);
+
+        if (res === undefined) {
+            throw new MIRTypeError(loc, `Unknown user defined type ${name}`);
+        }
+
+        if (res instanceof FunctionDefinition) {
+            throw new MIRTypeError(loc, `Expected struct, not function definition ${name}`);
+        }
+
+        return res;
     }
 
     private analyzeOneFun(fun: FunctionDefinition) {
@@ -106,7 +120,15 @@ export class Resolving {
         for (const child of fun.children()) {
             walk(child, (nd) => {
                 if (nd instanceof Identifier) {
-                    const decl = nameToDeclM.get(nd.name);
+                    let decl = nameToDeclM.get(nd.name);
+
+                    /// @todo (@dimo) Ugly code. Should have proper scopes. Just lazy
+                    if (decl !== undefined) {
+                        this._idDecls.set(nd, decl);
+                        return;
+                    }
+
+                    decl = this.nameToTopLevelDef.get(nd.name);
 
                     if (decl === undefined) {
                         throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
@@ -117,13 +139,7 @@ export class Resolving {
                 }
 
                 if (nd instanceof UserDefinedType) {
-                    const res = this.nameToTypeDef.get(nd.name);
-
-                    if (res === undefined) {
-                        throw new MIRTypeError(nd, `Unknown user defined type ${nd.name}`);
-                    }
-
-                    this._typeDecls.set(nd, res);
+                    this._typeDecls.set(nd, this.getStruct(nd.name, nd.src));
                     return;
                 }
             });
