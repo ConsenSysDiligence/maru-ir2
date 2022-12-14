@@ -1,0 +1,6 @@
+fun foo(b: bool) {
+    entry:
+        branch b exit no_label;
+    exit:
+    return;
+}

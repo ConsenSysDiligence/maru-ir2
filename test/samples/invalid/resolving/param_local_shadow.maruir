@@ -1,0 +1,10 @@
+struct M {
+    b: bool;
+
+}
+
+fun foo(a: uint8)
+locals a: int8;
+{
+
+}

@@ -1,0 +1,6 @@
+fun foo() {
+    entry:
+        jump no_label;
+    exit:
+    return;
+}

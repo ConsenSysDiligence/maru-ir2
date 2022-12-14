@@ -1,0 +1,7 @@
+fun foo(a: uint8)
+locals b: uint8;
+{
+    entry:
+        b := a + c;
+        return;
+}

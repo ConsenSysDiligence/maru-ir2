@@ -1,0 +1,5 @@
+struct M {
+    b: bool;
+
+}
+fun foo(M: uint8)

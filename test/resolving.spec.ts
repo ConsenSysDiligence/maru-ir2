@@ -3,6 +3,7 @@ import { searchRecursive } from "./utils";
 import {
     FunctionDefinition,
     Identifier,
+    MIRTypeError,
     parseProgram,
     Resolving,
     UserDefinedType,
@@ -38,6 +39,21 @@ describe("Resolving test", () => {
                     }
                 }
             }
+        });
+    }
+});
+
+describe("Resolving negative tests", () => {
+    const files = searchRecursive("test/samples/invalid/resolving/", (name) =>
+        name.endsWith(".maruir")
+    );
+
+    for (const file of files) {
+        it(file, () => {
+            const contents = fse.readFileSync(file, { encoding: "utf-8" });
+            const defs = parseProgram(contents);
+
+            expect(() => new Resolving(defs)).toThrow(MIRTypeError);
         });
     }
 });

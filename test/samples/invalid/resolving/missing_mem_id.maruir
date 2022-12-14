@@ -1,0 +1,8 @@
+fun boo<M>()
+
+fun foo()
+{
+    entry:
+        call boo<M>();
+        return;
+}

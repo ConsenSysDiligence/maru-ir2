@@ -31,6 +31,6 @@ export class FunctionCall extends Statement {
     }
 
     children(): Iterable<Node> {
-        return [...this.lhss, this.callee, ...this.args];
+        return [...this.lhss, ...this.memArgs, this.callee, ...this.args];
     }
 }

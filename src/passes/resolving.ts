@@ -10,6 +10,73 @@ import {
 } from "../ir";
 import { walk, MIRTypeError } from "../utils";
 
+type Def = FunctionDefinition | StructDefinition | VariableDeclaration | MemVariableDeclaration;
+
+class Scope {
+    private defs: Map<string, Def> = new Map();
+    private parentScope: Scope | undefined = undefined;
+
+    constructor(parentScope?: Scope) {
+        this.parentScope = parentScope;
+    }
+
+    isDefined(name: string): boolean {
+        if (this.defs.has(name)) {
+            return true;
+        }
+
+        return this.parentScope ? this.parentScope.isDefined(name) : false;
+    }
+
+    get(name: string): Def | undefined {
+        const curDef = this.defs.get(name);
+        if (curDef !== undefined) {
+            return curDef;
+        }
+
+        return this.parentScope ? this.parentScope.get(name) : undefined;
+    }
+
+    mustGet(name: string, src: BaseSrc): Def {
+        const def = this.get(name);
+
+        if (def === undefined) {
+            throw new MIRTypeError(src, `Unknown identifier ${name}`);
+        }
+
+        return def;
+    }
+
+    getStruct(udT: UserDefinedType): StructDefinition {
+        const def = this.get(udT.name);
+
+        if (def === undefined) {
+            throw new MIRTypeError(udT.src, `Unknown user defined type ${udT.name}`);
+        }
+
+        if (!(def instanceof StructDefinition)) {
+            throw new MIRTypeError(udT.src, `Expected struct not ${udT.name}`);
+        }
+
+        return def;
+    }
+
+    define(arg: Def) {
+        const curDef = this.get(arg.name);
+
+        if (curDef !== undefined) {
+            throw new MIRTypeError(
+                arg.src,
+                `Multiple variables/parameters with name ${
+                    arg.name
+                }. Previous definition at ${curDef.src.pp()}`
+            );
+        }
+
+        this.defs.set(arg.name, arg);
+    }
+}
+
 export type TypeDecl = StructDefinition;
 /**
  * Simple pass to compute:
@@ -23,12 +90,10 @@ export class Resolving {
         VariableDeclaration | MemVariableDeclaration | FunctionDefinition
     >;
     private _typeDecls: Map<UserDefinedType, TypeDecl>;
-    private nameToTopLevelDef: Map<string, StructDefinition | FunctionDefinition>;
 
     constructor(public readonly defs: Definition[]) {
         this._idDecls = new Map();
         this._typeDecls = new Map();
-        this.nameToTopLevelDef = new Map();
 
         this.runAnalysis();
     }
@@ -44,103 +109,58 @@ export class Resolving {
     }
 
     private runAnalysis(): void {
+        const global = new Scope();
+
         for (const def of this.defs) {
             if (def instanceof StructDefinition || def instanceof FunctionDefinition) {
-                this.nameToTopLevelDef.set(def.name, def);
+                global.define(def);
+            } else {
+                throw new Error(`NYI def ${def.pp()}`);
             }
         }
 
         for (const def of this.defs) {
             if (def instanceof FunctionDefinition) {
-                this.analyzeOneFun(def);
+                this.analyzeOneFun(def, new Scope(global));
             } else if (def instanceof StructDefinition) {
-                this.analyzeOneStruct(def);
+                this.analyzeOneStruct(def, new Scope(global));
             }
         }
     }
 
-    private analyzeOneStruct(struct: StructDefinition) {
-        const nameToDeclM = new Map<string, MemVariableDeclaration>();
-
+    private analyzeOneStruct(struct: StructDefinition, scope: Scope) {
         for (const memVar of struct.memoryParameters) {
-            nameToDeclM.set(memVar.name, memVar);
+            scope.define(memVar);
         }
 
         walk(struct, (nd) => {
             if (nd instanceof Identifier) {
-                const decl = nameToDeclM.get(nd.name);
-
-                if (decl === undefined) {
-                    throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
-                }
-
-                this._idDecls.set(nd, decl);
-                return;
-            }
-
-            if (nd instanceof UserDefinedType) {
-                this._typeDecls.set(nd, this.getStruct(nd.name, nd.src));
-                return;
+                this._idDecls.set(nd, scope.mustGet(nd.name, nd.src));
+            } else if (nd instanceof UserDefinedType) {
+                this._typeDecls.set(nd, scope.getStruct(nd));
             }
         });
     }
 
-    private getStruct(name: string, loc: BaseSrc): StructDefinition {
-        const res = this.nameToTopLevelDef.get(name);
-
-        if (res === undefined) {
-            throw new MIRTypeError(loc, `Unknown user defined type ${name}`);
+    private analyzeOneFun(fun: FunctionDefinition, scope: Scope) {
+        for (const mVar of fun.memoryParameters) {
+            scope.define(mVar);
         }
 
-        if (res instanceof FunctionDefinition) {
-            throw new MIRTypeError(loc, `Expected struct, not function definition ${name}`);
+        for (const param of fun.parameters) {
+            scope.define(param);
         }
 
-        return res;
-    }
-
-    private analyzeOneFun(fun: FunctionDefinition) {
-        const nameToDeclM = new Map<string, VariableDeclaration | MemVariableDeclaration>();
-
-        const addDef = (d: VariableDeclaration | MemVariableDeclaration): void => {
-            if (nameToDeclM.has(d.name)) {
-                throw new MIRTypeError(
-                    d.src,
-                    `Multiple variables/parameters with name ${d.name} in function ${fun.name}`
-                );
-            }
-
-            nameToDeclM.set(d.name, d);
-        };
-
-        fun.parameters.forEach(addDef);
-        fun.locals.forEach(addDef);
-        fun.memoryParameters.forEach(addDef);
+        for (const local of fun.locals) {
+            scope.define(local);
+        }
 
         for (const child of fun.children()) {
             walk(child, (nd) => {
                 if (nd instanceof Identifier) {
-                    let decl = nameToDeclM.get(nd.name);
-
-                    /// @todo (@dimo) Ugly code. Should have proper scopes. Just lazy
-                    if (decl !== undefined) {
-                        this._idDecls.set(nd, decl);
-                        return;
-                    }
-
-                    decl = this.nameToTopLevelDef.get(nd.name);
-
-                    if (decl === undefined) {
-                        throw new MIRTypeError(nd.src, `Unknown identifier ${nd.name}`);
-                    }
-
-                    this._idDecls.set(nd, decl);
-                    return;
-                }
-
-                if (nd instanceof UserDefinedType) {
-                    this._typeDecls.set(nd, this.getStruct(nd.name, nd.src));
-                    return;
+                    this._idDecls.set(nd, scope.mustGet(nd.name, nd.src));
+                } else if (nd instanceof UserDefinedType) {
+                    this._typeDecls.set(nd, scope.getStruct(nd));
                 }
             });
         }

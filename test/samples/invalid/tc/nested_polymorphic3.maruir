@@ -1,0 +1,29 @@
+struct S1<M> {
+	arr1: uint8[] *M;
+}
+
+struct S2<M, N> {
+	ptr1: S1<N> *M;
+	ptr2: uint16[] *N;
+}
+
+fun getSArr1<P, Q>(ptrS2: S2<P,Q> *Q): uint8[] *Q
+locals ptrS1: S1<Q> *P,
+	   ptrArr1: uint8[] *Q;
+{
+	entry:
+
+	load ptrS2.ptr1 in ptrS1;
+	load ptrS1.arr1 in ptrArr1;
+
+	return ptrArr1;
+}
+
+fun main(ptrS2: S2<#X, #Y> *#Z): uint8[] *#Y
+locals ptr: uint8[] *#Y;
+{
+	entry:
+
+	ptr := call getSArr1<#X, #Y>(ptrS2);
+	return ptr;
+}
