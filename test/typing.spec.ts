@@ -40,7 +40,7 @@ describe("Typing positive tests", () => {
                             if (nd instanceof Identifier && funNames.has(nd.name)) {
                                 return;
                             }
-                            
+
                             if (nd instanceof Expression) {
                                 const type = typing.typeOf(nd);
                                 //console.error(`Type of ${nd.pp()} is ${pp(type)}`);
