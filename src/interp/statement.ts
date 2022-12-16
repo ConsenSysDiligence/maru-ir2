@@ -16,6 +16,7 @@ import {
     Statement,
     StoreField,
     StoreIndex,
+    TransactionCall,
     Type
 } from "../ir";
 import { CFG } from "../ir/cfg";
@@ -266,6 +267,27 @@ export class StatementExecutor {
         return v;
     }
 
+    execTransactionCall(s: TransactionCall): void {
+        const callee = this.resolving.getIdDecl(s.callee);
+
+        if (!(callee instanceof FunctionDefinition)) {
+            this.error(`Expected ${s.callee.pp()} to be a function`, s);
+        }
+
+        const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
+
+        const newFrame = new Frame(
+            callee,
+            zip(
+                callee.parameters.map((d) => d.name),
+                argVs
+            )
+        );
+
+        this.state.saveMemories();
+        this.state.stack.push(newFrame);
+    }
+
     execReturn(s: Return): void {
         const retVals = s.values.map(this.evaluator.evalExpression);
 
@@ -275,8 +297,13 @@ export class StatementExecutor {
             const prevFrame = this.state.stack[this.state.stack.length - 2];
             const callStmt = prevFrame.curBB.statements[prevFrame.curBBInd];
 
-            if (!(callStmt instanceof FunctionCall)) {
-                this.error(`Expected function call upon return not ${callStmt.pp()}`, callStmt);
+            if (!(callStmt instanceof FunctionCall || callStmt instanceof TransactionCall)) {
+                this.error(`Expected a call statement from return not ${callStmt.pp()}`, callStmt);
+            }
+
+            if (callStmt instanceof TransactionCall) {
+                retVals.push(true);
+                this.state.memoriesStack.pop();
             }
 
             const lhss = callStmt.lhss;
@@ -323,6 +350,10 @@ export class StatementExecutor {
 
         if (s instanceof StoreIndex) {
             this.execStoreIndex(s);
+        }
+
+        if (s instanceof TransactionCall) {
+            this.execTransactionCall(s);
         }
 
         if (s instanceof Return) {

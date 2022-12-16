@@ -131,6 +131,7 @@ Statement
     / Jump
     / Return
     / FunctionCall
+    / TransactionCall
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -193,6 +194,17 @@ IdExpList
 FunctionCall
     = lhss: (ids: IdExpList __ ":=" __ { return ids; })? CALL __ callee: IdentifierExp memArgs: MemDescs? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
         return new FunctionCall(
+            Src.fromPegsRange(location()),
+            lhss === null ? [] : lhss,
+            callee,
+            memArgs === null ? [] : memArgs,
+            args === null ? [] : args
+        );
+    }
+
+TransactionCall
+    = lhss: (ids: IdExpList __ ":=" __ { return ids; })? TRANSCALL __ callee: IdentifierExp memArgs: MemDescs? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
+        return new TransactionCall(
             Src.fromPegsRange(location()),
             lhss === null ? [] : lhss,
             callee,
@@ -383,6 +395,7 @@ IN="in"
 LOCALS="locals"
 HASHTAG="#"
 CALL="call"
+TRANSCALL="trans_call"
 
 Keyword
     = STRUCT
@@ -398,6 +411,7 @@ Keyword
     / RETURN
     / LOCALS
     / CALL
+    / TRANSCALL
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

@@ -2,8 +2,16 @@ import { Definition, FunctionDefinition, MemConstant } from "../ir";
 import { BasicBlock } from "../ir/cfg";
 import { PPAble, walk, zip } from "../utils";
 
+class PoisonValue implements PPAble {
+    pp(): string {
+        return "!POISON!";
+    }
+}
+
+export const poison = new PoisonValue();
+
 export type PointerVal = [string, number];
-export type PrimitiveValue = bigint | boolean | PointerVal;
+export type PrimitiveValue = bigint | boolean | PointerVal | PoisonValue;
 
 export type ComplexValue = PrimitiveValue[] | Map<string, PrimitiveValue>;
 
@@ -52,6 +60,10 @@ export class State {
     memories: Memories;
     builtins: Map<string, BuiltinFun>;
     externalReturns: any[] | undefined;
+    /**
+     * Stack of memory copies created for each transaction call.
+     */
+    memoriesStack: Memories[];
 
     constructor(
         program: Definition[],
@@ -75,6 +87,7 @@ export class State {
             this.memories.set(memName, new Map());
         }
         this.builtins = builtins;
+        this.memoriesStack = [];
     }
 
     get curFrame(): Frame {
@@ -99,5 +112,49 @@ export class State {
 
     stackTrace(): string {
         return this.stack.map((frame) => frame.pp()).join("\n");
+    }
+
+    copyPrimitiveVal(v: PrimitiveValue): PrimitiveValue {
+        if (v instanceof Array) {
+            return [v[0], v[1]];
+        }
+
+        return v;
+    }
+
+    copyComplexVal(v: ComplexValue): ComplexValue {
+        if (v instanceof Array) {
+            return v.map(this.copyPrimitiveVal);
+        }
+
+        return new Map([...v.entries()].map((p) => [p[0], this.copyPrimitiveVal(p[1])]));
+    }
+
+    saveMemories(): void {
+        const copy: Memories = new Map();
+
+        for (const [label, store] of this.memories) {
+            const newStore = new Map();
+
+            for (const [ptr, complexVal] of store) {
+                store.set(ptr, this.copyComplexVal(complexVal));
+            }
+
+            copy.set(label, newStore);
+        }
+
+        this.memoriesStack.push(copy);
+    }
+
+    popMemories(): Memories {
+        if (this.memoriesStack.length === 0) {
+            throw new Error(`Can't popMemories on an empty memory stack`);
+        }
+
+        const res = this.memoriesStack[this.memoriesStack.length - 1];
+
+        this.memoriesStack.pop();
+
+        return res;
     }
 }

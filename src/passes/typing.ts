@@ -25,6 +25,7 @@ import {
     StoreField,
     StoreIndex,
     StructDefinition,
+    TransactionCall,
     Type,
     UnaryOperation,
     UserDefinedType
@@ -334,6 +335,85 @@ export class Typing {
     }
 
     /**
+     * Type check a transaction call. Makes sure that:
+     * 1. Callee is a function
+     * 2. The number of memory args match the function memory vars
+     * 2. The number and types of the args match the function signature (after memory args instantiation)
+     * 3. There is one more return lhs than the function signature.
+     * 4. The last return on the lhs is a boolean
+     * 5. The reaming returns on the lhs match the function signature (after memory args instantiation)
+     */
+    private tcTransactionCall(stmt: TransactionCall): void {
+        const calleeDef = this.resolve.getIdDecl(stmt.callee);
+
+        if (!(calleeDef instanceof FunctionDefinition)) {
+            throw new MIRTypeError(
+                stmt.callee.src,
+                `Expected function name not ${stmt.callee.pp()}`
+            );
+        }
+
+        const subst = this.makeSubst(stmt);
+
+        const concreteFormalArgTs = calleeDef.parameters.map((decl) =>
+            this.concretizeType(decl.type, subst)
+        );
+
+        const concreteFormalRetTs = calleeDef.returns.map((typ) => this.concretizeType(typ, subst));
+
+        if (concreteFormalArgTs.length !== stmt.args.length) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Transaction call to ${calleeDef.name} expected ${concreteFormalArgTs.length} arguments, instead ${stmt.args.length} given`
+            );
+        }
+
+        if (concreteFormalRetTs.length + 1 !== stmt.lhss.length) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Transaction call to ${calleeDef.name} returns ${
+                    concreteFormalRetTs.length + 1
+                } values, instead ${stmt.lhss.length} lhs identifiers given`
+            );
+        }
+
+        const actualArgTs = stmt.args.map((arg) => this.typeOfExpression(arg));
+        const actualRetTs = stmt.lhss.map((ret) => this.typeOfExpression(ret));
+
+        for (let i = 0; i < actualArgTs.length; i++) {
+            if (!eq(concreteFormalArgTs[i], actualArgTs[i])) {
+                throw new MIRTypeError(
+                    stmt.args[i].src,
+                    `In ${i}-th argument to ${calleeDef.name} expected ${concreteFormalArgTs[
+                        i
+                    ].pp()} instead given ${actualArgTs[i].pp()}`
+                );
+            }
+        }
+
+        for (let i = 0; i < concreteFormalRetTs.length; i++) {
+            if (!eq(concreteFormalRetTs[i], actualRetTs[i])) {
+                throw new MIRTypeError(
+                    stmt.args[i].src,
+                    `In ${i}-th return value of ${calleeDef.name} expected ${concreteFormalRetTs[
+                        i
+                    ].pp()} instead given ${actualRetTs[i].pp()}`
+                );
+            }
+        }
+
+        const lastRetIdx = actualRetTs.length - 1;
+        const lastRetT = actualRetTs[lastRetIdx];
+
+        if (!(lastRetT instanceof BoolType)) {
+            throw new MIRTypeError(
+                stmt.lhss[lastRetIdx].src,
+                `Last return value of a transaction call should be boolean not ${lastRetT.pp()}`
+            );
+        }
+    }
+
+    /**
      * Type check a statement inside of a function
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
@@ -378,6 +458,11 @@ export class Typing {
 
         if (stmt instanceof FunctionCall) {
             this.tcFunctionCall(stmt);
+            return;
+        }
+
+        if (stmt instanceof TransactionCall) {
+            this.tcTransactionCall(stmt);
             return;
         }
 
