@@ -25,6 +25,7 @@ import {
     StoreField,
     StoreIndex,
     StructDefinition,
+    Throw,
     TransactionCall,
     Type,
     UnaryOperation,
@@ -413,6 +414,10 @@ export class Typing {
         }
     }
 
+    private tcThrow(stmt: Throw): void {
+        this.typeOfExpression(stmt.val);
+    }
+
     /**
      * Type check a statement inside of a function
      */
@@ -463,6 +468,11 @@ export class Typing {
 
         if (stmt instanceof TransactionCall) {
             this.tcTransactionCall(stmt);
+            return;
+        }
+
+        if (stmt instanceof Throw) {
+            this.tcThrow(stmt);
             return;
         }
 

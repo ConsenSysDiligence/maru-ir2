@@ -1,0 +1,13 @@
+fun failFun(): uint8 {
+    entry:
+
+    throw uint16(1);
+}
+
+fun main(): bool
+locals dummy: uint8, fails: bool;
+{
+    entry:
+        dummy, fails := trans_call failFun();
+        return fails;
+}

@@ -132,6 +132,7 @@ Statement
     / Return
     / FunctionCall
     / TransactionCall
+    / Throw
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -211,6 +212,11 @@ TransactionCall
             memArgs === null ? [] : memArgs,
             args === null ? [] : args
         );
+    }
+
+Throw
+    = THROW __ exp: Expression __ SEMICOLON {
+        return new Throw(Src.fromPegsRange(location()), exp);
     }
 
 /// Expressions
@@ -396,6 +402,7 @@ LOCALS="locals"
 HASHTAG="#"
 CALL="call"
 TRANSCALL="trans_call"
+THROW="throw"
 
 Keyword
     = STRUCT
@@ -412,6 +419,7 @@ Keyword
     / LOCALS
     / CALL
     / TRANSCALL
+    / THROW
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

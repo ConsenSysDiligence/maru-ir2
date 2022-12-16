@@ -10,3 +10,4 @@ export * from "./jump";
 export * from "./return";
 export * from "./function_call";
 export * from "./transaction_call";
+export * from "./throw";

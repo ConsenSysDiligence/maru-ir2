@@ -36,7 +36,8 @@ import {
     BaseSrc,
     MemConstant,
     FunctionCall,
-    TransactionCall
+    TransactionCall,
+    Throw
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
@@ -159,7 +160,7 @@ export function buildCFG(
             );
         }
 
-        if (lastStmt instanceof Return) {
+        if (lastStmt instanceof Return || lastStmt instanceof Throw) {
             exits.push(bb);
             continue;
         }

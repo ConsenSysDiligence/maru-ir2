@@ -316,6 +316,7 @@ export class StatementExecutor {
                 this.assignTo(retVals[i], lhss[i], s);
             }
         }
+
         this.state.stack.pop();
     }
 
