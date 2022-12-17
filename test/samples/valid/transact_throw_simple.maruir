@@ -1,7 +1,7 @@
 fun failFun(): uint8 {
     entry:
 
-    throw uint16(1);
+    abort;
 }
 
 fun main(): bool

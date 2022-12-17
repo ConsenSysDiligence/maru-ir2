@@ -132,7 +132,7 @@ Statement
     / Return
     / FunctionCall
     / TransactionCall
-    / Throw
+    / Abort 
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -214,9 +214,9 @@ TransactionCall
         );
     }
 
-Throw
-    = THROW __ exp: Expression __ SEMICOLON {
-        return new Throw(Src.fromPegsRange(location()), exp);
+Abort
+    = ABORT __ SEMICOLON {
+        return new Abort(Src.fromPegsRange(location()));
     }
 
 /// Expressions
@@ -402,7 +402,7 @@ LOCALS="locals"
 HASHTAG="#"
 CALL="call"
 TRANSCALL="trans_call"
-THROW="throw"
+ABORT="abort"
 
 Keyword
     = STRUCT
@@ -419,7 +419,7 @@ Keyword
     / LOCALS
     / CALL
     / TRANSCALL
-    / THROW
+    / ABORT
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

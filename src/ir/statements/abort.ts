@@ -1,15 +1,14 @@
-import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { TerminatorStmt } from "./terminator";
 
-export class Throw extends TerminatorStmt {
-    constructor(src: BaseSrc, public readonly val: Expression) {
+export class Abort extends TerminatorStmt {
+    constructor(src: BaseSrc) {
         super(src);
     }
 
     pp(): string {
-        return `throw ${this.val.pp()};`;
+        return `abort;`;
     }
 
     getStructId(): any {
@@ -17,6 +16,6 @@ export class Throw extends TerminatorStmt {
     }
 
     children(): Iterable<Node> {
-        return [this.val];
+        return [];
     }
 }

@@ -16,6 +16,7 @@ import {
     Statement,
     StoreField,
     StoreIndex,
+    Abort,
     TransactionCall,
     Type
 } from "../ir";
@@ -24,7 +25,7 @@ import { Node } from "../ir/node";
 import { Resolving, Typing } from "../passes";
 import { pp, zip } from "../utils";
 import { ExprEvaluator, fits, InterpError } from "./expression";
-import { ComplexValue, Frame, PointerVal, PrimitiveValue, State } from "./state";
+import { ComplexValue, EXCEPTION_MEM, Frame, PointerVal, poison, PrimitiveValue, State } from "./state";
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;
@@ -288,11 +289,38 @@ export class StatementExecutor {
         this.state.stack.push(newFrame);
     }
 
-    execReturn(s: Return): void {
-        const retVals = s.values.map(this.evaluator.evalExpression);
+    private returnValsFromFrame(vals: PrimitiveValue[], aborted: boolean, s: Statement) {
+        const isRootCall = this.state.stack.length === 1;
+        let isTransactionCall = isRootCall;
 
-        if (this.state.stack.length === 1) {
-            this.state.externalReturns = retVals.map(this.jsEncode);
+        if (!isRootCall) {
+            const prevFrame = this.state.stack[this.state.stack.length - 2];
+            const callStmt = prevFrame.curBB.statements[prevFrame.curBBInd];
+
+            isTransactionCall = callStmt instanceof TransactionCall;
+        }
+
+        if (isTransactionCall) {
+            vals = [...vals, !aborted];
+
+            const lastSave = this.state.popMemories();
+
+            if (aborted) {
+                /// #exception memory is special - it doesn't get reverted on abort.
+                /// This allows passing exception data back
+                const curExcMem = this.state.memories.get(EXCEPTION_MEM);
+
+                if (curExcMem === undefined) {
+                    this.error(`Missing #exception memory`, s);
+                }
+
+                this.state.memories = lastSave;
+                this.state.memories.set(EXCEPTION_MEM, curExcMem);
+            }
+        }
+
+        if (isRootCall) {
+            this.state.externalReturns = vals.map(this.jsEncode);
         } else {
             const prevFrame = this.state.stack[this.state.stack.length - 2];
             const callStmt = prevFrame.curBB.statements[prevFrame.curBBInd];
@@ -301,23 +329,33 @@ export class StatementExecutor {
                 this.error(`Expected a call statement from return not ${callStmt.pp()}`, callStmt);
             }
 
-            if (callStmt instanceof TransactionCall) {
-                retVals.push(true);
-                this.state.memoriesStack.pop();
-            }
-
             const lhss = callStmt.lhss;
 
-            if (lhss.length !== retVals.length) {
-                this.error(`Mismatch in returns - expected ${lhss.length} got ${retVals.length}`);
+            if (lhss.length !== vals.length) {
+                this.error(`Mismatch in returns - expected ${lhss.length} got ${vals.length}`);
             }
 
             for (let i = 0; i < lhss.length; i++) {
-                this.assignTo(retVals[i], lhss[i], s);
+                this.assignTo(vals[i], lhss[i], s);
             }
         }
 
         this.state.stack.pop();
+    }
+
+    execReturn(s: Return): void {
+        this.returnValsFromFrame(s.values.map(this.evaluator.evalExpression), false, s);
+    }
+
+    execAbort(s: Abort): void {
+        const retVals: PrimitiveValue[] = [];
+
+        for (let i = 0; i < this.state.curFrame.fun.returns.length; i++) {
+            retVals.push(poison);
+        }
+
+        retVals.push(true);
+        this.returnValsFromFrame(retVals, true, s);
     }
 
     execStatement(s: Statement): void {
@@ -355,6 +393,10 @@ export class StatementExecutor {
 
         if (s instanceof TransactionCall) {
             this.execTransactionCall(s);
+        }
+
+        if (s instanceof Abort) {
+            this.execAbort(s);
         }
 
         if (s instanceof Return) {

@@ -17,6 +17,8 @@ export type ComplexValue = PrimitiveValue[] | Map<string, PrimitiveValue>;
 
 export type Store = Map<string, PrimitiveValue>;
 
+export const EXCEPTION_MEM = "#exception";
+
 export class Frame implements PPAble {
     fun: FunctionDefinition;
     curBB: BasicBlock;
@@ -97,7 +99,7 @@ export class State {
     /// Compute the initial set of memories needed by walking over all trees
     /// and accumulating all memory constants
     private getInitialMemories(program: Program): Iterable<string> {
-        const res = new Set<string>();
+        const res = new Set<string>([EXCEPTION_MEM]);
 
         for (const def of program) {
             walk(def, (n) => {
