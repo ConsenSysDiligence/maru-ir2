@@ -25,7 +25,15 @@ import { Node } from "../ir/node";
 import { Resolving, Typing } from "../passes";
 import { pp, zip } from "../utils";
 import { ExprEvaluator, fits, InterpError } from "./expression";
-import { ComplexValue, EXCEPTION_MEM, Frame, PointerVal, poison, PrimitiveValue, State } from "./state";
+import {
+    ComplexValue,
+    EXCEPTION_MEM,
+    Frame,
+    PointerVal,
+    poison,
+    PrimitiveValue,
+    State
+} from "./state";
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;

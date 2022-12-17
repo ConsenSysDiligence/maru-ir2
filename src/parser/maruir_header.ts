@@ -1,6 +1,3 @@
-// @ts-nocheck
-
-import { parse } from "path";
 import {
     Definition,
     StructDefinition,
@@ -18,7 +15,6 @@ import {
     BinaryOperator,
     BinaryOperation,
     Assignment,
-    Branch,
     LoadField,
     LoadIndex,
     StoreField,
@@ -37,7 +33,9 @@ import {
     MemConstant,
     FunctionCall,
     TransactionCall,
-    Abort
+    Abort,
+    Node,
+    Type
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
@@ -63,7 +61,7 @@ function buildBinaryExpression(
     tail: Array<[BinaryOperator, Expression, PegsRange]>,
     src: PegsRange,
     opts: ParseOptions
-): SNode {
+): Node {
     return tail.reduce((acc, [curOp, curVal, curLoc]) => {
         const loc = new Src(src.start, curLoc.end);
         return new BinaryOperation(loc, acc, curOp, curVal);
@@ -185,6 +183,10 @@ export function buildCFG(
         }
 
         throw new Error(`Unknown terminator statement ${lastStmt.pp()}`);
+    }
+
+    if (entry === undefined) {
+        throw new Error(`Missing entry block`);
     }
 
     return new CFG(nodes, edges, entry, exits);

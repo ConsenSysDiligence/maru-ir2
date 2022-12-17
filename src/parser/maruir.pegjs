@@ -1,3 +1,9 @@
+{
+    expected;
+    error;
+    peg$anyExpectation;
+}
+
 Program
     = (d: Definition __ { return d; })*;
 
@@ -23,7 +29,7 @@ StructField
 
 StructDefinition
     = STRUCT __ name: Identifier __ mArgs: MemoryFormalParams? __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
-        return new StructDefinition<SrcRange>(
+        return new StructDefinition(
             Src.fromPegsRange(location()),
             mArgs === null ? [] : mArgs,
             name,
@@ -58,11 +64,6 @@ FunctionDefinition
             body === null ? undefined : body);
     }
 
-IdList
-    = head: Identifier tail: (__ COMMA __ id: Identifier {return id;})* {
-        return [head, ...tail];
-    }
-
 MemVar
     = name: Identifier { return new Identifier(Src.fromPegsRange(location()), name); }
 
@@ -83,9 +84,6 @@ MemDescs
 
 
 /// Types
-TypeArgs
-    = head: Type tail: (__ COMMA __ typ: Type { return typ; })* { return [head, ...tail]; }
-
 UserDefinedType
     = name: Identifier __ memArgs: MemDescs? {
         return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs === null ? [] : memArgs);
@@ -164,7 +162,7 @@ StoreIndex
 
 StoreField
     = STORE __ rhs: Expression __ IN __ base: Expression "." member: Identifier  __ SEMICOLON {
-        return new LoadField(Src.fromPegsRange(location()), base, member, rhs);
+        return new StoreField(Src.fromPegsRange(location()), base, member, rhs);
     }
 
 Jump
@@ -283,9 +281,9 @@ PowerExpression =
     }
 
 MultiplicativeOperator =
-    $("*") { return text() as MultiplicativeBinaryOperator; }
-    / $("/") { return text() as MultiplicativeBinaryOperator; }
-    / $("%") { return text() as MultiplicativeBinaryOperator; }
+    $("*") { return text() as BinaryOperator; }
+    / $("/") { return text() as BinaryOperator; }
+    / $("%") { return text() as BinaryOperator; }
 
 MultiplicativeExpression =
     head: PowerExpression
@@ -294,8 +292,8 @@ MultiplicativeExpression =
     }
 
 AdditiveOperator =
-    $("+") { return text() as AdditiveBinaryOperator; }
-    / $("-") { return text() as AdditiveBinaryOperator; }
+    $("+") { return text() as BinaryOperator; }
+    / $("-") { return text() as BinaryOperator; }
 
 AdditiveExpression =
     head: MultiplicativeExpression
@@ -310,8 +308,8 @@ ShiftExpression =
     }
 
 ShiftOperator =
-    $("<<") { return text() as ShiftBinaryOperator; }
-    / $(">>") { return text() as ShiftBinaryOperator; }
+    $("<<") { return text() as BinaryOperator; }
+    / $(">>") { return text() as BinaryOperator; }
 
 BitwiseANDExpression =
     head: ShiftExpression
@@ -445,13 +443,6 @@ Zs =
 
 LineTerminator =
     [\n\r\u2028\u2029]
-
-LineTerminatorSequence =
-    "\n"
-    / "\r\n"
-    / "\r"
-    / "\u2028"
-    / "\u2029"
 
 __ =
     (WhiteSpace / LineTerminator)*

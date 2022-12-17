@@ -25,5 +25,8 @@
         "resolveJsonModule": true
     },
 
-    "include": ["src/**/*"]
+    "include": ["src/**/*"],
+    "exclude": [
+	    "src/parser/maruir_header.ts"
+    ]
 }
