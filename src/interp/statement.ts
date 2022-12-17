@@ -29,6 +29,7 @@ import {
     ComplexValue,
     EXCEPTION_MEM,
     Frame,
+    Memory,
     PointerVal,
     poison,
     PrimitiveValue,
@@ -37,6 +38,7 @@ import {
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;
+    maxMemPtr: Map<string, number>;
 
     constructor(
         private readonly resolving: Resolving,
@@ -44,6 +46,7 @@ export class StatementExecutor {
         private readonly state: State
     ) {
         this.evaluator = new ExprEvaluator(typing, state);
+        this.maxMemPtr = new Map();
     }
 
     private error(msg: string, e?: Node): never {
@@ -257,7 +260,9 @@ export class StatementExecutor {
         this.state.curFrame.curBBInd++;
     }
 
-    private jsEncode(v: PrimitiveValue): any {
+    /// Helper to extract an interpreter value into
+    /// a normal JS value. Supports maps and arrays.
+    public jsEncode(v: PrimitiveValue): any {
         if (v instanceof Array) {
             const complexVal = this.deref(v);
 
@@ -274,6 +279,57 @@ export class StatementExecutor {
         }
 
         return v;
+    }
+
+    private getNewPtr(memory: string): number {
+        let curMax = this.maxMemPtr.get(memory);
+
+        if (curMax === undefined) {
+            const mem = this.state.memories.get(memory) as Memory;
+            curMax = Math.max(...mem.keys()) + 1;
+        }
+
+        this.maxMemPtr.set(memory, curMax + 1);
+
+        return curMax;
+    }
+
+    private define(val: ComplexValue, memory: string): PointerVal {
+        const mem = this.state.memories.get(memory) as Memory;
+        const ptr = this.getNewPtr(memory);
+        mem.set(ptr, val);
+
+        return [memory, ptr];
+    }
+
+    /// Helper to convert a normal JS value into an interpreter value.
+    /// If the JS value is complex, then it is encoded in the provided
+    /// `memory`
+    public jsDecode(jsV: any, memory: string): PrimitiveValue {
+        if (typeof jsV === "number") {
+            return BigInt(jsV);
+        }
+
+        if (typeof jsV === "bigint" || typeof jsV === "boolean") {
+            return jsV;
+        }
+
+        if (jsV instanceof Array) {
+            const encodedArr = jsV.map((el) => this.jsDecode(el, memory));
+            return this.define(encodedArr, memory);
+        }
+
+        if (jsV instanceof Object) {
+            const encodedStruct = new Map();
+
+            for (const field in jsV) {
+                encodedStruct.set(field, this.jsDecode(jsV[field], memory));
+            }
+
+            return this.define(encodedStruct, memory);
+        }
+
+        throw new Error(`Cannot encode ${pp(jsV)} into interpreter`);
     }
 
     execTransactionCall(s: TransactionCall): void {
