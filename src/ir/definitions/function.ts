@@ -1,5 +1,6 @@
+import { ppPolyParams } from "../../utils";
 import { CFG } from "../cfg";
-import { MemVariableDeclaration, VariableDeclaration } from "../misc";
+import { MemVariableDeclaration, TypeVariableDeclaration, VariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
@@ -7,6 +8,7 @@ import { Definition } from "./definition";
 
 export class FunctionDefinition extends Definition {
     public readonly memoryParameters: MemVariableDeclaration[];
+    public readonly typeParameters: TypeVariableDeclaration[];
     public readonly name;
     public readonly parameters: VariableDeclaration[];
     public readonly locals: VariableDeclaration[];
@@ -16,6 +18,7 @@ export class FunctionDefinition extends Definition {
     constructor(
         src: BaseSrc,
         memoryParameters: MemVariableDeclaration[],
+        typeParameters: TypeVariableDeclaration[],
         name: string,
         params: VariableDeclaration[],
         locals: VariableDeclaration[],
@@ -25,6 +28,7 @@ export class FunctionDefinition extends Definition {
         super(src);
 
         this.memoryParameters = memoryParameters;
+        this.typeParameters = typeParameters;
         this.name = name;
         this.parameters = params;
         this.locals = locals;
@@ -33,10 +37,7 @@ export class FunctionDefinition extends Definition {
     }
 
     pp(): string {
-        const memoryParamStr =
-            this.memoryParameters.length > 0
-                ? `<${this.memoryParameters.map((x) => x.pp()).join(", ")}>`
-                : "";
+        const memoryParamStr = ppPolyParams(this.memoryParameters, this.typeParameters);
         const returnStr =
             this.returns.length === 0
                 ? ""
@@ -69,6 +70,7 @@ export class FunctionDefinition extends Definition {
         }
 
         return [
+            ...this.typeParameters,
             ...this.memoryParameters,
             ...this.parameters,
             ...this.locals,

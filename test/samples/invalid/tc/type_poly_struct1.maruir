@@ -1,0 +1,32 @@
+struct ArrWithLen<M; T> {
+	arr: T[] *M;
+	len: uint256;
+}
+
+fun arrLen<M; T>(arg: ArrWithLen<M; T> *M): uint256
+locals res: uint256;
+{
+	entry:
+		load arg.len in res;
+		return res;
+}
+
+fun arrIndex<M; T>(arg: ArrWithLen<M; T> *M, index: uint256): T
+locals arrPtr: T[] *M, res: T;
+{
+	entry:
+		load arg.arr in arrPtr;
+		load arrPtr[index] in res;
+
+		return res;
+}
+
+fun main(ptr: ArrWithLen<#memory; uint8> *#memory)
+locals len: uint256, val: uint16;
+{
+	entry:
+
+	len := call arrLen<#memory; uint8>(ptr);
+	val := call arrIndex<#memory; uint16>(ptr, uint256(0));
+	return;
+}

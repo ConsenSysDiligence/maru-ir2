@@ -1,16 +1,27 @@
 import {
+    ArrayType,
     BaseSrc,
+    BoolType,
     Definition,
     FunctionDefinition,
     Identifier,
+    IntType,
     MemVariableDeclaration,
+    PointerType,
     StructDefinition,
+    Type,
+    TypeVariableDeclaration,
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
 import { walk, MIRTypeError } from "../utils";
 
-type Def = FunctionDefinition | StructDefinition | VariableDeclaration | MemVariableDeclaration;
+type Def =
+    | FunctionDefinition
+    | StructDefinition
+    | VariableDeclaration
+    | MemVariableDeclaration
+    | TypeVariableDeclaration;
 
 class Scope {
     private defs: Map<string, Def> = new Map();
@@ -47,15 +58,11 @@ class Scope {
         return def;
     }
 
-    getStruct(udT: UserDefinedType): StructDefinition {
+    getTypeDecl(udT: UserDefinedType): StructDefinition | TypeVariableDeclaration {
         const def = this.get(udT.name);
 
         if (def === undefined) {
             throw new MIRTypeError(udT.src, `Unknown user defined type ${udT.name}`);
-        }
-
-        if (!(def instanceof StructDefinition)) {
-            throw new MIRTypeError(udT.src, `Expected struct not ${udT.name}`);
         }
 
         return def;
@@ -75,9 +82,53 @@ class Scope {
 
         this.defs.set(arg.name, arg);
     }
+
+    /**
+     * Make a child scope of the current scope, corresponding ot the given function.
+     */
+    makeFunScope(fun: FunctionDefinition): Scope {
+        const scope = new Scope(this);
+
+        // 1. Define mem vars, type vars, params and locals in the function scope
+        for (const mVar of fun.memoryParameters) {
+            scope.define(mVar);
+        }
+
+        for (const tVar of fun.typeParameters) {
+            scope.define(tVar);
+        }
+
+        for (const param of fun.parameters) {
+            scope.define(param);
+        }
+
+        for (const local of fun.locals) {
+            scope.define(local);
+        }
+
+        return scope;
+    }
+
+    /**
+     * Make a child scope of the current scope, corresponding ot the given struct.
+     */
+    makeStructScope(struct: StructDefinition): Scope {
+        const scope = new Scope(this);
+
+        // Define mem vars and type vars
+        for (const memVar of struct.memoryParameters) {
+            scope.define(memVar);
+        }
+
+        for (const tVar of struct.typeParameters) {
+            scope.define(tVar);
+        }
+
+        return scope;
+    }
 }
 
-export type TypeDecl = StructDefinition;
+export type TypeDecl = StructDefinition | TypeVariableDeclaration;
 /**
  * Simple pass to compute:
  * 1. The VariableDeclaration for each Identifier
@@ -120,49 +171,141 @@ export class Resolving {
         }
 
         for (const def of this.defs) {
+            let defScope: Scope;
+
             if (def instanceof FunctionDefinition) {
-                this.analyzeOneFun(def, new Scope(global));
+                defScope = global.makeFunScope(def);
             } else if (def instanceof StructDefinition) {
-                this.analyzeOneStruct(def, new Scope(global));
+                defScope = global.makeStructScope(def);
+            } else {
+                throw new Error(`NYI def ${def.pp}`);
+            }
+
+            this.analyzeOneDef(def, defScope);
+        }
+    }
+
+    /**
+     * Return true IFF `t` is a primitive type. Note we need resolving, to distinguish type vars from structures, as they
+     * both look like a UserDefinedType.
+     */
+    public isPrimitive(t: Type): boolean {
+        if (t instanceof IntType || t instanceof BoolType || t instanceof PointerType) {
+            return true;
+        }
+
+        if (t instanceof UserDefinedType) {
+            const decl = this._typeDecls.get(t);
+
+            if (decl === undefined) {
+                throw new MIRTypeError(t.src, `Unknown type ${t.pp()}`);
+            }
+
+            return decl instanceof TypeVariableDeclaration;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check whether a type makes sense. Specifically we can only have pointers to and arrays of a primitive type.
+     */
+    private checkType(t: Type): void {
+        if (t instanceof PointerType && this.isPrimitive(t.toType)) {
+            throw new MIRTypeError(t.src, `Cannot have primitive type in pointer type ${t.pp()}`);
+        }
+
+        if (t instanceof ArrayType && !this.isPrimitive(t.baseType)) {
+            throw new MIRTypeError(t.src, `Cannot have arrays of non-primitive type: ${t.pp()}`);
+        }
+
+        if (t instanceof UserDefinedType) {
+            const decl = this.getTypeDecl(t);
+
+            if (decl === undefined) {
+                throw new MIRTypeError(t.src, `Unkown type ${t.name}`);
+            }
+
+            if (decl instanceof TypeVariableDeclaration) {
+                if (t.memArgs.length !== 0 || t.typeArgs.length !== 0) {
+                    throw new MIRTypeError(
+                        t.src,
+                        `Unexpected type var ${t.name} with polymorphic arguments.`
+                    );
+                }
+            } else {
+                if (decl.memoryParameters.length !== t.memArgs.length) {
+                    throw new MIRTypeError(
+                        t.src,
+                        `Mismatch in number of memory args ${t.memArgs.length} and expected number of memory args ${decl.memoryParameters.length}`
+                    );
+                }
+
+                if (decl.typeParameters.length !== t.typeArgs.length) {
+                    throw new MIRTypeError(
+                        t.src,
+                        `Mismatch in number of type args ${t.typeArgs.length} and expected number of type args ${decl.typeParameters.length}`
+                    );
+                }
             }
         }
     }
 
-    private analyzeOneStruct(struct: StructDefinition, scope: Scope) {
-        for (const memVar of struct.memoryParameters) {
-            scope.define(memVar);
-        }
-
-        walk(struct, (nd) => {
+    private analyzeOneDef(def: StructDefinition | FunctionDefinition, scope: Scope) {
+        // 1. Resolve all identifiers/user-defined types to their declaration
+        walk(def, (nd) => {
             if (nd instanceof Identifier) {
                 this._idDecls.set(nd, scope.mustGet(nd.name, nd.src));
             } else if (nd instanceof UserDefinedType) {
-                this._typeDecls.set(nd, scope.getStruct(nd));
+                this._typeDecls.set(nd, scope.getTypeDecl(nd));
             }
         });
-    }
 
-    private analyzeOneFun(fun: FunctionDefinition, scope: Scope) {
-        for (const mVar of fun.memoryParameters) {
-            scope.define(mVar);
-        }
+        // 2. Check all types make sense given the resolution. (With resolution we can distinguish TVars from Structs)
+        walk(def, (nd) => {
+            if (nd instanceof Type) {
+                this.checkType(nd);
+            }
+        });
 
-        for (const param of fun.parameters) {
-            scope.define(param);
-        }
-
-        for (const local of fun.locals) {
-            scope.define(local);
-        }
-
-        for (const child of fun.children()) {
-            walk(child, (nd) => {
-                if (nd instanceof Identifier) {
-                    this._idDecls.set(nd, scope.mustGet(nd.name, nd.src));
-                } else if (nd instanceof UserDefinedType) {
-                    this._typeDecls.set(nd, scope.getStruct(nd));
+        // 3. For structs check all fields are primitive
+        //    For functions check that all params/locals/returns are primitive
+        if (def instanceof StructDefinition) {
+            for (const [name, fieldT] of def.fields) {
+                if (!this.isPrimitive(fieldT)) {
+                    throw new MIRTypeError(
+                        fieldT.src,
+                        `Field ${name} of struct ${def.name} must be primitive, not ${fieldT.pp()}`
+                    );
                 }
-            });
+            }
+        } else {
+            for (const param of def.parameters) {
+                if (!this.isPrimitive(param.type)) {
+                    throw new MIRTypeError(
+                        def.src,
+                        `Cannot have non-primitive parameter ${def.name} in function ${def.name}`
+                    );
+                }
+            }
+
+            for (const local of def.locals) {
+                if (!this.isPrimitive(local.type)) {
+                    throw new MIRTypeError(
+                        def.src,
+                        `Cannot have non-primitive local ${def.name} in function ${def.name}`
+                    );
+                }
+            }
+
+            for (const t of def.returns) {
+                if (!this.isPrimitive(t)) {
+                    throw new MIRTypeError(
+                        def.src,
+                        `Cannot return non-primitive type ${t.pp()} in function ${def.name}`
+                    );
+                }
+            }
         }
     }
 }

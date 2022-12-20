@@ -29,13 +29,16 @@ import {
     TransactionCall,
     Type,
     UnaryOperation,
-    UserDefinedType
+    UserDefinedType,
+    TypeVariableDeclaration
 } from "../ir";
-import { eq, MIRTypeError, zip } from "../utils";
+import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
 
 export const boolT = new BoolType(noSrc);
-type Substitution = Map<MemVariableDeclaration, MemConstant | MemVariableDeclaration>;
+type MemSubstitution = Map<MemVariableDeclaration, MemConstant | MemVariableDeclaration>;
+type TypeSubstitution = Map<TypeVariableDeclaration, Type>;
+type Substitution = [MemSubstitution, TypeSubstitution];
 
 /**
  * Simple pass to compute the type of each expression in each function in a
@@ -104,13 +107,7 @@ export class Typing {
             );
         }
 
-        let res = matchingFields[0][1];
-
-        if (userType.memArgs.length > 0) {
-            res = this.concretizeType(res, this.makeSubst(userType));
-        }
-
-        return res;
+        return this.concretizeType(matchingFields[0][1], this.makeSubst(userType));
     }
 
     /**
@@ -657,16 +654,74 @@ export class Typing {
         throw new Error(`Unknown expression ${expr.pp()}`);
     }
 
-    private makeSubst(arg: UserDefinedType | FunctionCall): Substitution {
+    private makeTypeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): TypeSubstitution {
+        let formals: TypeVariableDeclaration[];
+        let actuals: Type[];
+        let argDesc: string;
+
+        if (arg instanceof UserDefinedType) {
+            if (arg.typeArgs.length === 0) {
+                return new Map();
+            }
+
+            const decl = this.resolve.getTypeDecl(arg);
+
+            if (!(decl instanceof StructDefinition)) {
+                throw new MIRTypeError(
+                    arg.src,
+                    `User defined type with args ${arg.pp()} should resolve to struct, not ${pp(
+                        decl
+                    )}`
+                );
+            }
+
+            formals = decl.typeParameters;
+            actuals = arg.typeArgs;
+            argDesc = `Struct ${arg.name}`;
+        } else {
+            const calleeDef = this.resolve.getIdDecl(arg.callee);
+
+            if (!(calleeDef instanceof FunctionDefinition)) {
+                throw new MIRTypeError(
+                    arg.callee.src,
+                    `Expected function name not ${arg.callee.pp()}`
+                );
+            }
+
+            formals = calleeDef.typeParameters;
+            actuals = arg.typeArgs;
+            argDesc = `Function ${arg.callee.pp()}`;
+        }
+
+        if (formals.length !== actuals.length) {
+            throw new MIRTypeError(
+                arg.src,
+                `${argDesc} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+            );
+        }
+
+        return new Map(zip(formals, actuals));
+    }
+
+    private makeMemSubst(arg: UserDefinedType | FunctionCall | TransactionCall): MemSubstitution {
         let formals: MemVariableDeclaration[];
         let actuals: MemDesc[];
         let argDesc: string;
 
         if (arg instanceof UserDefinedType) {
+            if (arg.memArgs.length === 0) {
+                return new Map();
+            }
+
             const decl = this.resolve.getTypeDecl(arg);
 
-            if (decl === undefined) {
-                throw new Error(`Unexpected undefined decl for type ${arg.name}`);
+            if (!(decl instanceof StructDefinition)) {
+                throw new MIRTypeError(
+                    arg.src,
+                    `User defined type with args ${arg.pp()} should resolve to struct, not ${pp(
+                        decl
+                    )}`
+                );
             }
 
             formals = decl.memoryParameters;
@@ -697,41 +752,70 @@ export class Typing {
         return new Map(zip(formals, actuals));
     }
 
+    private makeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): Substitution {
+        return [this.makeMemSubst(arg), this.makeTypeSubst(arg)];
+    }
+
     private concretizeType(t: Type, subst: Substitution): Type {
-        const convertId = (id: Identifier): MemConstant | Identifier => {
-            let result: MemConstant | Identifier = id;
-            const decl = this.resolve.getIdDecl(id);
+        const [memSubst, typeSubst] = subst;
+
+        // Check if t is a mapped type var
+        if (t instanceof UserDefinedType && t.memArgs.length === 0 && t.typeArgs.length === 0) {
+            const decl = this.resolve.getTypeDecl(t);
+
+            if (decl instanceof TypeVariableDeclaration) {
+                const mappedT = typeSubst.get(decl);
+
+                if (!mappedT) {
+                    return t;
+                }
+
+                return this.concretizeType(mappedT, subst);
+            }
+
+            // Struct with no polymorphic params
+            return t;
+        }
+
+        const concretizeMemDesc = (arg: MemDesc): MemConstant | Identifier => {
+            if (arg instanceof MemConstant) {
+                return arg;
+            }
+
+            const decl = this.resolve.getIdDecl(arg);
 
             if (!(decl instanceof MemVariableDeclaration)) {
-                throw new MIRTypeError(id.src, `Unexpected non-memory identifier in type`);
+                throw new MIRTypeError(arg.src, `Unexpected non-memory identifier in type`);
             }
 
-            const newVal = subst.get(decl);
+            const newVal = memSubst.get(decl);
 
             if (newVal) {
-                result =
-                    newVal instanceof MemConstant ? newVal : new Identifier(id.src, newVal.name);
+                return newVal instanceof MemConstant
+                    ? newVal
+                    : new Identifier(arg.src, newVal.name);
             }
 
-            return result;
+            return arg;
         };
 
+        if (t instanceof UserDefinedType) {
+            const concreteMemArgs = t.memArgs.map(concretizeMemDesc);
+            const concreteTypeArgs = t.typeArgs.map((tArg) => this.concretizeType(tArg, subst));
+
+            return new UserDefinedType(t.src, t.name, concreteMemArgs, concreteTypeArgs);
+        }
+
         if (t instanceof PointerType) {
-            let region = t.region;
-
-            if (region instanceof Identifier) {
-                region = convertId(region);
-            }
-
-            return new PointerType(t.src, this.concretizeType(t.toType, subst), region);
+            return new PointerType(
+                t.src,
+                this.concretizeType(t.toType, subst),
+                concretizeMemDesc(t.region)
+            );
         }
 
         if (t instanceof ArrayType) {
             return new ArrayType(t.src, this.concretizeType(t.baseType, subst));
-        }
-
-        if (t instanceof UserDefinedType) {
-            return new UserDefinedType(t.src, t.name, t.memArgs.map(convertId));
         }
 
         return t;

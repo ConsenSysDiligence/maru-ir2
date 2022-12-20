@@ -26,6 +26,7 @@ import {
     Jump,
     VariableDeclaration,
     MemVariableDeclaration,
+    TypeVariableDeclaration,
     PegsRange,
     noSrc,
     Src,
@@ -35,7 +36,8 @@ import {
     TransactionCall,
     Abort,
     Node,
-    Type
+    Type,
+    MemDesc
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
