@@ -158,6 +158,7 @@ Statement
     / FunctionCall
     / TransactionCall
     / Abort 
+    / Alloc
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -250,6 +251,18 @@ TransactionCall
 Abort
     = ABORT __ SEMICOLON {
         return new Abort(Src.fromPegsRange(location()));
+    }
+
+Alloc = AllocArr / AllocStruct
+
+AllocStruct
+    = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: UserDefinedType __ IN __ mem: MemDesc __ SEMICOLON {
+        return new AllocStruct(Src.fromPegsRange(location()), lhs, typeT, mem);
+    }
+
+AllocArr
+    = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: Type __ LBRACKET __ size: Expression  __ RBRACKET __ IN __ mem: MemDesc __ SEMICOLON {
+        return new AllocArray(Src.fromPegsRange(location()), lhs, typeT, size, mem)
     }
 
 /// Expressions
@@ -436,6 +449,7 @@ HASHTAG="#"
 CALL="call"
 TRANSCALL="trans_call"
 ABORT="abort"
+ALLOC="alloc"
 
 Keyword
     = STRUCT
@@ -453,6 +467,7 @@ Keyword
     / CALL
     / TRANSCALL
     / ABORT
+    / ALLOC
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

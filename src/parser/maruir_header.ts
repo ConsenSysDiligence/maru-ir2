@@ -37,7 +37,9 @@ import {
     Abort,
     Node,
     Type,
-    MemDesc
+    MemDesc,
+    AllocArray,
+    AllocStruct
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";

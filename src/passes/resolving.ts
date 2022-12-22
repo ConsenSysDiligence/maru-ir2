@@ -65,6 +65,13 @@ class Scope {
             throw new MIRTypeError(udT.src, `Unknown user defined type ${udT.name}`);
         }
 
+        if (!(def instanceof StructDefinition || def instanceof TypeVariableDeclaration)) {
+            throw new MIRTypeError(
+                udT.src,
+                `Name ${udT.pp()} doesn't resolve to a type or type var.`
+            );
+        }
+
         return def;
     }
 

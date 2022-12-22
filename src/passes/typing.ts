@@ -30,7 +30,9 @@ import {
     Type,
     UnaryOperation,
     UserDefinedType,
-    TypeVariableDeclaration
+    TypeVariableDeclaration,
+    AllocArray,
+    AllocStruct
 } from "../ir";
 import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
@@ -412,6 +414,70 @@ export class Typing {
     }
 
     /**
+     * Check whether an array allocation is typed correctly. Checks that:
+     *
+     * 1. The given element type is a primitive type
+     * 2. The size expression is of a numeric type
+     * 3. The lhs is of the expected array type
+     */
+    private tcAllocArray(stmt: AllocArray): void {
+        const elT = stmt.type;
+
+        if (!this.resolve.isPrimitive(elT)) {
+            throw new MIRTypeError(
+                elT.src,
+                `Cannot allocate an array of non-primitive type ${elT.pp()}`
+            );
+        }
+
+        const sizeT = this.typeOfExpression(stmt.size);
+
+        if (!(sizeT instanceof IntType)) {
+            throw new MIRTypeError(
+                stmt.size.src,
+                `Size expression must be of numeric type not ${sizeT.pp()}`
+            );
+        }
+
+        const resT = new PointerType(noSrc, new ArrayType(noSrc, elT), stmt.mem);
+        const lhsT = this.typeOfExpression(stmt.lhs);
+
+        if (!eq(resT, lhsT)) {
+            throw new MIRTypeError(
+                stmt.lhs.src,
+                `LHS must be of type ${resT.pp()} not ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Check whether an array allocation is typed correctly. Checks that:
+     *
+     * 1. The given element type is a primitive type
+     * 2. The size expression is of a numeric type
+     * 3. The lhs is of the expected array type
+     */
+    private tcAllocStruct(stmt: AllocStruct): void {
+        const structT = stmt.type;
+
+        const decl = this.resolve.getTypeDecl(structT);
+
+        if (!(decl instanceof StructDefinition)) {
+            throw new MIRTypeError(stmt.type, `Type ${structT.pp()} must be a struct type.`);
+        }
+
+        const resT = new PointerType(noSrc, structT, stmt.mem);
+        const lhsT = this.typeOfExpression(stmt.lhs);
+
+        if (!eq(resT, lhsT)) {
+            throw new MIRTypeError(
+                stmt.lhs.src,
+                `LHS must be of type ${resT.pp()} not ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
      * Type check a statement inside of a function
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
@@ -466,6 +532,16 @@ export class Typing {
 
         if (stmt instanceof Abort) {
             /// Nothing to do.
+            return;
+        }
+
+        if (stmt instanceof AllocArray) {
+            this.tcAllocArray(stmt);
+            return;
+        }
+
+        if (stmt instanceof AllocStruct) {
+            this.tcAllocStruct(stmt);
             return;
         }
 

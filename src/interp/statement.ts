@@ -18,7 +18,11 @@ import {
     StoreIndex,
     Abort,
     TransactionCall,
-    Type
+    Type,
+    AllocArray,
+    AllocStruct,
+    MemConstant,
+    StructDefinition
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
@@ -286,7 +290,7 @@ export class StatementExecutor {
 
         if (curMax === undefined) {
             const mem = this.state.memories.get(memory) as Memory;
-            curMax = Math.max(...mem.keys()) + 1;
+            curMax = mem.size === 0 ? 0 : Math.max(...mem.keys()) + 1;
         }
 
         this.maxMemPtr.set(memory, curMax + 1);
@@ -366,7 +370,9 @@ export class StatementExecutor {
 
         if (isTransactionCall) {
             vals = [...vals, !aborted];
+        }
 
+        if (isTransactionCall && !isRootCall) {
             const lastSave = this.state.popMemories();
 
             if (aborted) {
@@ -408,7 +414,11 @@ export class StatementExecutor {
     }
 
     execReturn(s: Return): void {
-        this.returnValsFromFrame(s.values.map(this.evaluator.evalExpression), false, s);
+        this.returnValsFromFrame(
+            s.values.map((v) => this.evaluator.evalExpression(v)),
+            false,
+            s
+        );
     }
 
     execAbort(s: Abort): void {
@@ -420,6 +430,56 @@ export class StatementExecutor {
 
         retVals.push(true);
         this.returnValsFromFrame(retVals, true, s);
+    }
+
+    execAllocArray(s: AllocArray): void {
+        const size = this.evaluator.evalExpression(s.size);
+
+        if (!(typeof size === "bigint")) {
+            this.error(`Expected size ${s.size.pp()} to be a number not ${pp(size)}`, s.size);
+        }
+
+        if (size < 0n || size > Number.MAX_SAFE_INTEGER) {
+            this.error(`Array size ${size} is too big!`, s.size);
+        }
+
+        const newArr = [];
+
+        for (let i = 0; i < Number(size); i++) {
+            newArr.push(poison);
+        }
+
+        if (!(s.mem instanceof MemConstant)) {
+            throw new Error(`NYI memory substitution in the interpreter`);
+        }
+
+        const ptr = this.define(newArr, s.mem.name);
+
+        this.assignTo(ptr, s.lhs, s);
+        this.state.curFrame.curBBInd++;
+    }
+
+    execAllocStruct(s: AllocStruct): void {
+        const newStruct = new Map<string, PrimitiveValue>();
+
+        const decl = this.resolving.getTypeDecl(s.type);
+
+        if (!(decl instanceof StructDefinition)) {
+            this.error(`Expected a struct for ${s.type.pp()} not ${pp(decl)}`, s.type);
+        }
+
+        for (const [fieldName] of decl.fields) {
+            newStruct.set(fieldName, poison);
+        }
+
+        if (!(s.mem instanceof MemConstant)) {
+            throw new Error(`NYI memory substitution in the interpreter`);
+        }
+
+        const ptr = this.define(newStruct, s.mem.name);
+
+        this.assignTo(ptr, s.lhs, s);
+        this.state.curFrame.curBBInd++;
     }
 
     execStatement(s: Statement): void {
@@ -465,6 +525,14 @@ export class StatementExecutor {
 
         if (s instanceof Return) {
             this.execReturn(s);
+        }
+
+        if (s instanceof AllocArray) {
+            this.execAllocArray(s);
+        }
+
+        if (s instanceof AllocStruct) {
+            this.execAllocStruct(s);
         }
     }
 }

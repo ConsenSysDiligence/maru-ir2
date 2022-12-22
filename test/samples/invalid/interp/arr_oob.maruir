@@ -1,0 +1,9 @@
+fun main(): uint8
+locals arr: uint8[] *#memory, res: uint8;
+{
+    entry:
+        arr := alloc uint8[uint8(3)] in #memory;
+        load arr[uint8(3)] in res;
+
+        return res;
+}

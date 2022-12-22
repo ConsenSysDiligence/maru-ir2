@@ -1,6 +1,6 @@
 import { Definition, FunctionDefinition, MemConstant } from "../ir";
 import { BasicBlock } from "../ir/cfg";
-import { PPAble, walk, zip } from "../utils";
+import { pp, PPAble, walk, zip } from "../utils";
 
 class PoisonValue implements PPAble {
     pp(): string {
@@ -44,6 +44,14 @@ export class Frame implements PPAble {
         return `${this.fun.name}:${this.curBB.label}:${this.curBBInd} ${this.curBB.statements[
             this.curBBInd
         ].pp()}`;
+    }
+
+    dump(indent: string): string {
+        const storeStrs = [];
+        for (const [name, val] of this.store) {
+            storeStrs.push(`${name}: ${pp(val)}`);
+        }
+        return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
 }
 
@@ -94,6 +102,10 @@ export class State {
 
     get curFrame(): Frame {
         return this.stack[this.stack.length - 1];
+    }
+
+    get running(): boolean {
+        return this.stack.length > 0;
     }
 
     /// Compute the initial set of memories needed by walking over all trees
@@ -158,5 +170,24 @@ export class State {
         this.memoriesStack.pop();
 
         return res;
+    }
+
+    dump(): string {
+        const mems = [];
+        const indent = "    ";
+
+        for (const [memName, memory] of this.memories) {
+            const memContents = [];
+
+            for (const [ptr, val] of memory) {
+                memContents.push(`${ptr}: ${pp(val)}`);
+            }
+
+            mems.push(`${indent}${memName}: [${memContents.join("; ")}]`);
+        }
+
+        return `Stack:\n${this.stack
+            .map((frame) => frame.dump(indent))
+            .join("\n")}\nMemories:\n${mems.join("\n")}`;
     }
 }
