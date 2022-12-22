@@ -28,11 +28,13 @@ import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { Resolving, Typing } from "../passes";
 import { pp, zip } from "../utils";
-import { ExprEvaluator, fits, InterpError } from "./expression";
+import { ExprEvaluator, fits } from "./expression";
 import {
     ComplexValue,
     EXCEPTION_MEM,
     Frame,
+    InterpError,
+    InterpInternalError,
     Memory,
     PointerVal,
     poison,
@@ -55,6 +57,10 @@ export class StatementExecutor {
 
     private error(msg: string, e?: Node): never {
         throw new InterpError(e === undefined ? new NoSrc() : e, msg, this.state);
+    }
+
+    private internalError(msg: string, e?: Node): never {
+        throw new InterpInternalError(e === undefined ? new NoSrc() : e, msg, this.state);
     }
 
     agrees(val: PrimitiveValue, type: Type): boolean {
@@ -87,14 +93,14 @@ export class StatementExecutor {
         const condVal = this.evaluator.evalExpression(s.condition);
 
         if (!(typeof condVal === "boolean")) {
-            this.error(`Branch expected boolean condition not ${condVal}`, s);
+            this.internalError(`Branch expected boolean condition not ${condVal}`, s);
         }
 
         const label = condVal ? s.trueLabel : s.falseLabel;
         const newBB = (this.state.curFrame.fun.body as CFG).nodes.get(label);
 
         if (!newBB) {
-            this.error(`No BasicBlock found for label ${label}`, s);
+            this.internalError(`No BasicBlock found for label ${label}`, s);
         }
 
         this.state.curFrame.curBB = newBB;
@@ -105,7 +111,7 @@ export class StatementExecutor {
         const callee = this.resolving.getIdDecl(s.callee);
 
         if (!(callee instanceof FunctionDefinition)) {
-            this.error(`Expected ${s.callee.pp()} to be a function`, s);
+            this.internalError(`Expected ${s.callee.pp()} to be a function`, s);
         }
 
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
@@ -125,7 +131,7 @@ export class StatementExecutor {
         const newBB = (this.state.curFrame.fun.body as CFG).nodes.get(s.label);
 
         if (!newBB) {
-            this.error(`No BasicBlock found for label ${s.label}`, s);
+            this.internalError(`No BasicBlock found for label ${s.label}`, s);
         }
 
         this.state.curFrame.curBB = newBB;
@@ -136,11 +142,18 @@ export class StatementExecutor {
         const lhsType = this.typing.typeOf(lhs);
 
         if (lhsType === undefined) {
-            this.error(`Missing type for ${lhs.pp()}`, lhs);
+            this.internalError(`Missing type for ${lhs.pp()}`, lhs);
+        }
+
+        if (val === poison) {
+            this.error(`Attempt to assign ${val.pp()} to ${lhs.pp()}`, inStmt);
         }
 
         if (!this.agrees(val, lhsType)) {
-            this.error(`Cannot assign ${pp(val)} to ${lhs.pp()} of type ${lhsType.pp()}`, inStmt);
+            this.internalError(
+                `Cannot assign ${pp(val)} to ${lhs.pp()} of type ${lhsType.pp()}`,
+                inStmt
+            );
         }
 
         this.state.curFrame.store.set(lhs.name, val);
@@ -150,7 +163,7 @@ export class StatementExecutor {
         const mem = this.state.memories.get(val[0]);
 
         if (mem === undefined) {
-            this.error(`Memory ${val[0]} not found.`, e);
+            this.internalError(`Memory ${val[0]} not found.`, e);
         }
 
         const loadedVal = mem.get(val[1]);
@@ -166,7 +179,7 @@ export class StatementExecutor {
         const val = this.evaluator.evalExpression(e);
 
         if (!(val instanceof Array)) {
-            this.error(`Expected a pointer for ${e.pp()} not ${val}`, e);
+            this.internalError(`Expected a pointer for ${e.pp()} not ${val}`, e);
         }
 
         return this.deref(val, e);
@@ -176,7 +189,7 @@ export class StatementExecutor {
         const struct = this.evalAndDeref(s.baseExpr);
 
         if (!(struct instanceof Map)) {
-            this.error(
+            this.internalError(
                 `Expected struct for ${s.baseExpr.pp()} instead of ${pp(struct)}`,
                 s.baseExpr
             );
@@ -185,7 +198,7 @@ export class StatementExecutor {
         const val = struct.get(s.member);
 
         if (val === undefined) {
-            this.error(`Struct missing field ${s.member}`, s);
+            this.internalError(`Struct missing field ${s.member}`, s);
         }
 
         this.assignTo(val, s.lhs, s);
@@ -197,14 +210,14 @@ export class StatementExecutor {
         const index = this.evaluator.evalExpression(s.indexExpr);
 
         if (!(array instanceof Array)) {
-            this.error(
+            this.internalError(
                 `Expected struct for ${s.baseExpr.pp()} instead of ${pp(array)}`,
                 s.baseExpr
             );
         }
 
         if (!(typeof index === "bigint")) {
-            this.error(
+            this.internalError(
                 `Expected index ${s.baseExpr.pp()} to be a number not ${pp(index)}`,
                 s.indexExpr
             );
@@ -224,7 +237,7 @@ export class StatementExecutor {
         const struct = this.evalAndDeref(s.baseExpr);
 
         if (!(struct instanceof Map)) {
-            this.error(
+            this.internalError(
                 `Expected struct for ${s.baseExpr.pp()} instead of ${pp(struct)}`,
                 s.baseExpr
             );
@@ -241,14 +254,14 @@ export class StatementExecutor {
         const index = this.evaluator.evalExpression(s.indexExpr);
 
         if (!(array instanceof Array)) {
-            this.error(
+            this.internalError(
                 `Expected struct for ${s.baseExpr.pp()} instead of ${pp(array)}`,
                 s.baseExpr
             );
         }
 
         if (!(typeof index === "bigint")) {
-            this.error(
+            this.internalError(
                 `Expected index ${s.baseExpr.pp()} to be a number not ${pp(index)}`,
                 s.indexExpr
             );
@@ -340,7 +353,7 @@ export class StatementExecutor {
         const callee = this.resolving.getIdDecl(s.callee);
 
         if (!(callee instanceof FunctionDefinition)) {
-            this.error(`Expected ${s.callee.pp()} to be a function`, s);
+            this.internalError(`Expected ${s.callee.pp()} to be a function`, s);
         }
 
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
@@ -381,7 +394,7 @@ export class StatementExecutor {
                 const curExcMem = this.state.memories.get(EXCEPTION_MEM);
 
                 if (curExcMem === undefined) {
-                    this.error(`Missing #exception memory`, s);
+                    this.internalError(`Missing #exception memory`, s);
                 }
 
                 this.state.memories = lastSave;
@@ -396,13 +409,18 @@ export class StatementExecutor {
             const callStmt = prevFrame.curBB.statements[prevFrame.curBBInd];
 
             if (!(callStmt instanceof FunctionCall || callStmt instanceof TransactionCall)) {
-                this.error(`Expected a call statement from return not ${callStmt.pp()}`, callStmt);
+                this.internalError(
+                    `Expected a call statement from return not ${callStmt.pp()}`,
+                    callStmt
+                );
             }
 
             const lhss = callStmt.lhss;
 
             if (lhss.length !== vals.length) {
-                this.error(`Mismatch in returns - expected ${lhss.length} got ${vals.length}`);
+                this.internalError(
+                    `Mismatch in returns - expected ${lhss.length} got ${vals.length}`
+                );
             }
 
             for (let i = 0; i < lhss.length; i++) {
@@ -436,11 +454,14 @@ export class StatementExecutor {
         const size = this.evaluator.evalExpression(s.size);
 
         if (!(typeof size === "bigint")) {
-            this.error(`Expected size ${s.size.pp()} to be a number not ${pp(size)}`, s.size);
+            this.internalError(
+                `Expected size ${s.size.pp()} to be a number not ${pp(size)}`,
+                s.size
+            );
         }
 
         if (size < 0n || size > Number.MAX_SAFE_INTEGER) {
-            this.error(`Array size ${size} is too big!`, s.size);
+            this.internalError(`Array size ${size} is too big!`, s.size);
         }
 
         const newArr = [];
@@ -450,7 +471,7 @@ export class StatementExecutor {
         }
 
         if (!(s.mem instanceof MemConstant)) {
-            throw new Error(`NYI memory substitution in the interpreter`);
+            this.internalError(`NYI memory substitution in the interpreter`, s.mem);
         }
 
         const ptr = this.define(newArr, s.mem.name);
@@ -465,7 +486,7 @@ export class StatementExecutor {
         const decl = this.resolving.getTypeDecl(s.type);
 
         if (!(decl instanceof StructDefinition)) {
-            this.error(`Expected a struct for ${s.type.pp()} not ${pp(decl)}`, s.type);
+            this.internalError(`Expected a struct for ${s.type.pp()} not ${pp(decl)}`, s.type);
         }
 
         for (const [fieldName] of decl.fields) {
@@ -473,7 +494,7 @@ export class StatementExecutor {
         }
 
         if (!(s.mem instanceof MemConstant)) {
-            throw new Error(`NYI memory substitution in the interpreter`);
+            this.internalError(`NYI memory substitution in the interpreter`, s.mem);
         }
 
         const ptr = this.define(newStruct, s.mem.name);
@@ -483,56 +504,71 @@ export class StatementExecutor {
     }
 
     execStatement(s: Statement): void {
-        if (s instanceof Assignment) {
-            this.execAssignment(s);
+        // Once in the failed state, we perpetually stay there.
+        if (this.state.failed) {
+            return;
         }
 
-        if (s instanceof Branch) {
-            this.execBranch(s);
-        }
+        try {
+            if (s instanceof Assignment) {
+                this.execAssignment(s);
+            }
 
-        if (s instanceof FunctionCall) {
-            this.execFunctionCall(s);
-        }
+            if (s instanceof Branch) {
+                this.execBranch(s);
+            }
 
-        if (s instanceof Jump) {
-            this.execJump(s);
-        }
+            if (s instanceof FunctionCall) {
+                this.execFunctionCall(s);
+            }
 
-        if (s instanceof LoadField) {
-            this.execLoadField(s);
-        }
+            if (s instanceof Jump) {
+                this.execJump(s);
+            }
 
-        if (s instanceof LoadIndex) {
-            this.execLoadIndex(s);
-        }
+            if (s instanceof LoadField) {
+                this.execLoadField(s);
+            }
 
-        if (s instanceof StoreField) {
-            this.execStoreField(s);
-        }
+            if (s instanceof LoadIndex) {
+                this.execLoadIndex(s);
+            }
 
-        if (s instanceof StoreIndex) {
-            this.execStoreIndex(s);
-        }
+            if (s instanceof StoreField) {
+                this.execStoreField(s);
+            }
 
-        if (s instanceof TransactionCall) {
-            this.execTransactionCall(s);
-        }
+            if (s instanceof StoreIndex) {
+                this.execStoreIndex(s);
+            }
 
-        if (s instanceof Abort) {
-            this.execAbort(s);
-        }
+            if (s instanceof TransactionCall) {
+                this.execTransactionCall(s);
+            }
 
-        if (s instanceof Return) {
-            this.execReturn(s);
-        }
+            if (s instanceof Abort) {
+                this.execAbort(s);
+            }
 
-        if (s instanceof AllocArray) {
-            this.execAllocArray(s);
-        }
+            if (s instanceof Return) {
+                this.execReturn(s);
+            }
 
-        if (s instanceof AllocStruct) {
-            this.execAllocStruct(s);
+            if (s instanceof AllocArray) {
+                this.execAllocArray(s);
+            }
+
+            if (s instanceof AllocStruct) {
+                this.execAllocStruct(s);
+            }
+        } catch (e) {
+            if (e instanceof InterpError) {
+                this.state.fail(e);
+
+                return;
+            }
+
+            throw e;
         }
     }
 }

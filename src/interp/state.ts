@@ -1,6 +1,18 @@
-import { Definition, FunctionDefinition, MemConstant } from "../ir";
+import { BaseSrc, Definition, FunctionDefinition, MemConstant } from "../ir";
 import { BasicBlock } from "../ir/cfg";
 import { pp, PPAble, walk, zip } from "../utils";
+
+export class InterpError extends Error {
+    constructor(public readonly src: BaseSrc, msg: string, state: State) {
+        super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
+    }
+}
+
+export class InterpInternalError extends Error {
+    constructor(public readonly src: BaseSrc, msg: string, state: State) {
+        super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
+    }
+}
 
 class PoisonValue implements PPAble {
     pp(): string {
@@ -38,6 +50,10 @@ export class Frame implements PPAble {
         for (const [argName, argVal] of args) {
             this.store.set(argName, argVal);
         }
+
+        for (const locDecl of fun.locals) {
+            this.store.set(locDecl.name, poison);
+        }
     }
 
     pp(): string {
@@ -70,6 +86,8 @@ export class State {
     memories: Memories;
     builtins: Map<string, BuiltinFun>;
     externalReturns: any[] | undefined;
+    private failure: InterpError | undefined;
+
     /**
      * Stack of memory copies created for each transaction call.
      */
@@ -98,14 +116,23 @@ export class State {
         }
         this.builtins = builtins;
         this.memoriesStack = [];
+        this.failure = undefined;
     }
 
     get curFrame(): Frame {
         return this.stack[this.stack.length - 1];
     }
 
+    get failed(): boolean {
+        return this.failure !== undefined;
+    }
+
     get running(): boolean {
-        return this.stack.length > 0;
+        return this.stack.length > 0 && !this.failed;
+    }
+
+    fail(e: InterpError): void {
+        this.failure = e;
     }
 
     /// Compute the initial set of memories needed by walking over all trees

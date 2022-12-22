@@ -1,0 +1,7 @@
+fun main()
+locals a: uint8, b: uint8;
+{
+    entry:
+        a := b + uint8(1);
+        return;
+}

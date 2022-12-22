@@ -45,7 +45,7 @@ describe("Interpreter tests", () => {
     }
 });
 
-describe("Crashing interpreter tests", () => {
+describe("Failing interpreter tests", () => {
     const files = searchRecursive("test/samples/invalid/interp", (name) =>
         name.endsWith(".maruir")
     );
@@ -79,17 +79,8 @@ describe("Crashing interpreter tests", () => {
                 stmtExec.execStatement(curStmt);
             }
 
-            expect(state.externalReturns).toBeDefined();
-
-            if (state.externalReturns === undefined) {
-                return;
-            }
-
-            expect(state.externalReturns.length).toBeGreaterThan(0);
-
-            const aborted = state.externalReturns[state.externalReturns.length - 1];
-
-            expect(aborted).toEqual(true);
+            expect(state.externalReturns).not.toBeDefined();
+            expect(state.failed).toEqual(true);
         });
     }
 });
