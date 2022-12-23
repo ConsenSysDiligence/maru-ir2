@@ -1,0 +1,17 @@
+fun fail() {
+	entry:
+		assert false;
+		return;
+}
+
+fun middle() {
+	entry:
+		call fail();
+		return;
+}
+
+fun main() {
+	entry:
+		call middle();
+		return;
+}

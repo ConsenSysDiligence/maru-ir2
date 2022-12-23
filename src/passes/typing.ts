@@ -32,7 +32,8 @@ import {
     UserDefinedType,
     TypeVariableDeclaration,
     AllocArray,
-    AllocStruct
+    AllocStruct,
+    Assert
 } from "../ir";
 import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
@@ -478,6 +479,20 @@ export class Typing {
     }
 
     /**
+     * Type check an assert. Just make sure the condition is a boolean.
+     */
+    private tcAssert(stmt: Assert): void {
+        const condT = this.typeOfExpression(stmt.condition);
+
+        if (!(condT instanceof BoolType)) {
+            throw new MIRTypeError(
+                stmt.condition.src,
+                `Assert statement expects boolean not ${stmt.condition.pp()} of type ${condT.pp()}`
+            );
+        }
+    }
+
+    /**
      * Type check a statement inside of a function
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
@@ -542,6 +557,11 @@ export class Typing {
 
         if (stmt instanceof AllocStruct) {
             this.tcAllocStruct(stmt);
+            return;
+        }
+
+        if (stmt instanceof Assert) {
+            this.tcAssert(stmt);
             return;
         }
 

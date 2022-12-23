@@ -163,6 +163,7 @@ Statement
     / TransactionCall
     / Abort 
     / Alloc
+    / Assert
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -267,6 +268,11 @@ AllocStruct
 AllocArr
     = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: Type __ LBRACKET __ size: Expression  __ RBRACKET __ IN __ mem: MemDesc __ SEMICOLON {
         return new AllocArray(Src.fromPegsRange(location()), lhs, typeT, size, mem)
+    }
+
+Assert
+    = ASSERT __ condition: Expression __ SEMICOLON {
+        return new Assert(Src.fromPegsRange(location()), condition);
     }
 
 /// Expressions
@@ -454,6 +460,7 @@ CALL="call"
 TRANSCALL="trans_call"
 ABORT="abort"
 ALLOC="alloc"
+ASSERT="assert"
 
 Keyword
     = STRUCT
@@ -472,6 +479,7 @@ Keyword
     / TRANSCALL
     / ABORT
     / ALLOC
+    / ASSERT
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

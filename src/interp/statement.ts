@@ -22,7 +22,8 @@ import {
     AllocArray,
     AllocStruct,
     MemConstant,
-    StructDefinition
+    StructDefinition,
+    Assert
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
@@ -521,6 +522,20 @@ export class StatementExecutor {
         this.state.curFrame.curBBInd++;
     }
 
+    execAssert(s: Assert): void {
+        const condVal = this.evaluator.evalExpression(s.condition);
+
+        if (!(typeof condVal === "boolean")) {
+            this.internalError(`Assert expected boolean condition not ${condVal}`, s);
+        }
+
+        if (!condVal) {
+            this.error(`Assertion ${s.pp()} failed`, s);
+        }
+
+        this.state.curFrame.curBBInd++;
+    }
+
     execStatement(s: Statement): void {
         // Once in the failed state, we perpetually stay there.
         if (this.state.failed) {
@@ -530,18 +545,22 @@ export class StatementExecutor {
         try {
             if (s instanceof Assignment) {
                 this.execAssignment(s);
+                return;
             }
 
             if (s instanceof Branch) {
                 this.execBranch(s);
+                return;
             }
 
             if (s instanceof FunctionCall) {
                 this.execFunctionCall(s);
+                return;
             }
 
             if (s instanceof Jump) {
                 this.execJump(s);
+                return;
             }
 
             if (s instanceof LoadField) {
@@ -550,35 +569,50 @@ export class StatementExecutor {
 
             if (s instanceof LoadIndex) {
                 this.execLoadIndex(s);
+                return;
             }
 
             if (s instanceof StoreField) {
                 this.execStoreField(s);
+                return;
             }
 
             if (s instanceof StoreIndex) {
                 this.execStoreIndex(s);
+                return;
             }
 
             if (s instanceof TransactionCall) {
                 this.execTransactionCall(s);
+                return;
             }
 
             if (s instanceof Abort) {
                 this.execAbort(s);
+                return;
             }
 
             if (s instanceof Return) {
                 this.execReturn(s);
+                return;
             }
 
             if (s instanceof AllocArray) {
                 this.execAllocArray(s);
+                return;
             }
 
             if (s instanceof AllocStruct) {
                 this.execAllocStruct(s);
+                return;
             }
+
+            if (s instanceof Assert) {
+                this.execAssert(s);
+                return;
+            }
+
+            this.internalError(`Unknown statement ${pp(s)}`);
         } catch (e) {
             if (e instanceof InterpError) {
                 this.state.fail(e);
