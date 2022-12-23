@@ -1,0 +1,26 @@
+fun fail(x: uint8): uint8 {
+    entry:
+        abort;
+}
+
+fun middle(x: uint8): uint8
+locals res: uint8;
+{
+    entry:
+        res := call fail(x);
+        return res;
+}
+
+fun main(): uint8
+locals res: uint8, failed: bool;
+{
+    entry:
+        res, failed := trans_call middle(uint8(1));
+        branch failed succ_bb fail_bb;
+
+    fail_bb:
+        return uint8(42);
+    
+    succ_bb:
+        return res;
+}

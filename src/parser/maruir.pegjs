@@ -5,7 +5,7 @@
 }
 
 Program
-    = (d: Definition __ { return d; })*;
+    = __ t: (d: Definition __ { return d; })* { return t; };
 
 /// Definitions
 
@@ -66,8 +66,12 @@ FunBody
         return buildCFG(stmts, options as ParseOptions, location());
     }
 
+FunReturns
+    = t: Type  { return [t]; }
+    / LPAREN __ retTList: TypeList __ RPAREN { return retTList; }
+
 FunctionDefinition
-    = FUNCTION __ name: Identifier __  pParams: PolyParams? __ LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
+    = FUNCTION __ name: Identifier __  pParams: PolyParams? __ LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: FunReturns { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
         const mArgs = pParams === null ? [] : pParams[0];
         const tArgs = pParams === null ? [] : pParams[1];
 
@@ -78,7 +82,7 @@ FunctionDefinition
             name,
             params === null ? [] : params,
             locals === null ? [] : locals,
-            rets === null ? [] : [rets],
+            rets === null ? [] : rets,
             body === null ? undefined : body);
     }
 

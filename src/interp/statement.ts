@@ -138,18 +138,23 @@ export class StatementExecutor {
         this.state.curFrame.curBBInd = 0;
     }
 
-    private assignTo(val: PrimitiveValue, lhs: Identifier, inStmt: Statement): void {
+    private assignTo(
+        val: PrimitiveValue,
+        lhs: Identifier,
+        inStmt: Statement,
+        ignorePoison = false
+    ): void {
         const lhsType = this.typing.typeOf(lhs);
 
         if (lhsType === undefined) {
             this.internalError(`Missing type for ${lhs.pp()}`, lhs);
         }
 
-        if (val === poison) {
+        if (val === poison && !ignorePoison) {
             this.error(`Attempt to assign ${val.pp()} to ${lhs.pp()}`, inStmt);
         }
 
-        if (!this.agrees(val, lhsType)) {
+        if (!this.agrees(val, lhsType) && val !== poison) {
             this.internalError(
                 `Cannot assign ${pp(val)} to ${lhs.pp()} of type ${lhsType.pp()}`,
                 inStmt
@@ -370,22 +375,24 @@ export class StatementExecutor {
         this.state.stack.push(newFrame);
     }
 
-    private returnValsFromFrame(vals: PrimitiveValue[], aborted: boolean, s: Statement) {
-        const isRootCall = this.state.stack.length === 1;
-        let isTransactionCall = isRootCall;
-
-        if (!isRootCall) {
-            const prevFrame = this.state.stack[this.state.stack.length - 2];
-            const callStmt = prevFrame.curBB.statements[prevFrame.curBBInd];
-
-            isTransactionCall = callStmt instanceof TransactionCall;
+    private returnValsToExternalCtx(vals: PrimitiveValue[], aborted: boolean) {
+        if (this.state.stack.length !== 0) {
+            this.internalError(`Cannot return to external context from non-empty stack`);
         }
 
-        if (isTransactionCall) {
-            vals = [...vals, !aborted];
+        vals = [...vals, !aborted];
+        this.state.externalReturns = vals.map(this.jsEncode);
+    }
+
+    private returnValsToFrame(vals: PrimitiveValue[], aborted: boolean, frame: Frame) {
+        const stmt = frame.curBB.statements[frame.curBBInd];
+
+        if (!(stmt instanceof FunctionCall || stmt instanceof TransactionCall)) {
+            this.internalError(`Expected a call statement not ${stmt.pp()}`, stmt);
         }
 
-        if (isTransactionCall && !isRootCall) {
+        // If this was a transaction call handle restoring memories
+        if (stmt instanceof TransactionCall) {
             const lastSave = this.state.popMemories();
 
             if (aborted) {
@@ -394,7 +401,7 @@ export class StatementExecutor {
                 const curExcMem = this.state.memories.get(EXCEPTION_MEM);
 
                 if (curExcMem === undefined) {
-                    this.internalError(`Missing #exception memory`, s);
+                    this.internalError(`Missing #exception memory`, stmt);
                 }
 
                 this.state.memories = lastSave;
@@ -402,52 +409,63 @@ export class StatementExecutor {
             }
         }
 
-        if (isRootCall) {
-            this.state.externalReturns = vals.map(this.jsEncode);
-        } else {
-            const prevFrame = this.state.stack[this.state.stack.length - 2];
-            const callStmt = prevFrame.curBB.statements[prevFrame.curBBInd];
+        const lhss = stmt.lhss;
 
-            if (!(callStmt instanceof FunctionCall || callStmt instanceof TransactionCall)) {
-                this.internalError(
-                    `Expected a call statement from return not ${callStmt.pp()}`,
-                    callStmt
-                );
-            }
-
-            const lhss = callStmt.lhss;
-
-            if (lhss.length !== vals.length) {
-                this.internalError(
-                    `Mismatch in returns - expected ${lhss.length} got ${vals.length}`
-                );
-            }
-
-            for (let i = 0; i < lhss.length; i++) {
-                this.assignTo(vals[i], lhss[i], s);
-            }
+        if (lhss.length !== vals.length) {
+            this.internalError(`Mismatch in returns - expected ${lhss.length} got ${vals.length}`);
         }
 
-        this.state.stack.pop();
+        for (let i = 0; i < lhss.length; i++) {
+            /// On Aborted we allow emitting poison in the normal return values.
+            this.assignTo(vals[i], lhss[i], stmt, aborted);
+        }
     }
 
     execReturn(s: Return): void {
-        this.returnValsFromFrame(
-            s.values.map((v) => this.evaluator.evalExpression(v)),
-            false,
-            s
-        );
+        const retVals = s.values.map((v) => this.evaluator.evalExpression(v));
+        this.state.stack.pop();
+
+        if (this.state.stack.length === 0) {
+            this.returnValsToExternalCtx(retVals, false);
+        } else {
+            this.returnValsToFrame(retVals, false, this.state.stack[this.state.stack.length - 1]);
+            this.state.curFrame.curBBInd++;
+        }
     }
 
-    execAbort(s: Abort): void {
+    private makePoisonRets(nRets: number): PrimitiveValue[] {
         const retVals: PrimitiveValue[] = [];
 
-        for (let i = 0; i < this.state.curFrame.fun.returns.length; i++) {
+        for (let i = 0; i < nRets; i++) {
             retVals.push(poison);
         }
 
         retVals.push(true);
-        this.returnValsFromFrame(retVals, true, s);
+
+        return retVals;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    execAbort(s: Abort): void {
+        let nRets = this.state.curFrame.fun.returns.length;
+
+        while (this.state.stack.length > 0) {
+            this.state.stack.pop();
+
+            const curFrame = this.state.curFrame;
+            const curStmt = curFrame.curBB.statements[curFrame.curBBInd];
+
+            if (!(curStmt instanceof TransactionCall)) {
+                nRets = curFrame.fun.returns.length;
+                continue;
+            }
+
+            this.returnValsToFrame(this.makePoisonRets(nRets), true, curFrame);
+            this.state.curFrame.curBBInd++;
+            return;
+        }
+
+        this.returnValsToExternalCtx(this.makePoisonRets(nRets), true);
     }
 
     execAllocArray(s: AllocArray): void {

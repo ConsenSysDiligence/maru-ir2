@@ -213,8 +213,9 @@ export class State {
             mems.push(`${indent}${memName}: [${memContents.join("; ")}]`);
         }
 
-        return `Stack:\n${this.stack
-            .map((frame) => frame.dump(indent))
-            .join("\n")}\nMemories:\n${mems.join("\n")}`;
+        const stackStrs = this.stack.map((frame) => frame.dump(indent));
+        stackStrs.reverse();
+
+        return `Stack:\n${stackStrs.join("\n")}\nMemories:\n${mems.join("\n")}`;
     }
 }
