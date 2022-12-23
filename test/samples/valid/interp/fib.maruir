@@ -1,0 +1,25 @@
+fun fib(n: uint256): uint256
+locals a: uint256, b: uint256;
+{
+	entry:
+		branch n == uint256(0) zero other1;
+	zero:
+		return uint256(0);
+	other1:
+		branch n == uint256(1) one other2;
+	one:
+		return uint256(1);
+	other2:
+		a := call fib(n - uint256(1));
+		b := call fib(n - uint256(2));
+		return a + b;
+}
+
+fun main()
+locals t: uint256;
+{
+	entry:
+		t := call fib(uint256(6));
+		assert t == uint256(8);
+		return;
+}

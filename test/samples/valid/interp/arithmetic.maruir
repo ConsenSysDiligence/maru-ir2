@@ -1,0 +1,77 @@
+fun main()
+locals a: int16, b: int16, c: uint8, e: bool;
+{
+    entry:
+        c := uint8(255);
+        c := c + uint8(1);
+        assert(c == uint8(0));
+        c := c - uint8(1);
+        assert(c == uint8(255));
+
+        b := int16(32767);
+
+        b := b + int16(1);
+        assert b == int16(-32768);
+
+        b := int16(-2);
+        a := int16(16384);
+
+        b := b * a;
+        assert(b == int16(-32768));
+
+        assert(b >> int8(2) == int16(-8192));
+
+        assert(b << int8(1) == int16(0));
+
+        a := int16(-3);
+        b := int16(3);
+
+        assert(a ** b == int16(-27));
+
+        a := int16(125);
+        b := int16(7);
+
+        assert(a / b == int16(17));
+
+        assert !(uint256(1) < uint256(1));
+        assert uint256(1) <= uint256(1);
+        assert int32(4) < int32(5);
+        assert uint64(7) > uint64(6);
+        assert int64(6) >= int64(6);
+        assert !(int48(5) > int48(5));
+
+        assert (uint256(1) == uint256(1));
+        assert !(uint256(1) == uint256(2));
+        assert uint256(1) != uint256(2);
+        assert !(int128(2) != int128(2));
+
+        a := int16(37);
+        b := int16(1024);
+
+        assert (a | b == int16(1061));
+        assert (a & b == int16(0));
+        assert (a ^ b == int16(1061));
+
+        b := int16(122);
+
+        assert (a | b == int16(127));
+        assert (a & b == int16(32));
+        assert (a ^ b == int16(95));
+
+        a := -int16(5);
+        
+
+        assert(-a == int16(5));
+
+        e := false;
+        assert(!e);
+
+        assert (true || false);
+        assert (true || true);
+        assert !(false || false);
+
+        assert !(true && false);
+        assert (true && true);
+        assert !(false && false);
+        return;
+}

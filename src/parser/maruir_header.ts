@@ -108,14 +108,20 @@ export function buildCFG(
         );
     }
 
+    const bbMap = new Map<string, BasicBlock>(nodes.map((n) => [n.label, n]));
     const addBB = () => {
         const newBB = new BasicBlock(curLabel as string);
         newBB.statements = curStmts;
+
+        if (bbMap.has(curLabel as string)) {
+            throw new MIRSyntaxError(curStmts[0].src, `Duplicate basic block label ${curLabel}`)
+        }
 
         if (entry === undefined) {
             entry = newBB;
         }
 
+        bbMap.set(newBB.label, newBB);
         nodes.push(newBB);
     };
 
@@ -137,7 +143,6 @@ export function buildCFG(
     addBB();
 
     // Find edges
-    const bbMap = new Map<string, BasicBlock>(nodes.map((n) => [n.label, n]));
     const getBB = (label: string, loc: BaseSrc): BasicBlock => {
         const res = bbMap.get(label);
 

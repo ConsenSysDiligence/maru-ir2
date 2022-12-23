@@ -41,6 +41,9 @@ describe("Interpreter tests", () => {
                 console.error(`Exec ${curStmt.pp()} in ${state.dump()}`);
                 stmtExec.execStatement(curStmt);
             }
+
+            expect(state.externalReturns).toBeDefined();
+            expect(state.failed).toEqual(false);
         });
     }
 });
