@@ -378,12 +378,35 @@ export class StatementExecutor {
         this.state.stack.push(newFrame);
     }
 
-    private returnValsToExternalCtx(vals: PrimitiveValue[], aborted: boolean) {
+    private restoreMemsOnReturnFromTransaction(aborted: boolean, stmt: Statement) {
+        const lastSave = this.state.popMemories();
+
+        if (aborted) {
+            /// #exception memory is special - it doesn't get reverted on abort.
+            /// This allows passing exception data back
+            const curExcMem = this.state.memories.get(EXCEPTION_MEM);
+
+            if (curExcMem === undefined) {
+                this.internalError(`Missing #exception memory`, stmt);
+            }
+
+            this.state.memories = lastSave;
+            this.state.memories.set(EXCEPTION_MEM, curExcMem);
+        }
+    }
+
+    private returnValsToExternalCtx(vals: PrimitiveValue[], aborted: boolean, stmt: Statement) {
         if (this.state.stack.length !== 0) {
             this.internalError(`Cannot return to external context from non-empty stack`);
         }
 
-        vals = [...vals, !aborted];
+        vals = [...vals];
+
+        if (this.state.rootIsTransaction) {
+            vals.push(aborted);
+            this.restoreMemsOnReturnFromTransaction(aborted, stmt);
+        }
+
         this.state.externalReturns = vals.map(this.jsEncode);
     }
 
@@ -396,20 +419,8 @@ export class StatementExecutor {
 
         // If this was a transaction call handle restoring memories
         if (stmt instanceof TransactionCall) {
-            const lastSave = this.state.popMemories();
-
-            if (aborted) {
-                /// #exception memory is special - it doesn't get reverted on abort.
-                /// This allows passing exception data back
-                const curExcMem = this.state.memories.get(EXCEPTION_MEM);
-
-                if (curExcMem === undefined) {
-                    this.internalError(`Missing #exception memory`, stmt);
-                }
-
-                this.state.memories = lastSave;
-                this.state.memories.set(EXCEPTION_MEM, curExcMem);
-            }
+            vals.push(aborted);
+            this.restoreMemsOnReturnFromTransaction(aborted, stmt);
         }
 
         const lhss = stmt.lhss;
@@ -429,7 +440,7 @@ export class StatementExecutor {
         this.state.stack.pop();
 
         if (this.state.stack.length === 0) {
-            this.returnValsToExternalCtx(retVals, false);
+            this.returnValsToExternalCtx(retVals, false, s);
         } else {
             this.returnValsToFrame(retVals, false, this.state.stack[this.state.stack.length - 1]);
             this.state.curFrame.curBBInd++;
@@ -443,8 +454,6 @@ export class StatementExecutor {
             retVals.push(poison);
         }
 
-        retVals.push(true);
-
         return retVals;
     }
 
@@ -452,7 +461,7 @@ export class StatementExecutor {
     execAbort(s: Abort): void {
         let nRets = this.state.curFrame.fun.returns.length;
 
-        while (this.state.stack.length > 0) {
+        while (this.state.stack.length > 1) {
             this.state.stack.pop();
 
             const curFrame = this.state.curFrame;
@@ -468,7 +477,8 @@ export class StatementExecutor {
             return;
         }
 
-        this.returnValsToExternalCtx(this.makePoisonRets(nRets), true);
+        this.state.stack.pop();
+        this.returnValsToExternalCtx(this.makePoisonRets(nRets), true, s);
     }
 
     private resolveMemDesc(m: MemDesc): MemConstant {

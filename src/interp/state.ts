@@ -29,7 +29,7 @@ export type ComplexValue = PrimitiveValue[] | Map<string, PrimitiveValue>;
 
 export type Store = Map<string, PrimitiveValue>;
 
-export const EXCEPTION_MEM = "#exception";
+export const EXCEPTION_MEM = "exception";
 
 export class Frame implements PPAble {
     fun: FunctionDefinition;
@@ -92,6 +92,7 @@ export class State {
     externalReturns: any[] | undefined;
     private failure: InterpError | undefined;
     rootMemArgs: MemConstant[];
+    public readonly rootIsTransaction: boolean;
 
     /**
      * Stack of memory copies created for each transaction call.
@@ -103,6 +104,7 @@ export class State {
         entryFun: FunctionDefinition,
         entryFunArgs: PrimitiveValue[],
         entryMemArgs: MemConstant[],
+        isTransaction: boolean,
         builtins: Map<string, BuiltinFun>
     ) {
         this.program = program;
@@ -124,6 +126,11 @@ export class State {
         this.memoriesStack = [];
         this.failure = undefined;
         this.rootMemArgs = entryMemArgs;
+        this.rootIsTransaction = isTransaction;
+
+        if (isTransaction) {
+            this.saveMemories();
+        }
     }
 
     get curFrame(): Frame {
