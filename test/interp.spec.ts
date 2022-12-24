@@ -32,7 +32,7 @@ describe("Interpreter tests", () => {
             // main() must not have any parameters
             expect(main.parameters.length).toEqual(0);
 
-            const state = new State(defs, main, [], new Map());
+            const state = new State(defs, main, [], [], new Map());
 
             const stmtExec = new StatementExecutor(resolving, typing, state);
 
@@ -72,7 +72,7 @@ describe("Failing interpreter tests", () => {
             // main() must not have any parameters
             expect(main.parameters.length).toEqual(0);
 
-            const state = new State(defs, main, [], new Map());
+            const state = new State(defs, main, [], [], new Map());
 
             const stmtExec = new StatementExecutor(resolving, typing, state);
 

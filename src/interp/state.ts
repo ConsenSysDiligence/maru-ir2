@@ -1,4 +1,4 @@
-import { BaseSrc, Definition, FunctionDefinition, MemConstant } from "../ir";
+import { BaseSrc, Definition, FunctionDefinition, MemConstant, Statement } from "../ir";
 import { BasicBlock } from "../ir/cfg";
 import { pp, PPAble, walk, zip } from "../utils";
 
@@ -69,6 +69,10 @@ export class Frame implements PPAble {
         }
         return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
+
+    get curStmt(): Statement {
+        return this.curBB.statements[this.curBBInd];
+    }
 }
 
 export type Stack = Frame[];
@@ -87,6 +91,7 @@ export class State {
     builtins: Map<string, BuiltinFun>;
     externalReturns: any[] | undefined;
     private failure: InterpError | undefined;
+    rootMemArgs: MemConstant[];
 
     /**
      * Stack of memory copies created for each transaction call.
@@ -97,6 +102,7 @@ export class State {
         program: Definition[],
         entryFun: FunctionDefinition,
         entryFunArgs: PrimitiveValue[],
+        entryMemArgs: MemConstant[],
         builtins: Map<string, BuiltinFun>
     ) {
         this.program = program;
@@ -117,6 +123,7 @@ export class State {
         this.builtins = builtins;
         this.memoriesStack = [];
         this.failure = undefined;
+        this.rootMemArgs = entryMemArgs;
     }
 
     get curFrame(): Frame {

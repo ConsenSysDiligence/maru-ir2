@@ -4,6 +4,7 @@ import {
     Expression,
     FunctionDefinition,
     Identifier,
+    MemVariableDeclaration,
     MIRTypeError,
     parseProgram,
     Resolving,
@@ -28,6 +29,16 @@ describe("Typing positive tests", () => {
                     .map((x) => (x as FunctionDefinition).name)
             );
 
+            const memVarNames = new Set<string>();
+
+            for (const def of defs) {
+                walk(def, (n) => {
+                    if (n instanceof MemVariableDeclaration) {
+                        memVarNames.add(n.name);
+                    }
+                });
+            }
+
             for (const def of defs) {
                 if (!(def instanceof FunctionDefinition && def.body)) {
                     continue;
@@ -41,9 +52,14 @@ describe("Typing positive tests", () => {
                                 return;
                             }
 
+                            // Skip mem vars uses in alloc
+                            if (nd instanceof Identifier && memVarNames.has(nd.name)) {
+                                return;
+                            }
+
                             if (nd instanceof Expression) {
                                 const type = typing.typeOf(nd);
-                                //console.error(`Type of ${nd.pp()} is ${pp(type)}`);
+                                // console.error(`Type of ${nd.pp()} is ${pp(type)}`);
                                 expect(type).toBeDefined();
                             }
                         });

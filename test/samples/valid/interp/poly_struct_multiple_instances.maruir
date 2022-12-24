@@ -1,0 +1,83 @@
+struct Foo<M> {
+	arr: uint32[] *M;
+	len: uint256;
+}
+
+fun sum<M>(ptr: Foo<M> *M): uint32
+locals sumV: uint32, i: uint256, len: uint256, arrPtr: uint32[] *M, t: uint32;
+{
+	entry:
+		i := uint256(0);
+		sumV := uint32(0);
+		load ptr.len in len;
+		load ptr.arr in arrPtr;
+		jump header;
+
+	header:
+		branch i < len body exit;
+
+	body:
+		load arrPtr[i] in t;
+		sumV := sumV + t;
+		i := i + uint256(1);
+		jump header;
+
+	exit:
+		return sumV;
+}
+
+fun fill<M>(ptr: Foo<M> *M, val: uint32)
+locals i: uint256, len: uint256, arrPtr: uint32[] *M;
+{
+	entry:
+		i := uint256(0);
+		load ptr.len in len;
+		load ptr.arr in arrPtr;
+		jump header;
+
+	header:
+		branch i < len body exit;
+
+	body:
+		store val in arrPtr[i];
+		i := i + uint256(1);
+		jump header;
+
+	exit:
+		return;
+}
+
+fun alloc_and_fill<M>(len: uint256, val: uint32): Foo<M> *M
+locals
+	fooPtr: Foo<M> *M,
+	arrPtr: uint32[] *M;
+{
+	entry:
+		fooPtr := alloc Foo<M> in M;	
+		arrPtr := alloc uint32[len] in M;
+
+		store arrPtr in fooPtr.arr;
+		store len in fooPtr.len;
+		call fill<M>(fooPtr, val);
+		return fooPtr;
+}
+
+
+fun main()
+locals
+	p1: Foo<#memory> *#memory,
+	p2: Foo<#storage> *#storage,
+	sum1: uint32,
+	sum2: uint32;
+{
+	entry:
+		p1 := call alloc_and_fill<#memory>(uint256(8), uint32(7));
+		p2 := call alloc_and_fill<#storage>(uint256(5), uint32(9));
+		sum1 := call sum<#memory>(p1);
+		sum2 := call sum<#storage>(p2);
+
+		assert sum1 == uint32(56);
+		assert sum2 == uint32(45);
+
+		return;
+}

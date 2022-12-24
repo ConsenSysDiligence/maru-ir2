@@ -23,7 +23,9 @@ import {
     AllocStruct,
     MemConstant,
     StructDefinition,
-    Assert
+    Assert,
+    MemDesc,
+    MemVariableDeclaration
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
@@ -469,6 +471,53 @@ export class StatementExecutor {
         this.returnValsToExternalCtx(this.makePoisonRets(nRets), true);
     }
 
+    private resolveMemDesc(m: MemDesc): MemConstant {
+        if (m instanceof MemConstant) {
+            return m;
+        }
+
+        let frameIdx = this.state.stack.length - 1;
+
+        while (m instanceof Identifier) {
+            const curFrame = this.state.stack[frameIdx];
+            const decl = this.resolving.getIdDecl(m);
+
+            if (!(decl instanceof MemVariableDeclaration)) {
+                this.internalError(`Expected memvar decl for ${m.name}`);
+            }
+
+            const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
+
+            if (varIdx === -1) {
+                this.internalError(`${decl.pp()} not defined on function ${curFrame.fun.name}`);
+            }
+
+            frameIdx--;
+
+            let memArgs: MemDesc[];
+
+            if (frameIdx >= 0) {
+                const prevFrame = this.state.stack[frameIdx];
+                const callInst = prevFrame.curStmt;
+
+                if (!(callInst instanceof FunctionCall || callInst instanceof TransactionCall)) {
+                    this.internalError(
+                        `Expected last frame instructio to be a call not ${callInst.pp()}`,
+                        callInst
+                    );
+                }
+
+                memArgs = callInst.memArgs;
+            } else {
+                memArgs = this.state.rootMemArgs;
+            }
+
+            m = memArgs[varIdx];
+        }
+
+        return m;
+    }
+
     execAllocArray(s: AllocArray): void {
         const size = this.evaluator.evalExpression(s.size);
 
@@ -489,11 +538,8 @@ export class StatementExecutor {
             newArr.push(poison);
         }
 
-        if (!(s.mem instanceof MemConstant)) {
-            this.internalError(`NYI memory substitution in the interpreter`, s.mem);
-        }
-
-        const ptr = this.define(newArr, s.mem.name);
+        const mem = this.resolveMemDesc(s.mem);
+        const ptr = this.define(newArr, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
         this.state.curFrame.curBBInd++;
@@ -512,11 +558,8 @@ export class StatementExecutor {
             newStruct.set(fieldName, poison);
         }
 
-        if (!(s.mem instanceof MemConstant)) {
-            this.internalError(`NYI memory substitution in the interpreter`, s.mem);
-        }
-
-        const ptr = this.define(newStruct, s.mem.name);
+        const mem = this.resolveMemDesc(s.mem);
+        const ptr = this.define(newStruct, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
         this.state.curFrame.curBBInd++;
@@ -565,6 +608,7 @@ export class StatementExecutor {
 
             if (s instanceof LoadField) {
                 this.execLoadField(s);
+                return;
             }
 
             if (s instanceof LoadIndex) {
