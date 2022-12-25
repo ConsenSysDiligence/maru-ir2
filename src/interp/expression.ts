@@ -8,7 +8,7 @@ import {
     UnaryOperation
 } from "../ir";
 import { Typing } from "../passes";
-import { eq, pp } from "../utils";
+import { eq, fmt, PPIsh } from "../utils";
 import { InterpError, InterpInternalError, poison, PrimitiveValue, State } from "./state";
 
 const two = BigInt(2);
@@ -90,21 +90,37 @@ export class ExprEvaluator {
         throw new InterpInternalError(e.src, msg, this.state);
     }
 
+    private assert(cond: boolean, e: Expression, msg: string, ...details: PPIsh[]): asserts cond {
+        if (cond) {
+            return;
+        }
+
+        this.internalError(e, fmt(msg, ...details));
+    }
+
     private evalUnary(e: UnaryOperation): PrimitiveValue {
         const subValue = this.evalExpression(e.subExpr);
 
         if (e.op === "!") {
-            if (!(typeof subValue === "boolean")) {
-                this.internalError(e, `Unary operation ${e.pp()} expects boolean not ${subValue}`);
-            }
+            this.assert(
+                typeof subValue === "boolean",
+                e,
+                `Unary operation {0} expects boolean not {1}`,
+                e,
+                subValue
+            );
 
             return !subValue;
         }
 
         if (e.op === "-") {
-            if (!(typeof subValue === "bigint")) {
-                this.internalError(e, `Unary operation ${e.pp()} expects bigint not ${subValue}`);
-            }
+            this.assert(
+                typeof subValue === "bigint",
+                e,
+                `Unary operation {0} expects bigint not {1}`,
+                e,
+                subValue
+            );
 
             return this.clampIntToType(-subValue, e);
         }
@@ -115,9 +131,7 @@ export class ExprEvaluator {
     private clampIntToType(val: bigint, e: Expression): bigint {
         const eT = this.typing.typeOf(e);
 
-        if (!(eT instanceof IntType)) {
-            this.internalError(e, `Expected int type not ${pp(eT)} for ${e.pp()}`);
-        }
+        this.assert(eT instanceof IntType, e, `Expected int type not {0} for {1}`, eT, e);
 
         return adjustIntToTypeSize(eT, val);
     }
@@ -127,9 +141,13 @@ export class ExprEvaluator {
 
         // Implement logical short-circuiting
         if (e.op === "||" || e.op === "&&") {
-            if (!(typeof lVal === "boolean")) {
-                this.internalError(e, `Binary operation ${e.pp()} expects boolean not ${lVal}`);
-            }
+            this.assert(
+                typeof lVal === "boolean",
+                e,
+                `Binary operation {0} expects boolean not {1}`,
+                e,
+                lVal
+            );
 
             if (e.op == "||" && lVal) {
                 return true;
@@ -144,12 +162,14 @@ export class ExprEvaluator {
 
         // Handle the 3 binary operations that have potentially differing types
         if (e.op === "**" || e.op === "<<" || e.op === ">>") {
-            if (!(typeof lVal === "bigint" && typeof rVal === "bigint")) {
-                this.internalError(
-                    e,
-                    `Binary operation ${e.pp()} expects integers not ${lVal} and ${rVal}`
-                );
-            }
+            this.assert(
+                typeof lVal === "bigint" && typeof rVal === "bigint",
+                e,
+                `Binary operation {0} expects integers not {1} and {2}`,
+                e,
+                lVal,
+                rVal
+            );
 
             let res: bigint;
 
@@ -164,12 +184,14 @@ export class ExprEvaluator {
             return this.clampIntToType(res, e);
         }
 
-        if (typeof lVal !== typeof rVal) {
-            this.internalError(
-                e,
-                `Binary operation ${e.pp()} expects values of the same type not ${lVal} and ${rVal}`
-            );
-        }
+        this.assert(
+            typeof lVal === typeof rVal,
+            e,
+            `Binary operation {0} expects values of the same type not {1} and {2}`,
+            e,
+            lVal,
+            rVal
+        );
 
         /// Equalities can compare any two primitive values of the same type
         if (e.op === "==" || e.op === "!=") {
@@ -180,23 +202,27 @@ export class ExprEvaluator {
 
         /// Logical operations require booleans
         if (e.op === "&&" || e.op === "||") {
-            if (typeof lVal !== "boolean") {
-                this.internalError(
-                    e,
-                    `Binary operation ${e.pp()} expects booleans not not ${lVal} and ${rVal}`
-                );
-            }
+            this.assert(
+                typeof lVal === "boolean",
+                e,
+                `Binary operation {0} expects booleans not not {1} and {2}`,
+                e,
+                lVal,
+                rVal
+            );
 
             return e.op === "&&" ? lVal && rVal : lVal || rVal;
         }
 
         /// All remaining binary operations require bigints
-        if (typeof lVal !== "bigint" || typeof rVal !== "bigint") {
-            this.internalError(
-                e,
-                `Binary operation ${e.pp()} expects integers not not ${lVal} and ${rVal}`
-            );
-        }
+        this.assert(
+            typeof lVal === "bigint" && typeof rVal === "bigint",
+            e,
+            `Binary operation {0} expects integers not not {1} and {2}`,
+            e,
+            lVal,
+            rVal
+        );
 
         if (e.op === "*") {
             return this.clampIntToType(lVal * rVal, e);
@@ -269,9 +295,12 @@ export class ExprEvaluator {
         if (e instanceof Identifier) {
             const res = this.state.curFrame.store.get(e.name);
 
-            if (res === undefined) {
-                this.internalError(e, `Unexpected lookup of undefined identifier ${e.name}`);
-            }
+            this.assert(
+                res !== undefined,
+                e,
+                `Unexpected lookup of undefined identifier {0}`,
+                e.name
+            );
 
             if (res === poison) {
                 this.error(e, `Reading an uninitialized value.`);

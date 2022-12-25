@@ -30,7 +30,7 @@ import {
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { Resolving, Typing } from "../passes";
-import { pp, zip } from "../utils";
+import { fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator, fits } from "./expression";
 import {
     ComplexValue,
@@ -66,6 +66,19 @@ export class StatementExecutor {
         throw new InterpInternalError(e === undefined ? new NoSrc() : e, msg, this.state);
     }
 
+    private assert(
+        cond: boolean,
+        msg: string,
+        e: Node | undefined,
+        ...details: PPIsh[]
+    ): asserts cond {
+        if (cond) {
+            return;
+        }
+
+        this.internalError(fmt(msg, ...details), e);
+    }
+
     agrees(val: PrimitiveValue, type: Type): boolean {
         if (type instanceof BoolType && typeof val === "boolean") {
             return true;
@@ -95,16 +108,17 @@ export class StatementExecutor {
     execBranch(s: Branch): void {
         const condVal = this.evaluator.evalExpression(s.condition);
 
-        if (!(typeof condVal === "boolean")) {
-            this.internalError(`Branch expected boolean condition not ${condVal}`, s);
-        }
+        this.assert(
+            typeof condVal === "boolean",
+            `Branch expected boolean condition not {0}`,
+            s,
+            condVal
+        );
 
         const label = condVal ? s.trueLabel : s.falseLabel;
         const newBB = (this.state.curFrame.fun.body as CFG).nodes.get(label);
 
-        if (!newBB) {
-            this.internalError(`No BasicBlock found for label ${label}`, s);
-        }
+        this.assert(newBB !== undefined, `No BasicBlock found for label {0}`, s, label);
 
         this.state.curFrame.curBB = newBB;
         this.state.curFrame.curBBInd = 0;
@@ -113,9 +127,12 @@ export class StatementExecutor {
     execFunctionCall(s: FunctionCall): void {
         const callee = this.resolving.getIdDecl(s.callee);
 
-        if (!(callee instanceof FunctionDefinition)) {
-            this.internalError(`Expected ${s.callee.pp()} to be a function`, s);
-        }
+        this.assert(
+            callee instanceof FunctionDefinition,
+            `Expected {0} to be a function`,
+            s,
+            s.callee
+        );
 
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
 
@@ -132,10 +149,7 @@ export class StatementExecutor {
 
     execJump(s: Jump): void {
         const newBB = (this.state.curFrame.fun.body as CFG).nodes.get(s.label);
-
-        if (!newBB) {
-            this.internalError(`No BasicBlock found for label ${s.label}`, s);
-        }
+        this.assert(newBB !== undefined, `No BasicBlock found for label {0}`, s, s.label);
 
         this.state.curFrame.curBB = newBB;
         this.state.curFrame.curBBInd = 0;
@@ -149,20 +163,20 @@ export class StatementExecutor {
     ): void {
         const lhsType = this.typing.typeOf(lhs);
 
-        if (lhsType === undefined) {
-            this.internalError(`Missing type for ${lhs.pp()}`, lhs);
-        }
+        this.assert(lhsType !== undefined, `Missing type for {0}`, lhs, lhs);
 
         if (val === poison && !ignorePoison) {
             this.error(`Attempt to assign ${val.pp()} to ${lhs.pp()}`, inStmt);
         }
 
-        if (!this.agrees(val, lhsType) && val !== poison) {
-            this.internalError(
-                `Cannot assign ${pp(val)} to ${lhs.pp()} of type ${lhsType.pp()}`,
-                inStmt
-            );
-        }
+        this.assert(
+            this.agrees(val, lhsType) || val === poison,
+            `Cannot assign {0} to {1} of type {}`,
+            inStmt,
+            val,
+            lhs,
+            lhsType
+        );
 
         this.state.curFrame.store.set(lhs.name, val);
     }
@@ -170,9 +184,7 @@ export class StatementExecutor {
     private deref(val: PointerVal, e?: Expression): ComplexValue {
         const mem = this.state.memories.get(val[0]);
 
-        if (mem === undefined) {
-            this.internalError(`Memory ${val[0]} not found.`, e);
-        }
+        this.assert(mem !== undefined, `Memory {0} not found.`, e, val[0]);
 
         const loadedVal = mem.get(val[1]);
 
@@ -186,9 +198,7 @@ export class StatementExecutor {
     private evalAndDeref(e: Expression): ComplexValue {
         const val = this.evaluator.evalExpression(e);
 
-        if (!(val instanceof Array)) {
-            this.internalError(`Expected a pointer for ${e.pp()} not ${val}`, e);
-        }
+        this.assert(val instanceof Array, `Expected a pointer for {0} not {1}`, e, e, val);
 
         return this.deref(val, e);
     }
@@ -196,18 +206,17 @@ export class StatementExecutor {
     execLoadField(s: LoadField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        if (!(struct instanceof Map)) {
-            this.internalError(
-                `Expected struct for ${s.baseExpr.pp()} instead of ${pp(struct)}`,
-                s.baseExpr
-            );
-        }
+        this.assert(
+            struct instanceof Map,
+            `Expected struct for {0} instead of {1}`,
+            s.baseExpr,
+            s.baseExpr,
+            struct
+        );
 
         const val = struct.get(s.member);
 
-        if (val === undefined) {
-            this.internalError(`Struct missing field ${s.member}`, s);
-        }
+        this.assert(val !== undefined, `Struct missing field {0}`, s, s.member);
 
         this.assignTo(val, s.lhs, s);
         this.state.curFrame.curBBInd++;
@@ -217,19 +226,21 @@ export class StatementExecutor {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
 
-        if (!(array instanceof Array)) {
-            this.internalError(
-                `Expected struct for ${s.baseExpr.pp()} instead of ${pp(array)}`,
-                s.baseExpr
-            );
-        }
+        this.assert(
+            array instanceof Array,
+            `Expected struct for {0} instead of {1}`,
+            s.baseExpr,
+            s.baseExpr,
+            array
+        );
 
-        if (!(typeof index === "bigint")) {
-            this.internalError(
-                `Expected index ${s.baseExpr.pp()} to be a number not ${pp(index)}`,
-                s.indexExpr
-            );
-        }
+        this.assert(
+            typeof index === "bigint",
+            `Expected index {0} to be a number not {1}`,
+            s.indexExpr,
+            s.baseExpr,
+            index
+        );
 
         if (index >= BigInt(array.length) || index < 0n) {
             this.error(`Index ${index} OoB.`, s);
@@ -244,12 +255,13 @@ export class StatementExecutor {
     execStoreField(s: StoreField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        if (!(struct instanceof Map)) {
-            this.internalError(
-                `Expected struct for ${s.baseExpr.pp()} instead of ${pp(struct)}`,
-                s.baseExpr
-            );
-        }
+        this.assert(
+            struct instanceof Map,
+            `Expected struct for {0} instead of {1}`,
+            s.baseExpr,
+            s.baseExpr,
+            struct
+        );
 
         const rVal = this.evaluator.evalExpression(s.rhs);
 
@@ -261,19 +273,21 @@ export class StatementExecutor {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
 
-        if (!(array instanceof Array)) {
-            this.internalError(
-                `Expected struct for ${s.baseExpr.pp()} instead of ${pp(array)}`,
-                s.baseExpr
-            );
-        }
+        this.assert(
+            array instanceof Array,
+            `Expected struct for {0} instead of {1}`,
+            s.baseExpr,
+            s.baseExpr,
+            array
+        );
 
-        if (!(typeof index === "bigint")) {
-            this.internalError(
-                `Expected index ${s.baseExpr.pp()} to be a number not ${pp(index)}`,
-                s.indexExpr
-            );
-        }
+        this.assert(
+            typeof index === "bigint",
+            `Expected index {0} to be a number not {1}`,
+            s.indexExpr,
+            s.baseExpr,
+            index
+        );
 
         if (index >= BigInt(array.length) || index < 0n) {
             this.error(`Index ${index} OoB.`, s);
@@ -360,9 +374,12 @@ export class StatementExecutor {
     execTransactionCall(s: TransactionCall): void {
         const callee = this.resolving.getIdDecl(s.callee);
 
-        if (!(callee instanceof FunctionDefinition)) {
-            this.internalError(`Expected ${s.callee.pp()} to be a function`, s);
-        }
+        this.assert(
+            callee instanceof FunctionDefinition,
+            `Expected {0} to be a function`,
+            s,
+            s.callee
+        );
 
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
 
@@ -386,9 +403,7 @@ export class StatementExecutor {
             /// This allows passing exception data back
             const curExcMem = this.state.memories.get(EXCEPTION_MEM);
 
-            if (curExcMem === undefined) {
-                this.internalError(`Missing #exception memory`, stmt);
-            }
+            this.assert(curExcMem !== undefined, `Missing #exception memory`, stmt);
 
             this.state.memories = lastSave;
             this.state.memories.set(EXCEPTION_MEM, curExcMem);
@@ -396,9 +411,11 @@ export class StatementExecutor {
     }
 
     private returnValsToExternalCtx(vals: PrimitiveValue[], aborted: boolean, stmt: Statement) {
-        if (this.state.stack.length !== 0) {
-            this.internalError(`Cannot return to external context from non-empty stack`);
-        }
+        this.assert(
+            this.state.stack.length === 0,
+            `Cannot return to external context from non-empty stack`,
+            stmt
+        );
 
         vals = [...vals];
 
@@ -413,9 +430,12 @@ export class StatementExecutor {
     private returnValsToFrame(vals: PrimitiveValue[], aborted: boolean, frame: Frame) {
         const stmt = frame.curBB.statements[frame.curBBInd];
 
-        if (!(stmt instanceof FunctionCall || stmt instanceof TransactionCall)) {
-            this.internalError(`Expected a call statement not ${stmt.pp()}`, stmt);
-        }
+        this.assert(
+            stmt instanceof FunctionCall || stmt instanceof TransactionCall,
+            `Expected a call statement not {0}`,
+            stmt,
+            stmt
+        );
 
         // If this was a transaction call handle restoring memories
         if (stmt instanceof TransactionCall) {
@@ -425,9 +445,13 @@ export class StatementExecutor {
 
         const lhss = stmt.lhss;
 
-        if (lhss.length !== vals.length) {
-            this.internalError(`Mismatch in returns - expected ${lhss.length} got ${vals.length}`);
-        }
+        this.assert(
+            lhss.length === vals.length,
+            `Mismatch in returns - expected {0} got {0}`,
+            stmt,
+            lhss.length,
+            vals.length
+        );
 
         for (let i = 0; i < lhss.length; i++) {
             /// On Aborted we allow emitting poison in the normal return values.
@@ -492,15 +516,22 @@ export class StatementExecutor {
             const curFrame = this.state.stack[frameIdx];
             const decl = this.resolving.getIdDecl(m);
 
-            if (!(decl instanceof MemVariableDeclaration)) {
-                this.internalError(`Expected memvar decl for ${m.name}`);
-            }
+            this.assert(
+                decl instanceof MemVariableDeclaration,
+                `Expected memvar decl for {0}`,
+                m,
+                m.name
+            );
 
             const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
 
-            if (varIdx === -1) {
-                this.internalError(`${decl.pp()} not defined on function ${curFrame.fun.name}`);
-            }
+            this.assert(
+                varIdx !== -1,
+                `{0} not defined on function {1}`,
+                decl,
+                decl,
+                curFrame.fun.name
+            );
 
             frameIdx--;
 
@@ -510,12 +541,12 @@ export class StatementExecutor {
                 const prevFrame = this.state.stack[frameIdx];
                 const callInst = prevFrame.curStmt;
 
-                if (!(callInst instanceof FunctionCall || callInst instanceof TransactionCall)) {
-                    this.internalError(
-                        `Expected last frame instructio to be a call not ${callInst.pp()}`,
-                        callInst
-                    );
-                }
+                this.assert(
+                    callInst instanceof FunctionCall || callInst instanceof TransactionCall,
+                    `Expected last frame instructions to be a call not {0}`,
+                    callInst,
+                    callInst
+                );
 
                 memArgs = callInst.memArgs;
             } else {
@@ -531,16 +562,19 @@ export class StatementExecutor {
     execAllocArray(s: AllocArray): void {
         const size = this.evaluator.evalExpression(s.size);
 
-        if (!(typeof size === "bigint")) {
-            this.internalError(
-                `Expected size ${s.size.pp()} to be a number not ${pp(size)}`,
-                s.size
-            );
+        this.assert(
+            typeof size === "bigint",
+            `Expected size {0} to be a number not {1}`,
+            s.size,
+            s.size,
+            size
+        );
+
+        if (size < 0) {
+            this.error(`Array size ${size} is too big!`, s.size);
         }
 
-        if (size < 0n || size > Number.MAX_SAFE_INTEGER) {
-            this.internalError(`Array size ${size} is too big!`, s.size);
-        }
+        this.assert(size < Number.MAX_SAFE_INTEGER, `Array size {0} is too big!`, s.size, size);
 
         const newArr = [];
 
@@ -560,9 +594,13 @@ export class StatementExecutor {
 
         const decl = this.resolving.getTypeDecl(s.type);
 
-        if (!(decl instanceof StructDefinition)) {
-            this.internalError(`Expected a struct for ${s.type.pp()} not ${pp(decl)}`, s.type);
-        }
+        this.assert(
+            decl instanceof StructDefinition,
+            `Expected a struct for {0} not {1}`,
+            s.type,
+            s.type,
+            decl
+        );
 
         for (const [fieldName] of decl.fields) {
             newStruct.set(fieldName, poison);
@@ -578,9 +616,12 @@ export class StatementExecutor {
     execAssert(s: Assert): void {
         const condVal = this.evaluator.evalExpression(s.condition);
 
-        if (!(typeof condVal === "boolean")) {
-            this.internalError(`Assert expected boolean condition not ${condVal}`, s);
-        }
+        this.assert(
+            typeof condVal === "boolean",
+            `Assert expected boolean condition not {0}`,
+            s,
+            condVal
+        );
 
         if (!condVal) {
             this.error(`Assertion ${s.pp()} failed`, s);
