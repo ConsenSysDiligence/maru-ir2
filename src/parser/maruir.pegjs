@@ -92,9 +92,13 @@ MemVar
 MemConst
     = HASHTAG name: Identifier { return new MemConstant(Src.fromPegsRange(location()), name); }
 
+FreshMemVar
+    = FRESH __ name: Identifier { return new FreshMemVariableDeclaration(Src.fromPegsRange(location()), name); }
+
 MemDesc
     = MemVar
     / MemConst
+    / FreshMemVar
 
 MemDescList
     = head: MemDesc tail: (__ COMMA __ d: MemDesc {return d;})* {
@@ -461,6 +465,7 @@ TRANSCALL="trans_call"
 ABORT="abort"
 ALLOC="alloc"
 ASSERT="assert"
+FRESH="fresh"
 
 Keyword
     = STRUCT
@@ -480,6 +485,7 @@ Keyword
     / ABORT
     / ALLOC
     / ASSERT
+    / FRESH
 
 Identifier =
     !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

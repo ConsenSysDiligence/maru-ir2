@@ -33,7 +33,8 @@ import {
     TypeVariableDeclaration,
     AllocArray,
     AllocStruct,
-    Assert
+    Assert,
+    FreshMemVariableDeclaration
 } from "../ir";
 import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
@@ -595,7 +596,11 @@ export class Typing {
             throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
         }
 
-        if (decl instanceof MemVariableDeclaration || decl instanceof FunctionDefinition) {
+        if (
+            decl instanceof MemVariableDeclaration ||
+            decl instanceof FreshMemVariableDeclaration ||
+            decl instanceof FunctionDefinition
+        ) {
             throw new MIRTypeError(
                 expr.src,
                 `Unexpected program variable in expression, not ${expr.name}`

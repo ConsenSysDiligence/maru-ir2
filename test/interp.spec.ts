@@ -5,6 +5,7 @@ import {
     Memory,
     parseProgram,
     poison,
+    pp,
     Program,
     Resolving,
     State,
@@ -100,5 +101,34 @@ describe("Abort on root call", () => {
 
         expect(exc.size).toEqual(0);
         expect(mem.size).toEqual(0);
+    });
+});
+
+describe("Fresh memories", () => {
+    it("Create 2 fresh memories", () => {
+        const [, , , state] = runTest("test/samples/valid/interp/fresh_mem.maruir", true);
+        expect(state.externalReturns).toEqual([false]);
+        expect(state.failed).toEqual(false);
+        console.error(`State: `, state.dump());
+        expect(state.memories.has("exception")).toBeTruthy();
+        const freshMems = [...state.memories.keys()].filter((x) => x.startsWith("__fresh_mem"));
+        freshMems.sort();
+
+        expect(freshMems.length).toEqual(2);
+        const [m0Name, m1Name] = freshMems;
+
+        expect(state.memories.has(m0Name)).toBeTruthy();
+        expect(state.memories.has(m1Name)).toBeTruthy();
+
+        const exc = state.memories.get("exception") as Memory;
+        const m0 = state.memories.get(m0Name) as Memory;
+        const m1 = state.memories.get(m1Name) as Memory;
+
+        expect(exc.size).toEqual(0);
+        expect(m0.size).toEqual(1);
+        expect(m1.size).toEqual(1);
+
+        expect(pp(m0.get(0))).toEqual("{x:1,y:2}");
+        expect(pp(m1.get(0))).toEqual("{x:3,y:4}");
     });
 });

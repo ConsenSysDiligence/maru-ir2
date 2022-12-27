@@ -1,17 +1,13 @@
-import { Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
-import { FreshMemVariableDeclaration } from "./fresh_mem_variable_declaration";
 
-export type MemDesc = MemConstant | Identifier | FreshMemVariableDeclaration;
-
-export class MemConstant extends Node {
+export class FreshMemVariableDeclaration extends Node {
     constructor(src: BaseSrc, public readonly name: string) {
         super(src);
     }
 
     pp(): string {
-        return `#${this.name}`;
+        return `${this.name}`;
     }
 
     getStructId(): any {

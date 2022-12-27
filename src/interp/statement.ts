@@ -25,7 +25,9 @@ import {
     StructDefinition,
     Assert,
     MemDesc,
-    MemVariableDeclaration
+    MemVariableDeclaration,
+    FreshMemVariableDeclaration,
+    noSrc
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
@@ -135,6 +137,12 @@ export class StatementExecutor {
         );
 
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
+
+        for (const memArg of s.memArgs) {
+            if (memArg instanceof FreshMemVariableDeclaration) {
+                this.state.allocFreshMem(memArg);
+            }
+        }
 
         const newFrame = new Frame(
             callee,
@@ -535,8 +543,6 @@ export class StatementExecutor {
 
             frameIdx--;
 
-            let memArgs: MemDesc[];
-
             if (frameIdx >= 0) {
                 const prevFrame = this.state.stack[frameIdx];
                 const callInst = prevFrame.curStmt;
@@ -548,12 +554,15 @@ export class StatementExecutor {
                     callInst
                 );
 
-                memArgs = callInst.memArgs;
-            } else {
-                memArgs = this.state.rootMemArgs;
-            }
+                m = callInst.memArgs[varIdx];
 
-            m = memArgs[varIdx];
+                if (m instanceof FreshMemVariableDeclaration) {
+                    const name = prevFrame.freshMemories.get(m) as string;
+                    return new MemConstant(noSrc, name);
+                }
+            } else {
+                m = this.state.rootMemArgs[varIdx];
+            }
         }
 
         return m;

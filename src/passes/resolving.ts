@@ -3,6 +3,8 @@ import {
     BaseSrc,
     BoolType,
     Definition,
+    FreshMemVariableDeclaration,
+    FunctionCall,
     FunctionDefinition,
     Identifier,
     IntType,
@@ -21,7 +23,8 @@ type Def =
     | StructDefinition
     | VariableDeclaration
     | MemVariableDeclaration
-    | TypeVariableDeclaration;
+    | TypeVariableDeclaration
+    | FreshMemVariableDeclaration;
 
 class Scope {
     private defs: Map<string, Def> = new Map();
@@ -101,6 +104,16 @@ class Scope {
             scope.define(mVar);
         }
 
+        for (const node of fun.children()) {
+            if (node instanceof FunctionCall) {
+                for (const memArg of node.memArgs) {
+                    if (memArg instanceof FreshMemVariableDeclaration) {
+                        scope.define(memArg);
+                    }
+                }
+            }
+        }
+
         for (const tVar of fun.typeParameters) {
             scope.define(tVar);
         }
@@ -158,7 +171,12 @@ export class Resolving {
 
     getIdDecl(
         id: Identifier
-    ): VariableDeclaration | MemVariableDeclaration | FunctionDefinition | undefined {
+    ):
+        | VariableDeclaration
+        | MemVariableDeclaration
+        | FunctionDefinition
+        | FreshMemVariableDeclaration
+        | undefined {
         return this._idDecls.get(id);
     }
 

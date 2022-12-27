@@ -1,4 +1,11 @@
-import { BaseSrc, Definition, FunctionDefinition, MemConstant, Statement } from "../ir";
+import {
+    BaseSrc,
+    Definition,
+    FreshMemVariableDeclaration,
+    FunctionDefinition,
+    MemConstant,
+    Statement
+} from "../ir";
 import { BasicBlock } from "../ir/cfg";
 import { pp, PPAble, walk, zip } from "../utils";
 
@@ -31,11 +38,14 @@ export type Store = Map<string, PrimitiveValue>;
 
 export const EXCEPTION_MEM = "exception";
 
+let freshMemCtr = 0;
+
 export class Frame implements PPAble {
     fun: FunctionDefinition;
     curBB: BasicBlock;
     curBBInd: number;
     store: Store;
+    freshMemories: Map<FreshMemVariableDeclaration, string>;
 
     constructor(fun: FunctionDefinition, args: Array<[string, PrimitiveValue]>) {
         this.fun = fun;
@@ -46,6 +56,7 @@ export class Frame implements PPAble {
         this.curBB = fun.body.entry;
         this.curBBInd = 0;
         this.store = new Map();
+        this.freshMemories = new Map();
 
         for (const [argName, argVal] of args) {
             this.store.set(argName, argVal);
@@ -163,6 +174,19 @@ export class State {
         }
 
         return res;
+    }
+
+    allocFreshMem(decl: FreshMemVariableDeclaration): string {
+        const name = `__fresh_mem_${freshMemCtr++}`;
+
+        if (this.memories.has(name)) {
+            throw new Error(`Intenral Error: Fresh memory ${name} overwites an existing memory`);
+        }
+
+        this.memories.set(name, new Map());
+        this.curFrame.freshMemories.set(decl, name);
+
+        return name;
     }
 
     stackTrace(): string {
