@@ -17,7 +17,7 @@ TypeVariableDeclaration
     = id: Identifier { return new TypeVariableDeclaration(Src.fromPegsRange(location()), id); }
 
 MemVariableDeclaration
-    = id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id); }
+    = fresh :FRESH? __ id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id, fresh !== null); }
 
 TypeIdList
     = head: TypeVariableDeclaration tail: (__ COMMA __ decl: TypeVariableDeclaration { return decl; })* {
@@ -87,18 +87,14 @@ FunctionDefinition
     }
 
 MemVar
-    = name: Identifier { return new Identifier(Src.fromPegsRange(location()), name); }
+    = out: OUT? __ name: Identifier { return new MemIdentifier(Src.fromPegsRange(location()), name, out !== null); }
 
 MemConst
     = HASHTAG name: Identifier { return new MemConstant(Src.fromPegsRange(location()), name); }
 
-FreshMemVar
-    = FRESH __ name: Identifier { return new FreshMemVariableDeclaration(Src.fromPegsRange(location()), name); }
-
 MemDesc
     = MemVar
     / MemConst
-    / FreshMemVar
 
 MemDescList
     = head: MemDesc tail: (__ COMMA __ d: MemDesc {return d;})* {
@@ -465,7 +461,8 @@ TRANSCALL="trans_call"
 ABORT="abort"
 ALLOC="alloc"
 ASSERT="assert"
-FRESH="fresh"
+FRESH="'fresh"
+OUT="out"
 
 Keyword
     = STRUCT

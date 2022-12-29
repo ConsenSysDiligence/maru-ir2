@@ -1,9 +1,8 @@
-import { Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
-import { FreshMemVariableDeclaration } from "./fresh_mem_variable_declaration";
+import { MemIdentifier } from "./mem_identifier";
 
-export type MemDesc = MemConstant | Identifier | FreshMemVariableDeclaration;
+export type MemDesc = MemConstant | MemIdentifier;
 
 export class MemConstant extends Node {
     constructor(src: BaseSrc, public readonly name: string) {

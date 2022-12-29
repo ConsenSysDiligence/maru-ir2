@@ -44,11 +44,15 @@ export class FunctionDefinition extends Definition {
                 : this.returns.length === 1
                 ? `: ${this.returns[0].pp()}`
                 : `: (${this.returns.map((x) => x.pp()).join(", ")})`;
+        const localsStr =
+            this.locals.length === 0
+                ? ""
+                : `\nlocals ${this.locals.map((d) => `${d.name}: ${d.type.pp()}`).join(", ")};`;
         const bodyStr = this.body ? " " + this.body.pp() : "";
 
         return `fun ${this.name}${memoryParamStr}(${this.parameters
             .map((decl) => decl.pp())
-            .join(", ")})${returnStr}${bodyStr}`;
+            .join(", ")})${returnStr}${localsStr}${bodyStr}`;
     }
 
     getStructId(): any {

@@ -1,6 +1,7 @@
 import expect from "expect";
 import { searchRecursive } from "./utils";
 import {
+    eq,
     FunctionDefinition,
     Memory,
     parseProgram,
@@ -104,6 +105,38 @@ describe("Abort on root call", () => {
     });
 });
 
+function checkFreshMems(state: State, expectedContents: Array<Array<[number, string]>>): boolean {
+    const freshMems = [...state.memories.keys()].filter((x) => x.startsWith("__fresh_mem"));
+    freshMems.sort();
+
+    if (freshMems.length !== expectedContents.length) {
+        return false;
+    }
+
+    for (let i = 0; i < expectedContents.length; i++) {
+        const memName = freshMems[i];
+
+        if (!state.memories.has(memName)) {
+            return false;
+        }
+
+        const actualMem = state.memories.get(memName) as Memory;
+
+        const actualEntries: Array<[number, string]> = [...actualMem.entries()].map(([k, v]) => [
+            k,
+            pp(v)
+        ]);
+
+        actualEntries.sort();
+
+        if (!eq(actualEntries, expectedContents[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 describe("Fresh memories", () => {
     it("Create 2 fresh memories", () => {
         const [, , , state] = runTest("test/samples/valid/interp/fresh_mem.maruir", true);
@@ -111,24 +144,49 @@ describe("Fresh memories", () => {
         expect(state.failed).toEqual(false);
         console.error(`State: `, state.dump());
         expect(state.memories.has("exception")).toBeTruthy();
-        const freshMems = [...state.memories.keys()].filter((x) => x.startsWith("__fresh_mem"));
-        freshMems.sort();
+        const exc = state.memories.get("exception") as Memory;
+        expect(exc.size).toEqual(0);
+        expect(checkFreshMems(state, [[[0, "{x:1,y:2}"]], [[0, "{x:3,y:4}"]]])).toBeTruthy();
+    });
 
-        expect(freshMems.length).toEqual(2);
-        const [m0Name, m1Name] = freshMems;
-
-        expect(state.memories.has(m0Name)).toBeTruthy();
-        expect(state.memories.has(m1Name)).toBeTruthy();
+    it("Recursive fresh memories", () => {
+        const [, , , state] = runTest("test/samples/valid/interp/fresh_mem_recursive.maruir", true);
+        expect(state.externalReturns).toEqual([false]);
+        expect(state.failed).toEqual(false);
+        console.error(`State: `, state.dump());
+        expect(state.memories.has("exception")).toBeTruthy();
 
         const exc = state.memories.get("exception") as Memory;
-        const m0 = state.memories.get(m0Name) as Memory;
-        const m1 = state.memories.get(m1Name) as Memory;
 
         expect(exc.size).toEqual(0);
-        expect(m0.size).toEqual(1);
-        expect(m1.size).toEqual(1);
+        expect(
+            checkFreshMems(state, [
+                [[0, "[0,0,0,0]"]],
+                [[0, "[0,0,0]"]],
+                [[0, "[0,0]"]],
+                [[0, "[0]"]]
+            ])
+        ).toBeTruthy();
+    });
 
-        expect(pp(m0.get(0))).toEqual("{x:1,y:2}");
-        expect(pp(m1.get(0))).toEqual("{x:3,y:4}");
+    it("Iterative fresh memories", () => {
+        const [, , , state] = runTest("test/samples/valid/interp/fresh_mem_iterative.maruir", true);
+        expect(state.externalReturns).toEqual([false]);
+        expect(state.failed).toEqual(false);
+        console.error(`State: `, state.dump());
+        expect(state.memories.has("exception")).toBeTruthy();
+
+        const exc = state.memories.get("exception") as Memory;
+
+        expect(exc.size).toEqual(0);
+        expect(
+            checkFreshMems(state, [
+                [[0, "[0,0,0,0]"]],
+                [[0, "[0]"]],
+                [[0, "[0,0]"]],
+                [[0, "[0,0,0]"]],
+                [[0, "[0,0,0,0]"]]
+            ])
+        ).toBeTruthy();
     });
 });

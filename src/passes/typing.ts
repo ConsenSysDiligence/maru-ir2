@@ -14,7 +14,6 @@ import {
     Jump,
     LoadField,
     LoadIndex,
-    MemConstant,
     MemDesc,
     MemVariableDeclaration,
     noSrc,
@@ -34,13 +33,13 @@ import {
     AllocArray,
     AllocStruct,
     Assert,
-    FreshMemVariableDeclaration
+    MemIdentifier
 } from "../ir";
 import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
 
 export const boolT = new BoolType(noSrc);
-type MemSubstitution = Map<MemVariableDeclaration, MemConstant | MemVariableDeclaration>;
+type MemSubstitution = Map<MemVariableDeclaration, MemDesc>;
 type TypeSubstitution = Map<TypeVariableDeclaration, Type>;
 type Substitution = [MemSubstitution, TypeSubstitution];
 
@@ -596,11 +595,7 @@ export class Typing {
             throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
         }
 
-        if (
-            decl instanceof MemVariableDeclaration ||
-            decl instanceof FreshMemVariableDeclaration ||
-            decl instanceof FunctionDefinition
-        ) {
+        if (decl instanceof FunctionDefinition) {
             throw new MIRTypeError(
                 expr.src,
                 `Unexpected program variable in expression, not ${expr.name}`
@@ -878,23 +873,32 @@ export class Typing {
             return t;
         }
 
-        const concretizeMemDesc = (arg: MemDesc): MemConstant | Identifier => {
-            if (arg instanceof MemConstant) {
-                return arg;
-            }
+        const concretizeMemDesc = (arg: MemDesc): MemDesc => {
+            while (arg instanceof MemIdentifier) {
+                // Out mem identifier. Return a "non-out" version
+                if (arg.out) {
+                    return new MemIdentifier(arg.src, arg.name, false);
+                }
 
-            const decl = this.resolve.getIdDecl(arg);
+                const decl = this.resolve.getMemIdDecl(arg);
 
-            if (!(decl instanceof MemVariableDeclaration)) {
-                throw new MIRTypeError(arg.src, `Unexpected non-memory identifier in type`);
-            }
+                // Shouldn't happen at this point
+                if (decl === undefined) {
+                    throw new Error(`Internal error: Undefined mem identifier ${arg.pp()}`);
+                }
 
-            const newVal = memSubst.get(decl);
+                if (decl instanceof MemIdentifier) {
+                    arg = decl;
+                    continue;
+                }
 
-            if (newVal) {
-                return newVal instanceof MemConstant
-                    ? newVal
-                    : new Identifier(arg.src, newVal.name);
+                const newVal = memSubst.get(decl);
+
+                if (!newVal) {
+                    break;
+                }
+
+                arg = newVal;
             }
 
             return arg;

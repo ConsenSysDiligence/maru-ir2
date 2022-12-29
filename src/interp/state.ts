@@ -1,9 +1,9 @@
 import {
     BaseSrc,
     Definition,
-    FreshMemVariableDeclaration,
     FunctionDefinition,
     MemConstant,
+    MemIdentifier,
     Statement
 } from "../ir";
 import { BasicBlock } from "../ir/cfg";
@@ -45,7 +45,7 @@ export class Frame implements PPAble {
     curBB: BasicBlock;
     curBBInd: number;
     store: Store;
-    freshMemories: Map<FreshMemVariableDeclaration, string>;
+    freshMemories: Map<MemIdentifier, string>;
 
     constructor(fun: FunctionDefinition, args: Array<[string, PrimitiveValue]>) {
         this.fun = fun;
@@ -176,7 +176,7 @@ export class State {
         return res;
     }
 
-    allocFreshMem(decl: FreshMemVariableDeclaration): string {
+    allocFreshMem(decl: MemIdentifier): string {
         const name = `__fresh_mem_${freshMemCtr++}`;
 
         if (this.memories.has(name)) {

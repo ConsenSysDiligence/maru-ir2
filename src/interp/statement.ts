@@ -26,7 +26,7 @@ import {
     Assert,
     MemDesc,
     MemVariableDeclaration,
-    FreshMemVariableDeclaration,
+    MemIdentifier,
     noSrc
 } from "../ir";
 import { CFG } from "../ir/cfg";
@@ -126,6 +126,25 @@ export class StatementExecutor {
         this.state.curFrame.curBBInd = 0;
     }
 
+    private allocMems(s: FunctionCall | TransactionCall): void {
+        const callee = this.resolving.getIdDecl(s.callee) as FunctionDefinition;
+
+        for (let i = 0; i < s.memArgs.length; i++) {
+            const formal = callee.memoryParameters[i];
+            const actual = s.memArgs[i];
+
+            if (formal.fresh) {
+                this.assert(
+                    actual instanceof MemIdentifier && actual.out,
+                    `Cannot pass constant for fresh mem parameter`,
+                    actual
+                );
+
+                this.state.allocFreshMem(actual);
+            }
+        }
+    }
+
     execFunctionCall(s: FunctionCall): void {
         const callee = this.resolving.getIdDecl(s.callee);
 
@@ -138,11 +157,8 @@ export class StatementExecutor {
 
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
 
-        for (const memArg of s.memArgs) {
-            if (memArg instanceof FreshMemVariableDeclaration) {
-                this.state.allocFreshMem(memArg);
-            }
-        }
+        // Allocate memories in caller frame
+        this.allocMems(s);
 
         const newFrame = new Frame(
             callee,
@@ -400,6 +416,10 @@ export class StatementExecutor {
         );
 
         this.state.saveMemories();
+
+        // Allocate memories in caller frame, after check-pointing state
+        this.allocMems(s);
+
         this.state.stack.push(newFrame);
     }
 
@@ -520,48 +540,50 @@ export class StatementExecutor {
 
         let frameIdx = this.state.stack.length - 1;
 
-        while (m instanceof Identifier) {
+        while (m instanceof MemIdentifier) {
             const curFrame = this.state.stack[frameIdx];
-            const decl = this.resolving.getIdDecl(m);
+            const decl = this.resolving.getMemIdDecl(m);
 
-            this.assert(
-                decl instanceof MemVariableDeclaration,
-                `Expected memvar decl for {0}`,
-                m,
-                m.name
-            );
+            this.assert(decl !== undefined, `Expected memvar decl for {0}`, m, m.name);
 
-            const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
-
-            this.assert(
-                varIdx !== -1,
-                `{0} not defined on function {1}`,
-                decl,
-                decl,
-                curFrame.fun.name
-            );
-
-            frameIdx--;
-
-            if (frameIdx >= 0) {
-                const prevFrame = this.state.stack[frameIdx];
-                const callInst = prevFrame.curStmt;
+            if (decl instanceof MemVariableDeclaration) {
+                const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
 
                 this.assert(
-                    callInst instanceof FunctionCall || callInst instanceof TransactionCall,
-                    `Expected last frame instructions to be a call not {0}`,
-                    callInst,
-                    callInst
+                    varIdx !== -1,
+                    `{0} not defined on function {1}`,
+                    decl,
+                    decl,
+                    curFrame.fun.name
                 );
 
-                m = callInst.memArgs[varIdx];
+                frameIdx--;
 
-                if (m instanceof FreshMemVariableDeclaration) {
-                    const name = prevFrame.freshMemories.get(m) as string;
-                    return new MemConstant(noSrc, name);
+                if (frameIdx >= 0) {
+                    const prevFrame = this.state.stack[frameIdx];
+                    const callInst = prevFrame.curStmt;
+
+                    this.assert(
+                        callInst instanceof FunctionCall || callInst instanceof TransactionCall,
+                        `Expected last frame instructions to be a call not {0}`,
+                        callInst,
+                        callInst
+                    );
+
+                    m = callInst.memArgs[varIdx];
+                } else {
+                    m = this.state.rootMemArgs[varIdx];
                 }
             } else {
-                m = this.state.rootMemArgs[varIdx];
+                this.assert(decl.out, `{0} resolved to non-out parameter {1}`, m, decl);
+
+                const memName = this.state.stack[frameIdx].freshMemories.get(decl);
+
+                if (memName === undefined) {
+                    this.error(`Trying to access memory ${decl.pp()} before it is initialized`);
+                }
+
+                return new MemConstant(noSrc, memName);
             }
         }
 

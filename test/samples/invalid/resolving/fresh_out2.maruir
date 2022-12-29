@@ -15,12 +15,10 @@ locals res: Foo *M;
 
 fun main()
 locals
-	f1: Foo *M1,
-	f2: Foo *M2;
+	f2: Foo *#memory;
 {
 	entry:
-		f1 := call alloc_foo<out M1>(uint32(1), uint32(2));
-		f2 := call alloc_foo<out M2>(uint32(3), uint32(4));
+		f2 := call alloc_foo<#memory>(uint32(3), uint32(4));
 		return;
 		
 }

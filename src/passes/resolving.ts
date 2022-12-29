@@ -3,11 +3,12 @@ import {
     BaseSrc,
     BoolType,
     Definition,
-    FreshMemVariableDeclaration,
     FunctionCall,
     FunctionDefinition,
     Identifier,
     IntType,
+    MemConstant,
+    MemIdentifier,
     MemVariableDeclaration,
     PointerType,
     StructDefinition,
@@ -16,7 +17,7 @@ import {
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
-import { walk, MIRTypeError } from "../utils";
+import { walk, MIRTypeError, pp } from "../utils";
 
 type Def =
     | FunctionDefinition
@@ -24,7 +25,7 @@ type Def =
     | VariableDeclaration
     | MemVariableDeclaration
     | TypeVariableDeclaration
-    | FreshMemVariableDeclaration;
+    | MemIdentifier;
 
 class Scope {
     private defs: Map<string, Def> = new Map();
@@ -107,7 +108,7 @@ class Scope {
         for (const node of fun.children()) {
             if (node instanceof FunctionCall) {
                 for (const memArg of node.memArgs) {
-                    if (memArg instanceof FreshMemVariableDeclaration) {
+                    if (memArg instanceof MemIdentifier && memArg.out) {
                         scope.define(memArg);
                     }
                 }
@@ -157,7 +158,7 @@ export type TypeDecl = StructDefinition | TypeVariableDeclaration;
  */
 export class Resolving {
     private _idDecls: Map<
-        Identifier,
+        Identifier | MemIdentifier,
         VariableDeclaration | MemVariableDeclaration | FunctionDefinition
     >;
     private _typeDecls: Map<UserDefinedType, TypeDecl>;
@@ -169,15 +170,12 @@ export class Resolving {
         this.runAnalysis();
     }
 
-    getIdDecl(
-        id: Identifier
-    ):
-        | VariableDeclaration
-        | MemVariableDeclaration
-        | FunctionDefinition
-        | FreshMemVariableDeclaration
-        | undefined {
-        return this._idDecls.get(id);
+    getMemIdDecl(id: MemIdentifier): MemVariableDeclaration | MemIdentifier | undefined {
+        return this._idDecls.get(id) as MemVariableDeclaration | MemIdentifier | undefined;
+    }
+
+    getIdDecl(id: Identifier): VariableDeclaration | FunctionDefinition | undefined {
+        return this._idDecls.get(id) as VariableDeclaration | FunctionDefinition | undefined;
     }
 
     getTypeDecl(id: UserDefinedType): TypeDecl | undefined {
@@ -207,6 +205,11 @@ export class Resolving {
             }
 
             this.analyzeOneDef(def, defScope);
+        }
+
+        // After we build the resolving maps, check that fresh/out memories are used correctly
+        for (const def of this.defs) {
+            this.checkIdentifiers(def as FunctionDefinition | StructDefinition);
         }
     }
 
@@ -279,8 +282,14 @@ export class Resolving {
     private analyzeOneDef(def: StructDefinition | FunctionDefinition, scope: Scope) {
         // 1. Resolve all identifiers/user-defined types to their declaration
         walk(def, (nd) => {
-            if (nd instanceof Identifier) {
-                this._idDecls.set(nd, scope.mustGet(nd.name, nd.src));
+            if (nd instanceof Identifier || nd instanceof MemIdentifier) {
+                this._idDecls.set(
+                    nd,
+                    scope.mustGet(nd.name, nd.src) as
+                        | VariableDeclaration
+                        | MemVariableDeclaration
+                        | FunctionDefinition
+                );
             } else if (nd instanceof UserDefinedType) {
                 this._typeDecls.set(nd, scope.getTypeDecl(nd));
             }
@@ -332,5 +341,97 @@ export class Resolving {
                 }
             }
         }
+    }
+
+    private checkIdentifiers(def: FunctionDefinition | StructDefinition): void {
+        walk(def, (nd) => {
+            if (nd instanceof Identifier) {
+                const decl = this._idDecls.get(nd);
+
+                if (!(decl instanceof VariableDeclaration || decl instanceof FunctionDefinition)) {
+                    throw new MIRTypeError(
+                        nd.src,
+                        `Expression identifier ${
+                            nd.name
+                        } should refer to variable or function, not ${pp(decl)}`
+                    );
+                }
+                return;
+            }
+
+            if (nd instanceof MemIdentifier) {
+                const decl = this._idDecls.get(nd);
+
+                if (
+                    !(
+                        decl instanceof MemVariableDeclaration ||
+                        (decl instanceof MemIdentifier && decl.out)
+                    )
+                ) {
+                    throw new MIRTypeError(
+                        nd.src,
+                        `Memory identifier ${
+                            nd.name
+                        } should refer to a memory variable declarations or out mem parameters, not ${pp(
+                            decl
+                        )}`
+                    );
+                }
+
+                return;
+            }
+
+            if (nd instanceof StructDefinition) {
+                for (const decl of nd.memoryParameters) {
+                    if (decl.fresh) {
+                        throw new MIRTypeError(decl.src, `Struct cannot have fresh memories`);
+                    }
+                }
+
+                return;
+            }
+
+            if (nd instanceof FunctionCall) {
+                const funDecl = this._idDecls.get(nd.callee) as FunctionDefinition;
+
+                for (let i = 0; i < nd.memArgs.length; i++) {
+                    const arg = nd.memArgs[i];
+                    const argDecl = funDecl.memoryParameters[i];
+
+                    if (arg instanceof MemConstant) {
+                        if (argDecl.fresh) {
+                            throw new MIRTypeError(
+                                arg.src,
+                                `Cannot pass in memory constant ${
+                                    arg.name
+                                } for a fresh memory var ${pp(argDecl)}`
+                            );
+                        }
+
+                        continue;
+                    }
+
+                    if (arg.out && !argDecl.fresh) {
+                        throw new MIRTypeError(
+                            arg.src,
+                            `Cannot declare memory ${arg.name} as out if correspoarging var ${pp(
+                                argDecl
+                            )} is not fresh`
+                        );
+                    }
+
+                    if (!arg.out && argDecl.fresh) {
+                        throw new MIRTypeError(
+                            arg.src,
+                            `Cannot pass in memory var ${arg.name} for a fresh memory var ${pp(
+                                argDecl
+                            )}`
+                        );
+                    }
+                }
+
+                return;
+            }
+        });
     }
 }
