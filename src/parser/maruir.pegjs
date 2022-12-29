@@ -127,7 +127,7 @@ PrimitiveType
     / LPAREN innerT: Type RPAREN { return innerT; }
 
 IntType
-    = unsigned:("u"?) "int" nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, unsigned == null); }
+    = sign:("u" / "i") nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, sign == "i"); }
 
 PointerOrArrayType
     = head: PrimitiveType tail: ((__ STAR __ MemDesc) / __ LBRACKET __ RBRACKET)* {

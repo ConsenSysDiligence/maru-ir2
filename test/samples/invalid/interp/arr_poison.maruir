@@ -1,9 +1,9 @@
-fun main(): uint8
-locals arr: uint8[] *#memory, res: uint8;
+fun main(): u8
+locals arr: u8[] *#memory, res: u8;
 {
     entry:
-        arr := alloc uint8[uint8(3)] in #memory;
-        load arr[uint8(2)] in res;
+        arr := alloc u8[u8(3)] in #memory;
+        load arr[u8(2)] in res;
 
         return res;
 }

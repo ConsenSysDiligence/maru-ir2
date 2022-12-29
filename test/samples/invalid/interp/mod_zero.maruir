@@ -1,8 +1,8 @@
-fun main(): uint8
-locals a: uint8, b: uint8;
+fun main(): u8
+locals a: u8, b: u8;
 {
     entry:
-        a := uint8(5) % uint8(0);
+        a := u8(5) % u8(0);
 
         return a;
 }

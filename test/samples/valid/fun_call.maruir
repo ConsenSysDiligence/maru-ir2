@@ -1,14 +1,14 @@
-fun add(a: uint8, b: uint8): uint8
-locals res: uint8;
+fun add(a: u8, b: u8): u8
+locals res: u8;
 {
     entry:
         res := a + b;
         return res;
 }
 
-fun mod(a: int16): int16 {
+fun mod(a: i16): i16 {
     entry:
-        branch a < int16(0) negative non_negative;
+        branch a < i16(0) negative non_negative;
 
     negative:
         a := -a;
@@ -18,19 +18,19 @@ fun mod(a: int16): int16 {
         return a;
 }
 
-fun gauss(n: int32): int32
-locals ctr: int32, sum: int32;
+fun gauss(n: i32): i32
+locals ctr: i32, sum: i32;
 {
     entry:
-        ctr := int32(0);
-        sum := int32(0);
+        ctr := i32(0);
+        sum := i32(0);
         jump header;
 
     header:
         branch ctr < n body exit;
 
     body:
-        ctr := ctr + int32(1);
+        ctr := ctr + i32(1);
         sum := sum + ctr;
         jump header;
 
@@ -42,12 +42,12 @@ locals ctr: int32, sum: int32;
 fun noop() {}
 
 fun main()
-locals a: uint8, b: int16, c: int32;
+locals a: u8, b: i16, c: i32;
 {
     entry:
-    a := call add(uint8(1), uint8(2));
-    b := call mod(int16(-10));
-    c := call gauss(int32(100));
+    a := call add(u8(1), u8(2));
+    b := call mod(i16(-10));
+    c := call gauss(i32(100));
     call noop();
     return;
 }

@@ -1,6 +1,6 @@
 struct Foo {
-    a: uint256;
-    b: int8;
+    a: u256;
+    b: i8;
     c: bool;
 }
 
@@ -10,8 +10,8 @@ struct Boo {
 
 struct Goo<M1, M2>  {
     a: bool[] * M1;
-    b: uint8[] * M2[] * M1;
-    c: (((int16[] * M2)[]) * M1)[] * M2;
+    b: u8[] * M2[] * M1;
+    c: (((i16[] * M2)[]) * M1)[] * M2;
 }
 
 struct Doo {

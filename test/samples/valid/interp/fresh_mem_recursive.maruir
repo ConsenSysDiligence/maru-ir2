@@ -1,9 +1,9 @@
-fun copy<M, M1>(src: uint8[] *M, dst: uint8[] *M1, nbytes: uint32)
-locals i: uint32,
-	  t: uint8;
+fun copy<M, M1>(src: u8[] *M, dst: u8[] *M1, nbytes: u32)
+locals i: u32,
+	  t: u8;
 {
 	entry:
-		i := uint32(0);
+		i := u32(0);
 		jump header;
 
 	header:
@@ -12,39 +12,39 @@ locals i: uint32,
 	body:
 		load src[i] in t;
 		store t in dst[i];
-		i := i + uint32(1);
+		i := i + u32(1);
 		jump header;
 
 	exit:
 		return;
 }
 
-fun silly_zerofill<'fresh M>(n: uint32): uint8[] *M
-locals res: uint8[] *M,
-	   t: uint8[] *M1;
+fun silly_zerofill<'fresh M>(n: u32): u8[] *M
+locals res: u8[] *M,
+	   t: u8[] *M1;
 {
 	entry:
-		res := alloc uint8[n] in M;
-		branch n == uint32(1) base recursive;
+		res := alloc u8[n] in M;
+		branch n == u32(1) base recursive;
 
 	base:
-		store uint8(0) in res[uint32(0)];
+		store u8(0) in res[u32(0)];
 		return res;
 
 	recursive:
-		t := call silly_zerofill<out M1>(n - uint32(1));
-		call copy<M1, M>(t, res, n - uint32(1));
-		store uint8(0) in res[n - uint32(1)];
+		t := call silly_zerofill<out M1>(n - u32(1));
+		call copy<M1, M>(t, res, n - u32(1));
+		store u8(0) in res[n - u32(1)];
 
 		return res;
 }
 
 fun main()
 locals
-	x: uint8[] *M;
+	x: u8[] *M;
 {
 	entry:
-		x := call silly_zerofill<out M>(uint32(4));
+		x := call silly_zerofill<out M>(u32(4));
 		return;
 		
 }

@@ -1,15 +1,15 @@
 struct S1<M> {
-	arr1: uint8[] *M;
+	arr1: u8[] *M;
 }
 
 struct S2<M, N> {
 	ptr1: S1<N> *M;
-	ptr2: uint16[] *N;
+	ptr2: u16[] *N;
 }
 
-fun getSArr1<P, Q>(ptrS2: S2<P,Q> *Q): uint8[] *Q
+fun getSArr1<P, Q>(ptrS2: S2<P,Q> *Q): u8[] *Q
 locals ptrS1: S1<Q> *P,
-	   ptrArr1: uint8[] *Q;
+	   ptrArr1: u8[] *Q;
 {
 	entry:
 
@@ -19,8 +19,8 @@ locals ptrS1: S1<Q> *P,
 	return ptrArr1;
 }
 
-fun main(ptrS2: S2<#X, #Y> *#Z): uint8[] *#Y
-locals ptr: uint8[] *#Y;
+fun main(ptrS2: S2<#X, #Y> *#Z): u8[] *#Y
+locals ptr: u8[] *#Y;
 {
 	entry:
 

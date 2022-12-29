@@ -1,5 +1,5 @@
-fun main(): uint8 {
+fun main(): u8 {
 	entry:
 		assert true;
-		return uint8(42);
+		return u8(42);
 }

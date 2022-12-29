@@ -3,8 +3,8 @@ struct M {
 
 }
 
-fun foo(a: uint8)
-locals a: int8;
+fun foo(a: u8)
+locals a: i8;
 {
 
 }

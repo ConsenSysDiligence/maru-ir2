@@ -1,5 +1,5 @@
 struct foo {
-    x: int8;
+    x: i8;
 }
 
-fun foo(b: uint8, a:int16)
+fun foo(b: u8, a:i16)

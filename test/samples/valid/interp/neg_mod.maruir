@@ -1,11 +1,11 @@
 fun main()
-locals a: int16, b: int16, c: uint8, e: bool;
+locals a: i16, b: i16, c: u8, e: bool;
 {
     entry:
-        b := int16(-32768);
-        a := b % int16(7);
+        b := i16(-32768);
+        a := b % i16(7);
 
-        assert(a == int16(6));
+        assert(a == i16(6));
 
         return;
 }

@@ -1,5 +1,5 @@
-fun add(a: uint8, b: uint8): uint8
-locals res: uint8;
+fun add(a: u8, b: u8): u8
+locals res: u8;
 {
     entry:
         res := a + b;
@@ -8,9 +8,9 @@ locals res: uint8;
 
 
 fun main()
-locals a: uint8, b: int16, c: int32;
+locals a: u8, b: i16, c: i32;
 {
     entry:
-    b := call add(uint8(1), uint8(2));
+    b := call add(u8(1), u8(2));
     return;
 }

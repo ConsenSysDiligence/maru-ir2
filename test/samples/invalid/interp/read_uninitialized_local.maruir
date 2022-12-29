@@ -1,7 +1,7 @@
 fun main()
-locals a: uint8, b: uint8;
+locals a: u8, b: u8;
 {
     entry:
-        a := b + uint8(1);
+        a := b + u8(1);
         return;
 }

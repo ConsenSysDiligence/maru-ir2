@@ -1,1 +1,1 @@
-fun foo(t: uint8[]) { }
+fun foo(t: u8[]) { }

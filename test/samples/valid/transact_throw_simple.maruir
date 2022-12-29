@@ -1,11 +1,11 @@
-fun failFun(): uint8 {
+fun failFun(): u8 {
     entry:
 
     abort;
 }
 
 fun main(): bool
-locals dummy: uint8, fails: bool;
+locals dummy: u8, fails: bool;
 {
     entry:
         dummy, fails := trans_call failFun();

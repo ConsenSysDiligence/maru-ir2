@@ -1,7 +1,7 @@
-fun copy<M1, M2>(src: uint16[] *M1): uint16[] *M2
+fun copy<M1, M2>(src: u16[] *M1): u16[] *M2
 
 fun main()
-locals src: uint16[] *#memory, dst: uint16[] *#storage;
+locals src: u16[] *#memory, dst: u16[] *#storage;
 {
     entry:
     dst := call copy<#calldata, #storage>(src);

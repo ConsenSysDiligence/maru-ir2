@@ -1,9 +1,9 @@
 struct Foo {
-    a: uint8;
+    a: u8;
 }
 
-fun main(): uint8
-locals ptr: Foo *#memory, res: uint8;
+fun main(): u8
+locals ptr: Foo *#memory, res: u8;
 {
     entry:
         ptr := alloc Foo in #memory;

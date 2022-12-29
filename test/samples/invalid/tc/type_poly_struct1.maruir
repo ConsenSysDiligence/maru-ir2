@@ -1,17 +1,17 @@
 struct ArrWithLen<M; T> {
 	arr: T[] *M;
-	len: uint256;
+	len: u256;
 }
 
-fun arrLen<M; T>(arg: ArrWithLen<M; T> *M): uint256
-locals res: uint256;
+fun arrLen<M; T>(arg: ArrWithLen<M; T> *M): u256
+locals res: u256;
 {
 	entry:
 		load arg.len in res;
 		return res;
 }
 
-fun arrIndex<M; T>(arg: ArrWithLen<M; T> *M, index: uint256): T
+fun arrIndex<M; T>(arg: ArrWithLen<M; T> *M, index: u256): T
 locals arrPtr: T[] *M, res: T;
 {
 	entry:
@@ -21,12 +21,12 @@ locals arrPtr: T[] *M, res: T;
 		return res;
 }
 
-fun main(ptr: ArrWithLen<#memory; uint8> *#memory)
-locals len: uint256, val: uint16;
+fun main(ptr: ArrWithLen<#memory; u8> *#memory)
+locals len: u256, val: u16;
 {
 	entry:
 
-	len := call arrLen<#memory; uint8>(ptr);
-	val := call arrIndex<#memory; uint16>(ptr, uint256(0));
+	len := call arrLen<#memory; u8>(ptr);
+	val := call arrIndex<#memory; u16>(ptr, u256(0));
 	return;
 }

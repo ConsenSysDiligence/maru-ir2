@@ -1,1 +1,1 @@
-fun foo<M, M>(a: uint8)
+fun foo<M, M>(a: u8)

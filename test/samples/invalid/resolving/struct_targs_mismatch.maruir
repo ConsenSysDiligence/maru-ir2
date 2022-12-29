@@ -2,5 +2,5 @@ struct Foo<M;T, T1> {
 	field: T[] *M;
 }
 
-fun foo(arg: Foo<#memory; uint8>) {
+fun foo(arg: Foo<#memory; u8>) {
 }

@@ -1,67 +1,67 @@
 fun main()
-locals a: int16, b: int16, c: uint8, e: bool;
+locals a: i16, b: i16, c: u8, e: bool;
 {
     entry:
-        c := uint8(255);
-        c := c + uint8(1);
-        assert(c == uint8(0));
-        c := c - uint8(1);
-        assert(c == uint8(255));
+        c := u8(255);
+        c := c + u8(1);
+        assert(c == u8(0));
+        c := c - u8(1);
+        assert(c == u8(255));
 
-        b := int16(32767);
+        b := i16(32767);
 
-        b := b + int16(1);
-        assert b == int16(-32768);
+        b := b + i16(1);
+        assert b == i16(-32768);
 
-        b := int16(-2);
-        a := int16(16384);
+        b := i16(-2);
+        a := i16(16384);
 
         b := b * a;
-        assert(b == int16(-32768));
+        assert(b == i16(-32768));
 
-        assert(b >> int8(2) == int16(-8192));
+        assert(b >> i8(2) == i16(-8192));
 
-        assert(b << int8(1) == int16(0));
+        assert(b << i8(1) == i16(0));
 
-        a := int16(-3);
-        b := int16(3);
+        a := i16(-3);
+        b := i16(3);
 
-        assert(a ** b == int16(-27));
+        assert(a ** b == i16(-27));
 
-        a := int16(125);
-        b := int16(7);
+        a := i16(125);
+        b := i16(7);
 
-        assert(a / b == int16(17));
+        assert(a / b == i16(17));
 
-        assert !(uint256(1) < uint256(1));
-        assert uint256(1) <= uint256(1);
-        assert int32(4) < int32(5);
-        assert uint64(7) > uint64(6);
-        assert int64(6) >= int64(6);
-        assert !(int48(5) > int48(5));
+        assert !(u256(1) < u256(1));
+        assert u256(1) <= u256(1);
+        assert i32(4) < i32(5);
+        assert u64(7) > u64(6);
+        assert i64(6) >= i64(6);
+        assert !(i48(5) > i48(5));
 
-        assert (uint256(1) == uint256(1));
-        assert !(uint256(1) == uint256(2));
-        assert uint256(1) != uint256(2);
-        assert !(int128(2) != int128(2));
+        assert (u256(1) == u256(1));
+        assert !(u256(1) == u256(2));
+        assert u256(1) != u256(2);
+        assert !(i128(2) != i128(2));
 
-        a := int16(37);
-        b := int16(1024);
+        a := i16(37);
+        b := i16(1024);
 
-        assert (a | b == int16(1061));
-        assert (a & b == int16(0));
-        assert (a ^ b == int16(1061));
+        assert (a | b == i16(1061));
+        assert (a & b == i16(0));
+        assert (a ^ b == i16(1061));
 
-        b := int16(122);
+        b := i16(122);
 
-        assert (a | b == int16(127));
-        assert (a & b == int16(32));
-        assert (a ^ b == int16(95));
+        assert (a | b == i16(127));
+        assert (a & b == i16(32));
+        assert (a ^ b == i16(95));
 
-        a := -int16(5);
+        a := -i16(5);
         
 
-        assert(-a == int16(5));
+        assert(-a == i16(5));
 
         e := false;
         assert(!e);
