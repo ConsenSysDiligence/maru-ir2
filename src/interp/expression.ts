@@ -1,6 +1,7 @@
 import {
     BinaryOperation,
     BooleanLiteral,
+    Cast,
     Expression,
     Identifier,
     IntType,
@@ -283,6 +284,14 @@ export class ExprEvaluator {
         this.internalError(e, `NYI binary op ${e.op}`);
     }
 
+    private evalCast(e: Cast): PrimitiveValue {
+        const subValue = this.evalExpression(e.subExpr);
+
+        this.assert(typeof subValue === "bigint", e, `Unexpected value {0} in int cast`, subValue);
+
+        return adjustIntToTypeSize(e.toType, subValue);
+    }
+
     evalExpression(e: Expression): PrimitiveValue {
         if (e instanceof NumberLiteral) {
             return e.value;
@@ -315,6 +324,10 @@ export class ExprEvaluator {
 
         if (e instanceof BinaryOperation) {
             return this.evalBinary(e);
+        }
+
+        if (e instanceof Cast) {
+            return this.evalCast(e);
         }
 
         this.internalError(e, `NYI expression ${e.pp()}`);

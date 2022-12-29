@@ -1,0 +1,15 @@
+fun main()
+locals
+	a: u16,
+	b: i16;
+{
+	entry:
+		a := u16(65537_u32);
+
+		assert a == 1_u16;
+
+		b := i16(32768_u64);
+
+		assert b == -32768_i16;
+		return;
+}

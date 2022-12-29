@@ -33,7 +33,8 @@ import {
     AllocArray,
     AllocStruct,
     Assert,
-    MemIdentifier
+    MemIdentifier,
+    Cast
 } from "../ir";
 import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
@@ -726,6 +727,19 @@ export class Typing {
         throw new Error(`Unknown binary operator ${expr.op}`);
     }
 
+    /**
+     * Compute the type of a Cast.
+     */
+    private typeOfCast(expr: Cast): Type {
+        const innerT = this.typeOfExpression(expr.subExpr);
+
+        if (!(innerT instanceof IntType)) {
+            throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+        }
+
+        return expr.toType;
+    }
+
     private typeOfExpressionImpl(expr: Expression): Type {
         if (expr instanceof BooleanLiteral) {
             return boolT;
@@ -745,6 +759,10 @@ export class Typing {
 
         if (expr instanceof BinaryOperation) {
             return this.typeOfBinaryOperation(expr);
+        }
+
+        if (expr instanceof Cast) {
+            return this.typeOfCast(expr);
         }
 
         throw new Error(`Unknown expression ${expr.pp()}`);

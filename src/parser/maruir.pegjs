@@ -315,10 +315,14 @@ Literal
     = NumberLiteral
     / BooleanLiteral
 
+Cast
+    = type: IntType __ LPAREN __ expr: Expression __ RPAREN { return new Cast(Src.fromPegsRange(location()), type, expr)}
+
 PrimitiveExpression
     = Literal
     / (id: Identifier { return new Identifier(Src.fromPegsRange(location()), id); })
     / LPAREN __ e: Expression __ RPAREN { return e; }
+    / Cast
 
 UnaryExpression =
     (
@@ -485,7 +489,7 @@ Keyword
     / FRESH
 
 Identifier =
-    !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }
+    !((Keyword ![a-zA-Z0-9_]) / IntType) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }
 // Whitespace
 
 PrimitiveWhiteSpace =

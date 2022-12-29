@@ -41,7 +41,8 @@ import {
     AllocArray,
     AllocStruct,
     Assert,
-    MemIdentifier
+    MemIdentifier,
+    Cast
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
