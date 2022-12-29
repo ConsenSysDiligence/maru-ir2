@@ -9,8 +9,8 @@ locals arr: Foo *#memory;
 {
     entry:
         arr := alloc Foo in #memory;
-        store u8(1) in arr.a;
-        store i16(-257) in arr.b;
+        store 1_u8 in arr.a;
+        store -257_i16 in arr.b;
         store true in arr.c;
 
         return;

@@ -2,6 +2,6 @@ fun main()
 locals a: u8, b: u8;
 {
     entry:
-        a := b + u8(1);
+        a := b + 1_u8;
         return;
 }

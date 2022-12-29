@@ -3,7 +3,7 @@ locals i: u32,
 	  t: u8;
 {
 	entry:
-		i := u32(0);
+		i := 0_u32;
 		jump header;
 
 	header:
@@ -12,7 +12,7 @@ locals i: u32,
 	body:
 		load src[i] in t;
 		store t in dst[i];
-		i := i + u32(1);
+		i := i + 1_u32;
 		jump header;
 
 	exit:
@@ -25,16 +25,16 @@ locals res: u8[] *M,
 {
 	entry:
 		res := alloc u8[n] in M;
-		branch n == u32(1) base recursive;
+		branch n == 1_u32 base recursive;
 
 	base:
-		store u8(0) in res[u32(0)];
+		store 0_u8 in res[0_u32];
 		return res;
 
 	recursive:
-		t := call silly_zerofill<out M1>(n - u32(1));
-		call copy<M1, M>(t, res, n - u32(1));
-		store u8(0) in res[n - u32(1)];
+		t := call silly_zerofill<out M1>(n - 1_u32);
+		call copy<M1, M>(t, res, n - 1_u32);
+		store 0_u8 in res[n - 1_u32];
 
 		return res;
 }
@@ -44,7 +44,7 @@ locals
 	x: u8[] *M;
 {
 	entry:
-		x := call silly_zerofill<out M>(u32(4));
+		x := call silly_zerofill<out M>(4_u32);
 		return;
 		
 }

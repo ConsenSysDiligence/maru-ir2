@@ -11,6 +11,6 @@ fun main()
 locals a: u8, b: i16, c: i32;
 {
     entry:
-    b := call add(u8(1), u8(2));
+    b := call add(1_u8, 2_u8);
     return;
 }

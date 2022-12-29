@@ -2,10 +2,10 @@ fun main()
 locals a: i16, b: i16, c: u8, e: bool;
 {
     entry:
-        b := i16(-32768);
-        a := b % i16(7);
+        b := -32768_i16;
+        a := b % 7_i16;
 
-        assert(a == i16(6));
+        assert(a == 6_i16);
 
         return;
 }

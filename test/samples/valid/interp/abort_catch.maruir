@@ -15,11 +15,11 @@ fun main(): u8
 locals res: u8, failed: bool;
 {
     entry:
-        res, failed := trans_call middle(u8(1));
+        res, failed := trans_call middle(1_u8);
         branch failed fail_bb succ_bb;
 
     fail_bb:
-        return u8(42);
+        return 42_u8;
     
     succ_bb:
         return res;

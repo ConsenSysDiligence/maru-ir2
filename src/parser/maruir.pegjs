@@ -302,7 +302,7 @@ MaybeNegNumber
     }
 
 NumberLiteral =
-    type: IntType __ LPAREN __ value: MaybeNegNumber __ RPAREN {
+    value: MaybeNegNumber "_" type: IntType {
         return new NumberLiteral(Src.fromPegsRange(location()), value[0], value[1], type);
     }
 

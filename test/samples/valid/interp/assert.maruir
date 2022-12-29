@@ -1,5 +1,5 @@
 fun main(): u8 {
 	entry:
 		assert true;
-		return u8(42);
+		return 42_u8;
 }

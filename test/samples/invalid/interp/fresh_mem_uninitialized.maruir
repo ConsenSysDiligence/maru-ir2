@@ -21,8 +21,8 @@ locals
 {
 	entry:
 		load f1.x in tmp;
-		f1 := call alloc_foo<out M1>(u32(1), u32(2));
-		f2 := call alloc_foo<out M2>(u32(3), u32(4));
+		f1 := call alloc_foo<out M1>(1_u32, 2_u32);
+		f2 := call alloc_foo<out M2>(3_u32, 4_u32);
 		return;
 		
 }

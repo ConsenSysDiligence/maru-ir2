@@ -8,7 +8,7 @@ locals res: u8;
 
 fun mod(a: i16): i16 {
     entry:
-        branch a < i16(0) negative non_negative;
+        branch a < 0_i16 negative non_negative;
 
     negative:
         a := -a;
@@ -22,15 +22,15 @@ fun gauss(n: i32): i32
 locals ctr: i32, sum: i32;
 {
     entry:
-        ctr := i32(0);
-        sum := i32(0);
+        ctr := 0_i32;
+        sum := 0_i32;
         jump header;
 
     header:
         branch ctr < n body exit;
 
     body:
-        ctr := ctr + i32(1);
+        ctr := ctr + 1_i32;
         sum := sum + ctr;
         jump header;
 

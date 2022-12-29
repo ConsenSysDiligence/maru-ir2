@@ -7,8 +7,8 @@ fun sum<M>(ptr: Foo<M> *M): u32
 locals sumV: u32, i: u256, len: u256, arrPtr: u32[] *M, t: u32;
 {
 	entry:
-		i := u256(0);
-		sumV := u32(0);
+		i := 0_u256;
+		sumV := 0_u32;
 		load ptr.len in len;
 		load ptr.arr in arrPtr;
 		jump header;
@@ -19,7 +19,7 @@ locals sumV: u32, i: u256, len: u256, arrPtr: u32[] *M, t: u32;
 	body:
 		load arrPtr[i] in t;
 		sumV := sumV + t;
-		i := i + u256(1);
+		i := i + 1_u256;
 		jump header;
 
 	exit:
@@ -30,7 +30,7 @@ fun fill<M>(ptr: Foo<M> *M, val: u32)
 locals i: u256, len: u256, arrPtr: u32[] *M;
 {
 	entry:
-		i := u256(0);
+		i := 0_u256;
 		load ptr.len in len;
 		load ptr.arr in arrPtr;
 		jump header;
@@ -40,7 +40,7 @@ locals i: u256, len: u256, arrPtr: u32[] *M;
 
 	body:
 		store val in arrPtr[i];
-		i := i + u256(1);
+		i := i + 1_u256;
 		jump header;
 
 	exit:
@@ -71,13 +71,13 @@ locals
 	sum2: u32;
 {
 	entry:
-		p1 := call alloc_and_fill<#memory>(u256(8), u32(7));
-		p2 := call alloc_and_fill<#storage>(u256(5), u32(9));
+		p1 := call alloc_and_fill<#memory>(8_u256, 7_u32);
+		p2 := call alloc_and_fill<#storage>(5_u256, 9_u32);
 		sum1 := call sum<#memory>(p1);
 		sum2 := call sum<#storage>(p2);
 
-		assert sum1 == u32(56);
-		assert sum2 == u32(45);
+		assert sum1 == 56_u32;
+		assert sum2 == 45_u32;
 
 		return;
 }

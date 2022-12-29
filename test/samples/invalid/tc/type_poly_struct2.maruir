@@ -27,6 +27,6 @@ locals len: u256, val: u16;
 	entry:
 
 	len := call arrLen<#memory; u8>(ptr);
-	val := call arrIndex<#memory; u8>(ptr, u256(0));
+	val := call arrIndex<#memory; u8>(ptr, 0_u256);
 	return;
 }
