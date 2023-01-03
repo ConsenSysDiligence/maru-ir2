@@ -1,4 +1,4 @@
-[![NodeJS CI](https://github.com/ConsenSys/maru-ir2/.github/workflows/node.js.yaml/badge.svg)](https://github.com/ConsenSys/maru-ir2/.github/workflows/node.js.yaml)
+[![NodeJS CI](actions/workflows/node.js.yaml/badge.svg)](actions/workflows/node.js.yaml)
 
 # maru-ir
 
