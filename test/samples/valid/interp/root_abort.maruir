@@ -1,0 +1,8 @@
+fun main(): u8
+locals a: u8[] *#memory;
+{
+	entry:
+		a := alloc u8[1_u8] in #memory;
+		store 42_u8 in a[0_u256];
+		abort;
+}

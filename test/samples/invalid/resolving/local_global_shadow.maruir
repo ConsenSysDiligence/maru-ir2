@@ -2,8 +2,8 @@ struct M {
     b: bool;
 
 }
-fun foo(a: uint8) 
-locals M: uint8;
+fun foo(a: u8) 
+locals M: u8;
 {
 
 }

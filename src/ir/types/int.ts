@@ -14,7 +14,7 @@ export class IntType extends Type {
     }
 
     pp(): string {
-        return `${this.signed ? "" : "u"}int${this.nbits}`;
+        return `${this.signed ? "i" : "u"}${this.nbits}`;
     }
 
     getStructId(): any {

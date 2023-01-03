@@ -1,0 +1,9 @@
+fun main(): u8
+locals arr: u8[] *#memory, res: u8;
+{
+    entry:
+        arr := alloc u8[3_u8] in #memory;
+        load arr[3_u8] in res;
+
+        return res;
+}

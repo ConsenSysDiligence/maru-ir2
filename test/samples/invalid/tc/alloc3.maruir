@@ -1,0 +1,14 @@
+struct Foo<M> {
+    arr: u8[] *M;
+}
+
+fun main(size: u256)
+locals
+    p1: u8[] *#storage,
+    p2: Foo<#storage> *#storage;
+{
+    entry:
+        p1 := alloc u8[size] in #memory;
+        p2 := alloc Foo<#storage> in #storage;
+        return;
+}

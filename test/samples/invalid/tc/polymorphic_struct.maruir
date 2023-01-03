@@ -1,9 +1,9 @@
 struct S<M> {
-	arr: uint256[] *M;
+	arr: u256[] *M;
 }
 
 fun foo(s: S<#memory> *#memory)
-locals ptr: uint256[] * #storage;
+locals ptr: u256[] * #storage;
 {
 	entry:
 

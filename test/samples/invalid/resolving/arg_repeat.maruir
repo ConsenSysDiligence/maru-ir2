@@ -1,1 +1,1 @@
-fun foo(a: uint8, a:int16)
+fun foo(a: u8, a:i16)

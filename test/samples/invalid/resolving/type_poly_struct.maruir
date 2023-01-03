@@ -1,0 +1,19 @@
+struct ArrWithLen<M; T> {
+	arr: T[] *M;
+	len: u256;
+}
+
+fun arrLen<M; T>(arg: ArrWithLen<M; T> *M): u256
+locals res: u256;
+{
+	entry:
+		load arg.len in res;
+		return res;
+}
+
+fun main<;T>(ptr: T<#memory; u8> *#memory)
+locals len: u256;
+{
+	entry:
+	return;
+}

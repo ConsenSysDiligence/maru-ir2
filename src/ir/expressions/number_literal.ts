@@ -14,7 +14,7 @@ export class NumberLiteral extends Expression {
     }
 
     pp(): string {
-        return `${this.type.pp()}(${this.value.toString(this.radix)})`;
+        return `${this.value.toString(this.radix)}_${this.type.pp()}`;
     }
 
     getStructId(): any {

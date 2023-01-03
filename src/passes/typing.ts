@@ -14,7 +14,6 @@ import {
     Jump,
     LoadField,
     LoadIndex,
-    MemConstant,
     MemDesc,
     MemVariableDeclaration,
     noSrc,
@@ -29,13 +28,21 @@ import {
     TransactionCall,
     Type,
     UnaryOperation,
-    UserDefinedType
+    UserDefinedType,
+    TypeVariableDeclaration,
+    AllocArray,
+    AllocStruct,
+    Assert,
+    MemIdentifier,
+    Cast
 } from "../ir";
-import { eq, MIRTypeError, zip } from "../utils";
+import { eq, MIRTypeError, pp, zip } from "../utils";
 import { Resolving } from "./resolving";
 
 export const boolT = new BoolType(noSrc);
-type Substitution = Map<MemVariableDeclaration, MemConstant | MemVariableDeclaration>;
+type MemSubstitution = Map<MemVariableDeclaration, MemDesc>;
+type TypeSubstitution = Map<TypeVariableDeclaration, Type>;
+type Substitution = [MemSubstitution, TypeSubstitution];
 
 /**
  * Simple pass to compute the type of each expression in each function in a
@@ -104,13 +111,7 @@ export class Typing {
             );
         }
 
-        let res = matchingFields[0][1];
-
-        if (userType.memArgs.length > 0) {
-            res = this.concretizeType(res, this.makeSubst(userType));
-        }
-
-        return res;
+        return this.concretizeType(matchingFields[0][1], this.makeSubst(userType));
     }
 
     /**
@@ -415,6 +416,84 @@ export class Typing {
     }
 
     /**
+     * Check whether an array allocation is typed correctly. Checks that:
+     *
+     * 1. The given element type is a primitive type
+     * 2. The size expression is of a numeric type
+     * 3. The lhs is of the expected array type
+     */
+    private tcAllocArray(stmt: AllocArray): void {
+        const elT = stmt.type;
+
+        if (!this.resolve.isPrimitive(elT)) {
+            throw new MIRTypeError(
+                elT.src,
+                `Cannot allocate an array of non-primitive type ${elT.pp()}`
+            );
+        }
+
+        const sizeT = this.typeOfExpression(stmt.size);
+
+        if (!(sizeT instanceof IntType)) {
+            throw new MIRTypeError(
+                stmt.size.src,
+                `Size expression must be of numeric type not ${sizeT.pp()}`
+            );
+        }
+
+        const resT = new PointerType(noSrc, new ArrayType(noSrc, elT), stmt.mem);
+        const lhsT = this.typeOfExpression(stmt.lhs);
+
+        if (!eq(resT, lhsT)) {
+            throw new MIRTypeError(
+                stmt.lhs.src,
+                `LHS must be of type ${resT.pp()} not ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Check whether an array allocation is typed correctly. Checks that:
+     *
+     * 1. The given element type is a primitive type
+     * 2. The size expression is of a numeric type
+     * 3. The lhs is of the expected array type
+     */
+    private tcAllocStruct(stmt: AllocStruct): void {
+        const structT = stmt.type;
+
+        const decl = this.resolve.getTypeDecl(structT);
+
+        if (!(decl instanceof StructDefinition)) {
+            throw new MIRTypeError(stmt.type, `Type ${structT.pp()} must be a struct type.`);
+        }
+
+        const resT = new PointerType(noSrc, structT, stmt.mem);
+        const lhsT = this.typeOfExpression(stmt.lhs);
+
+        if (!eq(resT, lhsT)) {
+            throw new MIRTypeError(
+                stmt.lhs.src,
+                `LHS must be of type ${resT.pp()} not ${lhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check an assert. Just make sure the condition is a boolean.
+     */
+    private tcAssert(stmt: Assert): void {
+        const condT = this.typeOfExpression(stmt.condition);
+
+        if (!(condT instanceof BoolType)) {
+            throw new MIRTypeError(
+                stmt.condition.src,
+                `Assert statement expects boolean not ${stmt.condition.pp()} of type ${condT.pp()}`
+            );
+        }
+    }
+
+    /**
      * Type check a statement inside of a function
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
@@ -472,6 +551,21 @@ export class Typing {
             return;
         }
 
+        if (stmt instanceof AllocArray) {
+            this.tcAllocArray(stmt);
+            return;
+        }
+
+        if (stmt instanceof AllocStruct) {
+            this.tcAllocStruct(stmt);
+            return;
+        }
+
+        if (stmt instanceof Assert) {
+            this.tcAssert(stmt);
+            return;
+        }
+
         throw new Error(`NYI statement ${stmt.pp()}`);
     }
 
@@ -502,7 +596,7 @@ export class Typing {
             throw new MIRTypeError(expr.src, `Unknown identifier ${expr.name}`);
         }
 
-        if (decl instanceof MemVariableDeclaration || decl instanceof FunctionDefinition) {
+        if (decl instanceof FunctionDefinition) {
             throw new MIRTypeError(
                 expr.src,
                 `Unexpected program variable in expression, not ${expr.name}`
@@ -633,6 +727,19 @@ export class Typing {
         throw new Error(`Unknown binary operator ${expr.op}`);
     }
 
+    /**
+     * Compute the type of a Cast.
+     */
+    private typeOfCast(expr: Cast): Type {
+        const innerT = this.typeOfExpression(expr.subExpr);
+
+        if (!(innerT instanceof IntType)) {
+            throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+        }
+
+        return expr.toType;
+    }
+
     private typeOfExpressionImpl(expr: Expression): Type {
         if (expr instanceof BooleanLiteral) {
             return boolT;
@@ -654,19 +761,81 @@ export class Typing {
             return this.typeOfBinaryOperation(expr);
         }
 
+        if (expr instanceof Cast) {
+            return this.typeOfCast(expr);
+        }
+
         throw new Error(`Unknown expression ${expr.pp()}`);
     }
 
-    private makeSubst(arg: UserDefinedType | FunctionCall): Substitution {
+    private makeTypeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): TypeSubstitution {
+        let formals: TypeVariableDeclaration[];
+        let actuals: Type[];
+        let argDesc: string;
+
+        if (arg instanceof UserDefinedType) {
+            if (arg.typeArgs.length === 0) {
+                return new Map();
+            }
+
+            const decl = this.resolve.getTypeDecl(arg);
+
+            if (!(decl instanceof StructDefinition)) {
+                throw new MIRTypeError(
+                    arg.src,
+                    `User defined type with args ${arg.pp()} should resolve to struct, not ${pp(
+                        decl
+                    )}`
+                );
+            }
+
+            formals = decl.typeParameters;
+            actuals = arg.typeArgs;
+            argDesc = `Struct ${arg.name}`;
+        } else {
+            const calleeDef = this.resolve.getIdDecl(arg.callee);
+
+            if (!(calleeDef instanceof FunctionDefinition)) {
+                throw new MIRTypeError(
+                    arg.callee.src,
+                    `Expected function name not ${arg.callee.pp()}`
+                );
+            }
+
+            formals = calleeDef.typeParameters;
+            actuals = arg.typeArgs;
+            argDesc = `Function ${arg.callee.pp()}`;
+        }
+
+        if (formals.length !== actuals.length) {
+            throw new MIRTypeError(
+                arg.src,
+                `${argDesc} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+            );
+        }
+
+        return new Map(zip(formals, actuals));
+    }
+
+    private makeMemSubst(arg: UserDefinedType | FunctionCall | TransactionCall): MemSubstitution {
         let formals: MemVariableDeclaration[];
         let actuals: MemDesc[];
         let argDesc: string;
 
         if (arg instanceof UserDefinedType) {
+            if (arg.memArgs.length === 0) {
+                return new Map();
+            }
+
             const decl = this.resolve.getTypeDecl(arg);
 
-            if (decl === undefined) {
-                throw new Error(`Unexpected undefined decl for type ${arg.name}`);
+            if (!(decl instanceof StructDefinition)) {
+                throw new MIRTypeError(
+                    arg.src,
+                    `User defined type with args ${arg.pp()} should resolve to struct, not ${pp(
+                        decl
+                    )}`
+                );
             }
 
             formals = decl.memoryParameters;
@@ -697,41 +866,79 @@ export class Typing {
         return new Map(zip(formals, actuals));
     }
 
+    private makeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): Substitution {
+        return [this.makeMemSubst(arg), this.makeTypeSubst(arg)];
+    }
+
     private concretizeType(t: Type, subst: Substitution): Type {
-        const convertId = (id: Identifier): MemConstant | Identifier => {
-            let result: MemConstant | Identifier = id;
-            const decl = this.resolve.getIdDecl(id);
+        const [memSubst, typeSubst] = subst;
 
-            if (!(decl instanceof MemVariableDeclaration)) {
-                throw new MIRTypeError(id.src, `Unexpected non-memory identifier in type`);
+        // Check if t is a mapped type var
+        if (t instanceof UserDefinedType && t.memArgs.length === 0 && t.typeArgs.length === 0) {
+            const decl = this.resolve.getTypeDecl(t);
+
+            if (decl instanceof TypeVariableDeclaration) {
+                const mappedT = typeSubst.get(decl);
+
+                if (!mappedT) {
+                    return t;
+                }
+
+                return this.concretizeType(mappedT, subst);
             }
 
-            const newVal = subst.get(decl);
+            // Struct with no polymorphic params
+            return t;
+        }
 
-            if (newVal) {
-                result =
-                    newVal instanceof MemConstant ? newVal : new Identifier(id.src, newVal.name);
+        const concretizeMemDesc = (arg: MemDesc): MemDesc => {
+            while (arg instanceof MemIdentifier) {
+                // Out mem identifier. Return a "non-out" version
+                if (arg.out) {
+                    return new MemIdentifier(arg.src, arg.name, false);
+                }
+
+                const decl = this.resolve.getMemIdDecl(arg);
+
+                // Shouldn't happen at this point
+                if (decl === undefined) {
+                    throw new Error(`Internal error: Undefined mem identifier ${arg.pp()}`);
+                }
+
+                if (decl instanceof MemIdentifier) {
+                    arg = decl;
+                    continue;
+                }
+
+                const newVal = memSubst.get(decl);
+
+                if (!newVal) {
+                    break;
+                }
+
+                arg = newVal;
             }
 
-            return result;
+            return arg;
         };
 
+        if (t instanceof UserDefinedType) {
+            const concreteMemArgs = t.memArgs.map(concretizeMemDesc);
+            const concreteTypeArgs = t.typeArgs.map((tArg) => this.concretizeType(tArg, subst));
+
+            return new UserDefinedType(t.src, t.name, concreteMemArgs, concreteTypeArgs);
+        }
+
         if (t instanceof PointerType) {
-            let region = t.region;
-
-            if (region instanceof Identifier) {
-                region = convertId(region);
-            }
-
-            return new PointerType(t.src, this.concretizeType(t.toType, subst), region);
+            return new PointerType(
+                t.src,
+                this.concretizeType(t.toType, subst),
+                concretizeMemDesc(t.region)
+            );
         }
 
         if (t instanceof ArrayType) {
             return new ArrayType(t.src, this.concretizeType(t.baseType, subst));
-        }
-
-        if (t instanceof UserDefinedType) {
-            return new UserDefinedType(t.src, t.name, t.memArgs.map(convertId));
         }
 
         return t;

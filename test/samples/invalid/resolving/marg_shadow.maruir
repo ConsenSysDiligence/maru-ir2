@@ -2,4 +2,4 @@ struct M {
     b: bool;
 
 }
-fun foo<M>(a: uint8)
+fun foo<M>(a: u8)

@@ -4,3 +4,4 @@ export * from "./uid_generator";
 export * from "./func";
 export * from "./walk";
 export * from "./error";
+export * from "./misc";

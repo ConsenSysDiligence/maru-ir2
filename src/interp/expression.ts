@@ -1,7 +1,7 @@
 import {
-    BaseSrc,
     BinaryOperation,
     BooleanLiteral,
+    Cast,
     Expression,
     Identifier,
     IntType,
@@ -9,14 +9,8 @@ import {
     UnaryOperation
 } from "../ir";
 import { Typing } from "../passes";
-import { eq } from "../utils";
-import { PrimitiveValue, State } from "./state";
-
-export class InterpError extends Error {
-    constructor(public readonly src: BaseSrc, msg: string, state: State) {
-        super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
-    }
-}
+import { eq, fmt, PPIsh } from "../utils";
+import { InterpError, InterpInternalError, poison, PrimitiveValue, State } from "./state";
 
 const two = BigInt(2);
 
@@ -93,38 +87,52 @@ export class ExprEvaluator {
         throw new InterpError(e.src, msg, this.state);
     }
 
+    private internalError(e: Expression, msg: string): never {
+        throw new InterpInternalError(e.src, msg, this.state);
+    }
+
+    private assert(cond: boolean, e: Expression, msg: string, ...details: PPIsh[]): asserts cond {
+        if (cond) {
+            return;
+        }
+
+        this.internalError(e, fmt(msg, ...details));
+    }
+
     private evalUnary(e: UnaryOperation): PrimitiveValue {
         const subValue = this.evalExpression(e.subExpr);
 
         if (e.op === "!") {
-            if (!(typeof subValue === "boolean")) {
-                this.error(e, `Unary operation ${e.pp()} expects boolean not ${subValue}`);
-            }
+            this.assert(
+                typeof subValue === "boolean",
+                e,
+                `Unary operation {0} expects boolean not {1}`,
+                e,
+                subValue
+            );
 
             return !subValue;
         }
 
         if (e.op === "-") {
-            if (!(typeof subValue === "bigint")) {
-                this.error(e, `Unary operation ${e.pp()} expects bigint not ${subValue}`);
-            }
+            this.assert(
+                typeof subValue === "bigint",
+                e,
+                `Unary operation {0} expects bigint not {1}`,
+                e,
+                subValue
+            );
 
-            return -subValue;
+            return this.clampIntToType(-subValue, e);
         }
 
-        this.error(e, `NYI unary operation ${e.pp()}`);
+        this.internalError(e, `NYI unary operation ${e.pp()}`);
     }
 
     private clampIntToType(val: bigint, e: Expression): bigint {
         const eT = this.typing.typeOf(e);
 
-        if (eT === undefined) {
-            this.error(e, `Missing type for ${e.pp()}`);
-        }
-
-        if (!(eT instanceof IntType)) {
-            this.error(e, `Expected int type not ${eT.pp()} for ${e.pp()}`);
-        }
+        this.assert(eT instanceof IntType, e, `Expected int type not {0} for {1}`, eT, e);
 
         return adjustIntToTypeSize(eT, val);
     }
@@ -134,9 +142,13 @@ export class ExprEvaluator {
 
         // Implement logical short-circuiting
         if (e.op === "||" || e.op === "&&") {
-            if (!(typeof lVal === "boolean")) {
-                this.error(e, `Binary operation ${e.pp()} expects boolean not ${lVal}`);
-            }
+            this.assert(
+                typeof lVal === "boolean",
+                e,
+                `Binary operation {0} expects boolean not {1}`,
+                e,
+                lVal
+            );
 
             if (e.op == "||" && lVal) {
                 return true;
@@ -151,12 +163,14 @@ export class ExprEvaluator {
 
         // Handle the 3 binary operations that have potentially differing types
         if (e.op === "**" || e.op === "<<" || e.op === ">>") {
-            if (!(typeof lVal === "bigint" && typeof rVal === "bigint")) {
-                this.error(
-                    e,
-                    `Binary operation ${e.pp()} expects integers not ${lVal} and ${rVal}`
-                );
-            }
+            this.assert(
+                typeof lVal === "bigint" && typeof rVal === "bigint",
+                e,
+                `Binary operation {0} expects integers not {1} and {2}`,
+                e,
+                lVal,
+                rVal
+            );
 
             let res: bigint;
 
@@ -171,12 +185,14 @@ export class ExprEvaluator {
             return this.clampIntToType(res, e);
         }
 
-        if (typeof lVal !== typeof rVal) {
-            this.error(
-                e,
-                `Binary operation ${e.pp()} expects values of the same type not ${lVal} and ${rVal}`
-            );
-        }
+        this.assert(
+            typeof lVal === typeof rVal,
+            e,
+            `Binary operation {0} expects values of the same type not {1} and {2}`,
+            e,
+            lVal,
+            rVal
+        );
 
         /// Equalities can compare any two primitive values of the same type
         if (e.op === "==" || e.op === "!=") {
@@ -187,33 +203,45 @@ export class ExprEvaluator {
 
         /// Logical operations require booleans
         if (e.op === "&&" || e.op === "||") {
-            if (typeof lVal !== "boolean") {
-                this.error(
-                    e,
-                    `Binary operation ${e.pp()} expects booleans not not ${lVal} and ${rVal}`
-                );
-            }
+            this.assert(
+                typeof lVal === "boolean",
+                e,
+                `Binary operation {0} expects booleans not not {1} and {2}`,
+                e,
+                lVal,
+                rVal
+            );
 
             return e.op === "&&" ? lVal && rVal : lVal || rVal;
         }
 
         /// All remaining binary operations require bigints
-        if (typeof lVal !== "bigint" || typeof rVal !== "bigint") {
-            this.error(
-                e,
-                `Binary operation ${e.pp()} expects integers not not ${lVal} and ${rVal}`
-            );
-        }
+        this.assert(
+            typeof lVal === "bigint" && typeof rVal === "bigint",
+            e,
+            `Binary operation {0} expects integers not not {1} and {2}`,
+            e,
+            lVal,
+            rVal
+        );
 
         if (e.op === "*") {
             return this.clampIntToType(lVal * rVal, e);
         }
 
         if (e.op === "/") {
+            if (rVal === 0n) {
+                this.error(e, `Division by 0.`);
+            }
+
             return this.clampIntToType(lVal / rVal, e);
         }
 
         if (e.op === "%") {
+            if (rVal === 0n) {
+                this.error(e, `Division by 0.`);
+            }
+
             return this.clampIntToType(lVal % rVal, e);
         }
 
@@ -253,7 +281,15 @@ export class ExprEvaluator {
             return lVal >= rVal;
         }
 
-        throw new Error(`NYI binary op ${e.op}`);
+        this.internalError(e, `NYI binary op ${e.op}`);
+    }
+
+    private evalCast(e: Cast): PrimitiveValue {
+        const subValue = this.evalExpression(e.subExpr);
+
+        this.assert(typeof subValue === "bigint", e, `Unexpected value {0} in int cast`, subValue);
+
+        return adjustIntToTypeSize(e.toType, subValue);
     }
 
     evalExpression(e: Expression): PrimitiveValue {
@@ -268,8 +304,15 @@ export class ExprEvaluator {
         if (e instanceof Identifier) {
             const res = this.state.curFrame.store.get(e.name);
 
-            if (res === undefined) {
-                this.error(e, `Unexpected lookup of undefined identifier ${e.name}`);
+            this.assert(
+                res !== undefined,
+                e,
+                `Unexpected lookup of undefined identifier {0}`,
+                e.name
+            );
+
+            if (res === poison) {
+                this.error(e, `Reading an uninitialized value.`);
             }
 
             return res;
@@ -283,6 +326,10 @@ export class ExprEvaluator {
             return this.evalBinary(e);
         }
 
-        throw new Error(`NYI expression ${e.pp()}`);
+        if (e instanceof Cast) {
+            return this.evalCast(e);
+        }
+
+        this.internalError(e, `NYI expression ${e.pp()}`);
     }
 }

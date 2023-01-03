@@ -1,0 +1,17 @@
+struct Foo {
+    a: u8;
+    b: i16;
+    c: bool;
+}
+
+fun main()
+locals arr: Foo *#memory;
+{
+    entry:
+        arr := alloc Foo in #memory;
+        store 1_u8 in arr.a;
+        store -257_i16 in arr.b;
+        store true in arr.c;
+
+        return;
+}

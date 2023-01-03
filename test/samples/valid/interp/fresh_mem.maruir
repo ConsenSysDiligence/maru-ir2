@@ -1,0 +1,26 @@
+struct Foo {
+	x: u32;
+	y: u32;
+}
+
+fun alloc_foo<'fresh M>(x: u32, y: u32): Foo *M
+locals res: Foo *M;
+{
+	entry:
+		res := alloc Foo in M;
+		store x in res.x;
+		store y in res.y;
+		return res;
+}
+
+fun main()
+locals
+	f1: Foo *M1,
+	f2: Foo *M2;
+{
+	entry:
+		f1 := call alloc_foo<out M1>(1_u32, 2_u32);
+		f2 := call alloc_foo<out M2>(3_u32, 4_u32);
+		return;
+		
+}

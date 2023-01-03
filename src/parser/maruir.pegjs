@@ -5,7 +5,7 @@
 }
 
 Program
-    = (d: Definition __ { return d; })*;
+    = __ t: (d: Definition __ { return d; })* { return t; };
 
 /// Definitions
 
@@ -13,25 +13,39 @@ Definition
     = StructDefinition
     / FunctionDefinition;
 
+TypeVariableDeclaration
+    = id: Identifier { return new TypeVariableDeclaration(Src.fromPegsRange(location()), id); }
+
 MemVariableDeclaration
-    = id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id); }
+    = fresh :FRESH? __ id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id, fresh !== null); }
+
+TypeIdList
+    = head: TypeVariableDeclaration tail: (__ COMMA __ decl: TypeVariableDeclaration { return decl; })* {
+        return [head, ...tail];
+    }
 
 MemIdList
     = head: MemVariableDeclaration tail: (__ COMMA __ decl: MemVariableDeclaration { return decl; })* {
         return [head, ...tail];
     }
 
-MemoryFormalParams
-    = LT __ mVars: MemIdList __ GT { return mVars; }
+PolyParams
+    = LT __ mVars: MemIdList __ SEMICOLON? __ GT { return [mVars, []] as [MemVariableDeclaration[], TypeVariableDeclaration[]]; }
+    / LT __ SEMICOLON __ tVars: TypeIdList __ GT { return [[], tVars] as [MemVariableDeclaration[], TypeVariableDeclaration[]]; }
+    / LT __ mVars: MemIdList __ SEMICOLON __ tVars: TypeIdList __ GT { return [mVars, tVars] as [MemVariableDeclaration[], TypeVariableDeclaration[]]; }
 
 StructField
     = name: Identifier __ COLON __ type: Type __ SEMICOLON { return [name, type]; }
 
 StructDefinition
-    = STRUCT __ name: Identifier __ mArgs: MemoryFormalParams? __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
+    = STRUCT __ name: Identifier __ pParams: PolyParams? __ LCBRACE __ fields: (f: StructField __ { return f; })* __ RCBRACE {
+        const mArgs = pParams === null ? [] : pParams[0];
+        const tArgs = pParams === null ? [] : pParams[1];
+
         return new StructDefinition(
             Src.fromPegsRange(location()),
-            mArgs === null ? [] : mArgs,
+            mArgs,
+            tArgs,
             name,
             fields === null ? [] : fields);
     }
@@ -52,20 +66,28 @@ FunBody
         return buildCFG(stmts, location());
     }
 
+FunReturns
+    = t: Type  { return [t]; }
+    / LPAREN __ retTList: TypeList __ RPAREN { return retTList; }
+
 FunctionDefinition
-    = FUNCTION __ name: Identifier __  mArgs: MemoryFormalParams? __ LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: Type { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
+    = FUNCTION __ name: Identifier __  pParams: PolyParams? __ LPAREN __ params: FunctionParameters? __ RPAREN rets: (__ COLON __ retT: FunReturns { return retT; })? __ locals: (LOCALS __ p: FunctionParameters __ SEMICOLON { return p; })? __ body: FunBody? {
+        const mArgs = pParams === null ? [] : pParams[0];
+        const tArgs = pParams === null ? [] : pParams[1];
+
         return new FunctionDefinition(
             Src.fromPegsRange(location()),
-            mArgs === null ? [] : mArgs,
+            mArgs,
+            tArgs,
             name,
             params === null ? [] : params,
             locals === null ? [] : locals,
-            rets === null ? [] : [rets],
+            rets === null ? [] : rets,
             body === null ? undefined : body);
     }
 
 MemVar
-    = name: Identifier { return new Identifier(Src.fromPegsRange(location()), name); }
+    = out: OUT? __ name: Identifier { return new MemIdentifier(Src.fromPegsRange(location()), name, out !== null); }
 
 MemConst
     = HASHTAG name: Identifier { return new MemConstant(Src.fromPegsRange(location()), name); }
@@ -79,14 +101,23 @@ MemDescList
         return [head, ...tail];
     }
 
-MemDescs
-    = LT __  descs: MemDescList __ GT { return descs; }
+TypeList
+    = head: Type tail: (__ COMMA __ t: Type {return t;})* {
+        return [head, ...tail];
+    }
 
+PolymorphicInstantiations
+    = LT __ mInst: MemDescList __ SEMICOLON? __ GT { return [mInst, []] as [MemDesc[], Type[]]; }
+    / LT __ SEMICOLON __ tInst: TypeList __ GT { return [[], tInst] as [MemDesc[], Type[]]; }
+    / LT __ mInst: MemDescList __ SEMICOLON __ tInst: TypeList __ GT { return [mInst, tInst] as [MemDesc[], Type[]]; }
 
 /// Types
 UserDefinedType
-    = name: Identifier __ memArgs: MemDescs? {
-        return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs === null ? [] : memArgs);
+    = name: Identifier __ polyArgs: PolymorphicInstantiations? {
+        const memArgs = polyArgs === null ? [] : polyArgs[0];
+        const typeArgs = polyArgs === null ? [] : polyArgs[1];
+        
+        return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs, typeArgs);
     }
 
 PrimitiveType
@@ -96,7 +127,7 @@ PrimitiveType
     / LPAREN innerT: Type RPAREN { return innerT; }
 
 IntType
-    = unsigned:("u"?) "int" nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, unsigned == null); }
+    = sign:("u" / "i") nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, sign == "i"); }
 
 PointerOrArrayType
     = head: PrimitiveType tail: ((__ STAR __ MemDesc) / __ LBRACKET __ RBRACKET)* {
@@ -131,6 +162,8 @@ Statement
     / FunctionCall
     / TransactionCall
     / Abort 
+    / Alloc
+    / Assert
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -144,7 +177,7 @@ Branch
     }
 
 LoadIndex
-    = LOAD __ base: Expression __ LBRACKET __ index: Expression __ RBRACKET IN lhs: Identifier __ SEMICOLON {
+    = LOAD __ base: Expression __ LBRACKET __ index: Expression __ RBRACKET __ IN __ lhs: Identifier __ SEMICOLON {
         const lhsNode = new Identifier(Src.fromPegsRange(location()), lhs);
         return new LoadIndex(Src.fromPegsRange(location()), lhsNode, base, index);
     }
@@ -191,23 +224,31 @@ IdExpList
     }
 
 FunctionCall
-    = lhss: (ids: IdExpList __ ":=" __ { return ids; })? CALL __ callee: IdentifierExp memArgs: MemDescs? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
+    = lhss: (ids: IdExpList __ ":=" __ { return ids; })? CALL __ callee: IdentifierExp polyArgs: PolymorphicInstantiations? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
+        const memArgs = polyArgs === null ? [] : polyArgs[0];
+        const typeArgs = polyArgs === null ? [] : polyArgs[1];
+
         return new FunctionCall(
             Src.fromPegsRange(location()),
             lhss === null ? [] : lhss,
             callee,
-            memArgs === null ? [] : memArgs,
+            memArgs,
+            typeArgs,
             args === null ? [] : args
         );
     }
 
 TransactionCall
-    = lhss: (ids: IdExpList __ ":=" __ { return ids; })? TRANSCALL __ callee: IdentifierExp memArgs: MemDescs? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
+    = lhss: (ids: IdExpList __ ":=" __ { return ids; })? TRANSCALL __ callee: IdentifierExp polyArgs: PolymorphicInstantiations? __ LPAREN __ args: ExprList? __ RPAREN SEMICOLON {
+        const memArgs = polyArgs === null ? [] : polyArgs[0];
+        const typeArgs = polyArgs === null ? [] : polyArgs[1];
+
         return new TransactionCall(
             Src.fromPegsRange(location()),
             lhss === null ? [] : lhss,
             callee,
-            memArgs === null ? [] : memArgs,
+            memArgs,
+            typeArgs,
             args === null ? [] : args
         );
     }
@@ -215,6 +256,23 @@ TransactionCall
 Abort
     = ABORT __ SEMICOLON {
         return new Abort(Src.fromPegsRange(location()));
+    }
+
+Alloc = AllocArr / AllocStruct
+
+AllocStruct
+    = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: UserDefinedType __ IN __ mem: MemDesc __ SEMICOLON {
+        return new AllocStruct(Src.fromPegsRange(location()), lhs, typeT, mem);
+    }
+
+AllocArr
+    = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: Type __ LBRACKET __ size: Expression  __ RBRACKET __ IN __ mem: MemDesc __ SEMICOLON {
+        return new AllocArray(Src.fromPegsRange(location()), lhs, typeT, size, mem)
+    }
+
+Assert
+    = ASSERT __ condition: Expression __ SEMICOLON {
+        return new Assert(Src.fromPegsRange(location()), condition);
     }
 
 /// Expressions
@@ -244,7 +302,7 @@ MaybeNegNumber
     }
 
 NumberLiteral =
-    type: IntType __ LPAREN __ value: MaybeNegNumber __ RPAREN {
+    value: MaybeNegNumber "_" type: IntType {
         return new NumberLiteral(Src.fromPegsRange(location()), value[0], value[1], type);
     }
 
@@ -257,10 +315,14 @@ Literal
     = NumberLiteral
     / BooleanLiteral
 
+Cast
+    = type: IntType __ LPAREN __ expr: Expression __ RPAREN { return new Cast(Src.fromPegsRange(location()), type, expr)}
+
 PrimitiveExpression
     = Literal
     / (id: Identifier { return new Identifier(Src.fromPegsRange(location()), id); })
     / LPAREN __ e: Expression __ RPAREN { return e; }
+    / Cast
 
 UnaryExpression =
     (
@@ -401,6 +463,10 @@ HASHTAG="#"
 CALL="call"
 TRANSCALL="trans_call"
 ABORT="abort"
+ALLOC="alloc"
+ASSERT="assert"
+FRESH="'fresh"
+OUT="out"
 
 Keyword
     = STRUCT
@@ -418,9 +484,12 @@ Keyword
     / CALL
     / TRANSCALL
     / ABORT
+    / ALLOC
+    / ASSERT
+    / FRESH
 
 Identifier =
-    !(Keyword ![a-zA-Z0-9_]) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }
+    !((Keyword ![a-zA-Z0-9_]) / IntType) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }
 // Whitespace
 
 PrimitiveWhiteSpace =

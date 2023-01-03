@@ -1,18 +1,21 @@
+import { ppPolyArgs } from "../../utils";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "./type";
 
 export class UserDefinedType extends Type {
-    constructor(src: BaseSrc, public readonly name: string, public readonly memArgs: MemDesc[]) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string,
+        public readonly memArgs: MemDesc[],
+        public readonly typeArgs: Type[]
+    ) {
         super(src);
     }
 
     pp(): string {
-        const memStr =
-            this.memArgs.length > 0 ? `<${this.memArgs.map((x) => x.pp()).join(", ")}>` : "";
-
-        return `${this.name}${memStr}`;
+        return `${this.name}${ppPolyArgs(this.memArgs, this.typeArgs)}`;
     }
 
     getStructId(): any {
@@ -20,6 +23,6 @@ export class UserDefinedType extends Type {
     }
 
     children(): Iterable<Node> {
-        return this.memArgs;
+        return [...this.memArgs, ...this.typeArgs];
     }
 }

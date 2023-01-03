@@ -5,8 +5,8 @@
         "**/node_modules/**",
         "**/test/**",
         "**/coverage/**",
-	    "src/parser/maru_parser.ts",
-	    "src/parser/maru_header.ts"
+        "src/parser/maruir_parser.ts",
+        "src/parser/maruir_header.ts"
     ],
     "reporter": ["html", "text-summary"],
     "all": false

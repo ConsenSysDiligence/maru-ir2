@@ -1,6 +1,25 @@
-import { Definition, FunctionDefinition, MemConstant } from "../ir";
+import {
+    BaseSrc,
+    Definition,
+    FunctionDefinition,
+    MemConstant,
+    MemIdentifier,
+    Statement
+} from "../ir";
 import { BasicBlock } from "../ir/cfg";
-import { PPAble, walk, zip } from "../utils";
+import { pp, PPAble, walk, zip } from "../utils";
+
+export class InterpError extends Error {
+    constructor(public readonly src: BaseSrc, msg: string, state: State) {
+        super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
+    }
+}
+
+export class InterpInternalError extends Error {
+    constructor(public readonly src: BaseSrc, msg: string, state: State) {
+        super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
+    }
+}
 
 class PoisonValue implements PPAble {
     pp(): string {
@@ -17,13 +36,16 @@ export type ComplexValue = PrimitiveValue[] | Map<string, PrimitiveValue>;
 
 export type Store = Map<string, PrimitiveValue>;
 
-export const EXCEPTION_MEM = "#exception";
+export const EXCEPTION_MEM = "exception";
+
+let freshMemCtr = 0;
 
 export class Frame implements PPAble {
     fun: FunctionDefinition;
     curBB: BasicBlock;
     curBBInd: number;
     store: Store;
+    freshMemories: Map<MemIdentifier, string>;
 
     constructor(fun: FunctionDefinition, args: Array<[string, PrimitiveValue]>) {
         this.fun = fun;
@@ -34,9 +56,14 @@ export class Frame implements PPAble {
         this.curBB = fun.body.entry;
         this.curBBInd = 0;
         this.store = new Map();
+        this.freshMemories = new Map();
 
         for (const [argName, argVal] of args) {
             this.store.set(argName, argVal);
+        }
+
+        for (const locDecl of fun.locals) {
+            this.store.set(locDecl.name, poison);
         }
     }
 
@@ -44,6 +71,18 @@ export class Frame implements PPAble {
         return `${this.fun.name}:${this.curBB.label}:${this.curBBInd} ${this.curBB.statements[
             this.curBBInd
         ].pp()}`;
+    }
+
+    dump(indent: string): string {
+        const storeStrs = [];
+        for (const [name, val] of this.store) {
+            storeStrs.push(`${name}: ${pp(val)}`);
+        }
+        return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
+    }
+
+    get curStmt(): Statement {
+        return this.curBB.statements[this.curBBInd];
     }
 }
 
@@ -62,6 +101,10 @@ export class State {
     memories: Memories;
     builtins: Map<string, BuiltinFun>;
     externalReturns: any[] | undefined;
+    private failure: InterpError | undefined;
+    rootMemArgs: MemConstant[];
+    public readonly rootIsTransaction: boolean;
+
     /**
      * Stack of memory copies created for each transaction call.
      */
@@ -71,6 +114,8 @@ export class State {
         program: Definition[],
         entryFun: FunctionDefinition,
         entryFunArgs: PrimitiveValue[],
+        entryMemArgs: MemConstant[],
+        isTransaction: boolean,
         builtins: Map<string, BuiltinFun>
     ) {
         this.program = program;
@@ -90,10 +135,29 @@ export class State {
         }
         this.builtins = builtins;
         this.memoriesStack = [];
+        this.failure = undefined;
+        this.rootMemArgs = entryMemArgs;
+        this.rootIsTransaction = isTransaction;
+
+        if (isTransaction) {
+            this.saveMemories();
+        }
     }
 
     get curFrame(): Frame {
         return this.stack[this.stack.length - 1];
+    }
+
+    get failed(): boolean {
+        return this.failure !== undefined;
+    }
+
+    get running(): boolean {
+        return this.stack.length > 0 && !this.failed;
+    }
+
+    fail(e: InterpError): void {
+        this.failure = e;
     }
 
     /// Compute the initial set of memories needed by walking over all trees
@@ -110,6 +174,19 @@ export class State {
         }
 
         return res;
+    }
+
+    allocFreshMem(decl: MemIdentifier): string {
+        const name = `__fresh_mem_${freshMemCtr++}`;
+
+        if (this.memories.has(name)) {
+            throw new Error(`Intenral Error: Fresh memory ${name} overwites an existing memory`);
+        }
+
+        this.memories.set(name, new Map());
+        this.curFrame.freshMemories.set(decl, name);
+
+        return name;
     }
 
     stackTrace(): string {
@@ -158,5 +235,25 @@ export class State {
         this.memoriesStack.pop();
 
         return res;
+    }
+
+    dump(): string {
+        const mems = [];
+        const indent = "    ";
+
+        for (const [memName, memory] of this.memories) {
+            const memContents = [];
+
+            for (const [ptr, val] of memory) {
+                memContents.push(`${ptr}: ${pp(val)}`);
+            }
+
+            mems.push(`${indent}${memName}: [${memContents.join("; ")}]`);
+        }
+
+        const stackStrs = this.stack.map((frame) => frame.dump(indent));
+        stackStrs.reverse();
+
+        return `Stack:\n${stackStrs.join("\n")}\nMemories:\n${mems.join("\n")}`;
     }
 }

@@ -1,0 +1,5 @@
+fun main(): u8 {
+	entry:
+		assert true;
+		return 42_u8;
+}

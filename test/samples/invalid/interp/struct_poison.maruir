@@ -1,0 +1,13 @@
+struct Foo {
+    a: u8;
+}
+
+fun main(): u8
+locals ptr: Foo *#memory, res: u8;
+{
+    entry:
+        ptr := alloc Foo in #memory;
+        load ptr.a in res;
+
+        return res;
+}

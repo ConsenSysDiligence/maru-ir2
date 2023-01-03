@@ -1,0 +1,2 @@
+fun foo<M;T, U>(arg: T<;U>) {
+}

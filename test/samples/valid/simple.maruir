@@ -1,6 +1,6 @@
 struct Foo {
-    a: uint256;
-    b: int8;
+    a: u256;
+    b: i8;
     c: bool;
 }
 
@@ -9,7 +9,7 @@ struct Boo {
 }
 
 struct Moo<M>  {
-    c: int16;
+    c: i16;
 }
 
 struct Goo<N>  {
@@ -20,12 +20,12 @@ fun foo() { }
 
 fun bar(a: bool) {}
 
-fun boo(a: bool, b: uint256)
+fun boo(a: bool, b: u256)
 
 fun hoo(c: bool)
 
-fun doo<M> (e: int32) {}
+fun doo<M> (e: i32) {}
 
-fun goo(): uint16
+fun goo(): u16
 
-fun zoo<M, S>(e: int32): bool
+fun zoo<M, S>(e: i32): bool
