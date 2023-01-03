@@ -77,28 +77,34 @@ describe("BasicBlock unit tests", () => {
         b.addOutgoing(c);
         a.addIncoming(c);
 
-        expect(a.print()).toEqual(`Label: A
+        expect(a.print()).toEqual(
+            `Label: A
 IRStatements:
 Incoming Edges:
 C ->  A
 Outgoing Edges:
 A ->  B
-`);
+`
+        );
 
-        expect(b.print()).toEqual(`Label: B
+        expect(b.print()).toEqual(
+            `Label: B
 IRStatements:
 Incoming Edges:
 A ->  B
 Outgoing Edges:
 B ->  C
-`);
+`
+        );
 
-        expect(c.print()).toEqual(`Label: C
+        expect(c.print()).toEqual(
+            `Label: C
 IRStatements:
 Incoming Edges:
 B ->  C
 Outgoing Edges:
 C ->  A
-`);
+`
+        );
     });
 });
