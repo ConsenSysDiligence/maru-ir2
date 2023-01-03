@@ -49,7 +49,7 @@ FunctionParameters
 
 FunBody
     = LCBRACE __ stmts: (stmt: (LabeledStatement / Statement) __ { return stmt; })* RCBRACE {
-        return buildCFG(stmts, options as ParseOptions, location());
+        return buildCFG(stmts, location());
     }
 
 FunctionDefinition
@@ -277,7 +277,7 @@ UnaryOperator =
 PowerExpression =
     head: UnaryExpression
     tail: (__ op: "**" __ e: UnaryExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 MultiplicativeOperator =
@@ -288,7 +288,7 @@ MultiplicativeOperator =
 MultiplicativeExpression =
     head: PowerExpression
     tail: (__ op: MultiplicativeOperator __ e: PowerExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 AdditiveOperator =
@@ -298,13 +298,13 @@ AdditiveOperator =
 AdditiveExpression =
     head: MultiplicativeExpression
     tail: (__ op: AdditiveOperator __ e: MultiplicativeExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 ShiftExpression =
     head: AdditiveExpression
     tail: (__ op: ShiftOperator __ e: AdditiveExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 ShiftOperator =
@@ -314,19 +314,19 @@ ShiftOperator =
 BitwiseANDExpression =
     head: ShiftExpression
     tail: (__ op: "&" __ e: ShiftExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 BitwiseXORExpression =
     head: BitwiseANDExpression
     tail: (__ op: "^" __ e: BitwiseANDExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 BitwiseORExpression =
     head: BitwiseXORExpression
     tail: (__ op: "|" __ e: BitwiseXORExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 RelationalExpression =
@@ -358,13 +358,13 @@ EqualityOperator =
 LogicalANDExpression =
     head: EqualityExpression
     tail: (__ op: "&&" __ e: EqualityExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 LogicalORExpression =
     head: LogicalANDExpression
     tail: (__ op: "||" __ e: LogicalANDExpression { return [op, e, location()]; })* {
-        return buildBinaryExpression(head, tail, location(), options as ParseOptions);
+        return buildBinaryExpression(head, tail, location());
     }
 
 

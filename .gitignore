@@ -1,6 +1,6 @@
-src/parser/maruir_parser.ts
 node_modules/
 .nyc_output/
 .vscode/
 coverage/
 dist/
+src/parser/maruir_parser.ts

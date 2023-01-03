@@ -40,15 +40,13 @@ import {
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
 
-type ParseOptions = {
-    startRule: string;
-};
-
 export function parseProgram(str: string): Definition[] {
     try {
+        // @ts-ignore
         return parse(str, { startRule: "Program" } as ParseOptions);
     } catch (e) {
-        if (e instanceof SyntaxError) {
+        // @ts-ignore
+        if (e instanceof PeggySyntaxError) {
             throw new MIRSyntaxError(Src.fromPegsRange(e.location), e.message);
         }
 
@@ -59,11 +57,11 @@ export function parseProgram(str: string): Definition[] {
 function buildBinaryExpression(
     head: Expression,
     tail: Array<[BinaryOperator, Expression, PegsRange]>,
-    src: PegsRange,
-    opts: ParseOptions
+    src: PegsRange
 ): Node {
     return tail.reduce((acc, [curOp, curVal, curLoc]) => {
         const loc = new Src(src.start, curLoc.end);
+
         return new BinaryOperation(loc, acc, curOp, curVal);
     }, head);
 }
@@ -74,7 +72,6 @@ function buildBinaryExpression(
  */
 export function buildCFG(
     rawStmts: Array<Statement | [string, Statement]>,
-    opts: ParseOptions,
     rawBodyLoc: PegsRange
 ): CFG {
     // 1. Build basic blocks
@@ -88,11 +85,13 @@ export function buildCFG(
     if (rawStmts.length === 0) {
         entry = new BasicBlock("entry");
         entry.statements.push(new Return(bodyLoc, []));
+
         return new CFG([entry], [], entry, [entry]);
     }
 
     let curStmts: Statement[] = [];
     let curLabel: string | undefined;
+
     const firstStmt = rawStmts[0];
 
     // We require all functions to start with a label.
@@ -105,6 +104,7 @@ export function buildCFG(
 
     const addBB = () => {
         const newBB = new BasicBlock(curLabel as string);
+
         newBB.statements = curStmts;
 
         if (entry === undefined) {
@@ -139,6 +139,7 @@ export function buildCFG(
         if (res === undefined) {
             throw new MIRSyntaxError(loc, `Unknown label ${label}`);
         }
+
         return res;
     };
 
@@ -160,6 +161,7 @@ export function buildCFG(
 
         if (lastStmt instanceof Return || lastStmt instanceof Abort) {
             exits.push(bb);
+
             continue;
         }
 
@@ -172,6 +174,7 @@ export function buildCFG(
                 falseBB,
                 new UnaryOperation(lastStmt.condition.src, "!", lastStmt.condition)
             );
+
             continue;
         }
 
@@ -179,6 +182,7 @@ export function buildCFG(
             const destBB = getBB(lastStmt.label, lastStmt.src);
 
             bb.addOutgoing(destBB, new BooleanLiteral(noSrc, true));
+
             continue;
         }
 
