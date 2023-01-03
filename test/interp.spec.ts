@@ -1,5 +1,5 @@
 import expect from "expect";
-import { searchRecursive } from "./utils";
+import fse from "fs-extra";
 import {
     eq,
     FunctionDefinition,
@@ -13,7 +13,7 @@ import {
     StatementExecutor,
     Typing
 } from "../src";
-const fse = require("fs-extra");
+import { searchRecursive } from "./utils";
 
 function runTest(
     file: string,

@@ -1,7 +1,7 @@
 import expect from "expect";
-import { searchRecursive } from "./utils";
+import fse from "fs-extra";
 import { parseProgram } from "../src";
-const fse = require("fs-extra");
+import { searchRecursive } from "./utils";
 
 describe("Parser/printer roundtrip test", () => {
     const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));

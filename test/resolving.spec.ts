@@ -1,5 +1,5 @@
 import expect from "expect";
-import { searchRecursive } from "./utils";
+import fse from "fs-extra";
 import {
     FunctionDefinition,
     Identifier,
@@ -9,7 +9,7 @@ import {
     UserDefinedType,
     walk
 } from "../src";
-const fse = require("fs-extra");
+import { searchRecursive } from "./utils";
 
 describe("Resolving test", () => {
     const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));

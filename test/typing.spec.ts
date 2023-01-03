@@ -1,5 +1,5 @@
 import expect from "expect";
-import { searchRecursive } from "./utils";
+import fse from "fs-extra";
 import {
     Expression,
     FunctionDefinition,
@@ -11,7 +11,7 @@ import {
     Typing,
     walk
 } from "../src";
-const fse = require("fs-extra");
+import { searchRecursive } from "./utils";
 
 describe("Typing positive tests", () => {
     const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
