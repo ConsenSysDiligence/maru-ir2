@@ -8,7 +8,8 @@ import {
     NumberLiteral,
     PrimitiveValue,
     State,
-    StatementExecutor
+    StatementExecutor,
+    nodeToPlain
 } from "..";
 import { parseProgram } from "../parser";
 import { parseStatement } from "../parser/maruir_parser";
@@ -23,13 +24,14 @@ OPTIONS:
     --version               Print package version.
     --stdin                 Read input from STDIN instead of file.
     --parse
+    --ast
     --tc
     --print
     --run
 `;
 
 const cli = {
-    boolean: ["version", "help", "stdin", "parse", "tc", "print"],
+    boolean: ["version", "help", "stdin", "parse", "ast", "tc", "print"],
     string: ["run"],
     default: {}
 };
@@ -81,20 +83,22 @@ function error(message: string): never {
     const defs = parseProgram(contents);
 
     if (args.parse) {
-        console.log(defs);
+        terminate("Parsing finished successfully");
+    }
 
-        terminate("ast");
+    if (args.print) {
+        terminate(defs.map((def) => def.pp()).join("\n"));
+    }
+
+    if (args.ast) {
+        terminate(JSON.stringify(defs.map(nodeToPlain), undefined, 4));
     }
 
     const resolving = new Resolving(defs);
     const typing = new Typing(defs, resolving);
 
     if (args.tc) {
-        terminate("Type check finished without errors");
-    }
-
-    if (args.print) {
-        terminate(defs.map((def) => def.pp()).join("\n"));
+        terminate("Type-checking finished successfully");
     }
 
     if (args.run) {
