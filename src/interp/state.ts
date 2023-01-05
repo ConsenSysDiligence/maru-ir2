@@ -103,7 +103,9 @@ export class State {
     externalReturns: any[] | undefined;
     private failure: InterpError | undefined;
     rootMemArgs: MemConstant[];
-    public readonly rootIsTransaction: boolean;
+    globals: Store;
+    public rootIsTransaction: boolean;
+    maxMemPtr: Map<string, number>;
 
     /**
      * Stack of memory copies created for each transaction call.
@@ -119,15 +121,7 @@ export class State {
         builtins: Map<string, BuiltinFun>
     ) {
         this.program = program;
-        this.stack = [
-            new Frame(
-                entryFun,
-                zip(
-                    entryFun.parameters.map((p) => p.name),
-                    entryFunArgs
-                )
-            )
-        ];
+        this.stack = [];
         this.memories = new Map();
 
         for (const memName of this.getInitialMemories(program)) {
@@ -138,6 +132,29 @@ export class State {
         this.failure = undefined;
         this.rootMemArgs = entryMemArgs;
         this.rootIsTransaction = isTransaction;
+        this.maxMemPtr = new Map();
+        this.globals = new Map();
+    }
+
+    startRootCall(
+        entryFun: FunctionDefinition,
+        entryFunArgs: PrimitiveValue[],
+        entryMemArgs: MemConstant[],
+        isTransaction: boolean
+    ): void {
+        if (this.stack.length > 0 || this.failure !== undefined) {
+            throw new Error(`Starting new root call in non-terminated/aborted state`);
+        }
+
+        this.stack.push(
+            new Frame(
+                entryFun,
+                zip(
+                    entryFun.parameters.map((p) => p.name),
+                    entryFunArgs
+                )
+            )
+        );
 
         if (isTransaction) {
             this.saveMemories();
@@ -255,5 +272,26 @@ export class State {
         stackStrs.reverse();
 
         return `Stack:\n${stackStrs.join("\n")}\nMemories:\n${mems.join("\n")}`;
+    }
+
+    private getNewPtr(memory: string): number {
+        let curMax = this.maxMemPtr.get(memory);
+
+        if (curMax === undefined) {
+            const mem = this.memories.get(memory) as Memory;
+            curMax = mem.size === 0 ? 0 : Math.max(...mem.keys()) + 1;
+        }
+
+        this.maxMemPtr.set(memory, curMax + 1);
+
+        return curMax;
+    }
+
+    public define(val: ComplexValue, memory: string): PointerVal {
+        const mem = this.memories.get(memory) as Memory;
+        const ptr = this.getNewPtr(memory);
+        mem.set(ptr, val);
+
+        return [memory, ptr];
     }
 }

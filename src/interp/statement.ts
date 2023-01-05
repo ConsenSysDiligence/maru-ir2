@@ -27,29 +27,31 @@ import {
     MemDesc,
     MemVariableDeclaration,
     MemIdentifier,
-    noSrc
+    noSrc,
+    GlobalVariable
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { Resolving, Typing } from "../passes";
 import { fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator, fits } from "./expression";
+import { LiteralEvaluator } from "./literal";
 import {
+    BuiltinFun,
     ComplexValue,
     EXCEPTION_MEM,
     Frame,
     InterpError,
     InterpInternalError,
-    Memory,
     PointerVal,
     poison,
     PrimitiveValue,
+    Program,
     State
 } from "./state";
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;
-    maxMemPtr: Map<string, number>;
 
     constructor(
         private readonly resolving: Resolving,
@@ -57,7 +59,6 @@ export class StatementExecutor {
         private readonly state: State
     ) {
         this.evaluator = new ExprEvaluator(typing, state);
-        this.maxMemPtr = new Map();
     }
 
     private error(msg: string, e?: Node): never {
@@ -358,27 +359,6 @@ export class StatementExecutor {
         return v;
     }
 
-    private getNewPtr(memory: string): number {
-        let curMax = this.maxMemPtr.get(memory);
-
-        if (curMax === undefined) {
-            const mem = this.state.memories.get(memory) as Memory;
-            curMax = mem.size === 0 ? 0 : Math.max(...mem.keys()) + 1;
-        }
-
-        this.maxMemPtr.set(memory, curMax + 1);
-
-        return curMax;
-    }
-
-    private define(val: ComplexValue, memory: string): PointerVal {
-        const mem = this.state.memories.get(memory) as Memory;
-        const ptr = this.getNewPtr(memory);
-        mem.set(ptr, val);
-
-        return [memory, ptr];
-    }
-
     /// Helper to convert a normal JS value into an interpreter value.
     /// If the JS value is complex, then it is encoded in the provided
     /// `memory`
@@ -393,7 +373,7 @@ export class StatementExecutor {
 
         if (jsV instanceof Array) {
             const encodedArr = jsV.map((el) => this.jsDecode(el, memory));
-            return this.define(encodedArr, memory);
+            return this.state.define(encodedArr, memory);
         }
 
         if (jsV instanceof Object) {
@@ -403,7 +383,7 @@ export class StatementExecutor {
                 encodedStruct.set(field, this.jsDecode(jsV[field], memory));
             }
 
-            return this.define(encodedStruct, memory);
+            return this.state.define(encodedStruct, memory);
         }
 
         throw new Error(`Cannot encode ${pp(jsV)} into interpreter`);
@@ -628,7 +608,7 @@ export class StatementExecutor {
         }
 
         const mem = this.resolveMemDesc(s.mem);
-        const ptr = this.define(newArr, mem.name);
+        const ptr = this.state.define(newArr, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
         this.state.curFrame.curBBInd++;
@@ -652,7 +632,7 @@ export class StatementExecutor {
         }
 
         const mem = this.resolveMemDesc(s.mem);
-        const ptr = this.define(newStruct, mem.name);
+        const ptr = this.state.define(newStruct, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
         this.state.curFrame.curBBInd++;
@@ -763,4 +743,38 @@ export class StatementExecutor {
             throw e;
         }
     }
+}
+
+export function initAndCall(
+    defs: Program,
+    main: FunctionDefinition,
+    args: PrimitiveValue[],
+    builtins: Map<string, BuiltinFun>,
+    rootTrans: boolean
+): [Resolving, Typing, State, StatementExecutor] {
+    const resolving = new Resolving(defs);
+    const typing = new Typing(defs, resolving);
+    const state = new State(defs, main, [], [], rootTrans, builtins);
+
+    const litEvaluator = new LiteralEvaluator(resolving, state);
+
+    // First initialize globals
+    for (const def of defs) {
+        if (def instanceof GlobalVariable) {
+            state.globals.set(def.name, litEvaluator.evalLiteral(def.initialValue, def.type));
+        }
+    }
+
+    // Next initialize root call
+    state.startRootCall(main, args, [], rootTrans);
+
+    // Finally interpret until we are done or aborted
+    const stmtExec = new StatementExecutor(resolving, typing, state);
+    while (state.running) {
+        const curStmt = state.curFrame.curBB.statements[state.curFrame.curBBInd];
+        console.error(`Exec ${curStmt.pp()} in ${state.dump()}`);
+        stmtExec.execStatement(curStmt);
+    }
+
+    return [resolving, typing, state, stmtExec];
 }

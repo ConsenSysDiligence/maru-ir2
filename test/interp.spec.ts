@@ -3,6 +3,7 @@ import fse from "fs-extra";
 import {
     eq,
     FunctionDefinition,
+    initAndCall,
     Memory,
     parseProgram,
     poison,
@@ -21,9 +22,6 @@ function runTest(
 ): [Program, Resolving, Typing, State, StatementExecutor] {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
     const defs = parseProgram(contents);
-    const resolving = new Resolving(defs);
-    const typing = new Typing(defs, resolving);
-
     const entryPoint = defs.filter((x) => x instanceof FunctionDefinition && x.name === "main");
 
     // Tests need to have a main() entry function
@@ -34,15 +32,7 @@ function runTest(
     // main() must not have any parameters
     expect(main.parameters.length).toEqual(0);
 
-    const state = new State(defs, main, [], [], rootTrans, new Map());
-
-    const stmtExec = new StatementExecutor(resolving, typing, state);
-
-    while (state.running) {
-        const curStmt = state.curFrame.curBB.statements[state.curFrame.curBBInd];
-        console.error(`Exec ${curStmt.pp()} in ${state.dump()}`);
-        stmtExec.execStatement(curStmt);
-    }
+    const [resolving, typing, state, stmtExec] = initAndCall(defs, main, [], new Map(), rootTrans);
 
     return [defs, resolving, typing, state, stmtExec];
 }
