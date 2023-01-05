@@ -91,7 +91,7 @@ export type Stack = Frame[];
 export type Memory = Map<number, ComplexValue>;
 export type Memories = Map<string, Memory>;
 
-export type BuiltinFun = (s: State) => PrimitiveValue[];
+export type BuiltinFun = (s: State, args: PrimitiveValue[]) => [boolean, PrimitiveValue[]];
 
 export type Program = Definition[];
 
