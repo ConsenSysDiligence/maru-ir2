@@ -47,10 +47,11 @@ import {
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
 
-export function parseProgram(str: string): Definition[] {
+// @ts-ignore
+export function parseSource(source: string, options: ParseOptions) {
     try {
         // @ts-ignore
-        return parse(str, { startRule: "Program" } as ParseOptions);
+        return parse(source, options);
     } catch (e) {
         // @ts-ignore
         if (e instanceof PeggySyntaxError) {
@@ -59,6 +60,14 @@ export function parseProgram(str: string): Definition[] {
 
         throw e;
     }
+}
+
+export function parseProgram(source: string): Definition[] {
+    return parseSource(source, { startRule: "Program" });
+}
+
+export function parseStatement(source: string): Expression {
+    return parseSource(source, { startRule: "Statement" });
 }
 
 function buildBinaryExpression(

@@ -14,7 +14,7 @@
     "scripts": {
         "clean": "rm -rf dist/",
         "transpile": "tsc",
-        "build-parser": "tspegjs -o src/parser/maruir_parser.ts --custom-header-file src/parser/maruir_header.ts --allowed-start-rules Program --cache src/parser/maruir.pegjs",
+        "build-parser": "tspegjs -o src/parser/maruir_parser.ts --custom-header-file src/parser/maruir_header.ts --allowed-start-rules Program,Statement --cache src/parser/maruir.pegjs",
         "build": "npm run clean && npm run build-parser && npm run transpile && chmod a+x dist/bin/maru_ir.js",
         "lint": "eslint src/ test/ --ext=ts",
         "lint:fix": "eslint src/ test/ --ext=ts --fix",
