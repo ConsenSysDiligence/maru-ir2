@@ -1,0 +1,8 @@
+struct Foo {
+	a: u8;
+	b: u8[] *#memory;
+}
+
+var a: u256 = 1_u256
+
+var b: u256[] * #exception = [1_u256, 2_i256, 3_u256]
