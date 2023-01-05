@@ -625,8 +625,12 @@ export class Typing {
                 }
             }
 
+            const subst = this.resolve.makeSubst(expectedType.toType);
+
             for (const [field, lit] of actualFields) {
-                this.tcInitLiteral(lit, formalFields.get(field) as Type);
+                const fieldT = formalFields.get(field) as Type;
+                const concreteFieldT = this.resolve.concretizeType(fieldT, subst);
+                this.tcInitLiteral(lit, concreteFieldT);
             }
 
             return;
