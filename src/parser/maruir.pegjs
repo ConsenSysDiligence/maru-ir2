@@ -31,8 +31,8 @@ LiteralList
     }
 
 ArrayLiteral
-    = LBRACKET __ literals: LiteralList __ RBRACKET {
-        return new ArrayLiteral(Src.fromPegsRange(location()), literals);
+    = LBRACKET __ literals: LiteralList ?__ RBRACKET {
+        return new ArrayLiteral(Src.fromPegsRange(location()), literals !== null ? literals : []);
     }
 
 FieldLiteral
