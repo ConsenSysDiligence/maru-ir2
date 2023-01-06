@@ -74,7 +74,7 @@ function srcToPlain(src: BaseSrc): any {
     }
 
     throw new MIRPlainRepresentationError(
-        `Unable to produce plain representation for source location ${src.constructor.name}`
+        `Unable to produce plain representation for source location "${src.constructor.name}"`
     );
 }
 
@@ -402,7 +402,7 @@ export function nodeToPlain(node: Node): PlainRepresentation {
     }
 
     throw new MIRPlainRepresentationError(
-        `Unable to produce plain representation for node ${node.constructor.name}`,
+        `Unable to produce plain representation for node "${node.constructor.name}"`,
         node
     );
 }
