@@ -2,55 +2,101 @@ import { spawn } from "child_process";
 import expect from "expect";
 import fse from "fs-extra";
 
-const cases: Array<
-    [string[], string | undefined, number, string | RegExp | undefined, string | RegExp | undefined]
-> = [
-    [["--version"], undefined, 0, /^\d+\.\d+\.\d+\s*$/, undefined],
-    [
-        ["--help"],
-        undefined,
-        0,
-        `Utility for working with maruir files.
+const helpMessage = `Utility for working with maruir files.
 USAGE:
+
 $ maru-ir <filename>
 
 OPTIONS:
     --help                  Print help message.
     --version               Print package version.
     --stdin                 Read input from STDIN instead of file.
+    --parse                 Parse source and report any errors.
+    --ast                   Produce JSON AST for parsed source.
+    --tc                    Perform type-checking for parsed source and report any errors.
+    --print                 Print source parsed source back.
+    --run                   Given the function call statement as an entry point, execute program.
+                            Note that only primitive literal values are allowed as an arguments.`;
 
-`,
-        undefined
-    ],
+const cases: Array<
+    [string[], string | undefined, number, string | RegExp | undefined, string | RegExp | undefined]
+> = [
+    [["--version"], undefined, 0, /^\d+\.\d+\.\d+$/, undefined],
+    [["--help"], undefined, 0, helpMessage, undefined],
+    [["test/samples/valid/fun.maruir"], undefined, 0, helpMessage, undefined],
+    [["--print"], undefined, 1, undefined, "Specify single file name to process"],
     [
-        ["--stdin"],
+        ["--stdin", "--parse"],
         fse.readFileSync("test/samples/valid/fun.maruir", { encoding: "utf-8" }),
         0,
-        `fun foo() {
-entry:
-    return ;
-}
-`,
+        "Parsing finished successfully",
         undefined
     ],
     [
-        ["test/samples/valid/fun.maruir"],
+        ["test/samples/valid/fun.maruir", "--print"],
         undefined,
         0,
         `fun foo() {
 entry:
     return ;
-}
-`,
+}`,
+        undefined
+    ],
+    [
+        ["test/samples/valid/fun.maruir", "--tc"],
+        undefined,
+        0,
+        "Type-checking finished successfully",
+        undefined
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--ast"],
+        undefined,
+        0,
+        fse.readFileSync("test/samples/valid/trans_call.ast.json", { encoding: "utf-8" }).trimEnd(),
+        undefined
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--run", "abort;"],
+        undefined,
+        1,
+        undefined,
+        'Option value for "--run" should contain a function call statement'
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--run", "call missing();"],
+        undefined,
+        1,
+        undefined,
+        'Found no functions matching name "missing"'
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--run", "call main(0_i8);"],
+        undefined,
+        1,
+        undefined,
+        "Parameters cound mismatch: expected 0, received 1"
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--run", "call gauss(i32(0_i8));"],
+        undefined,
+        1,
+        undefined,
+        'Only literal values are supported for "--run" option. Received: i32(0_i8)'
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--run", "call gauss(5_i32);"],
+        undefined,
+        0,
+        fse.readFileSync("test/samples/valid/trans_call.log", { encoding: "utf-8" }).trimEnd(),
         undefined
     ],
     [
         ["path/to/nowhere"],
         undefined,
         1,
-        `ENOENT: no such file or directory, open 'path/to/nowhere'
-`,
-        undefined
+        undefined,
+        "ENOENT: no such file or directory, open 'path/to/nowhere'"
     ]
 ];
 
@@ -91,6 +137,9 @@ for (const [args, stdIn, expectedExitCode, expectedStdOut, expectedStdErr] of ca
 
             proc.on("exit", (code) => {
                 exitCode = code;
+
+                stdOut = stdOut.trimEnd();
+                stdErr = stdErr.trimEnd();
 
                 done();
             });

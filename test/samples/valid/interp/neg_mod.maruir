@@ -5,7 +5,7 @@ locals a: i16, b: i16, c: u8, e: bool;
         b := -32768_i16;
         a := b % 7_i16;
 
-        assert(a == 6_i16);
+        assert(a == -1_i16);
 
         return;
 }

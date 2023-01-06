@@ -17,17 +17,19 @@ import { Resolving, Typing } from "../passes";
 
 const helpMessage = `Utility for working with maruir files.
 USAGE:
+
 $ maru-ir <filename>
 
 OPTIONS:
     --help                  Print help message.
     --version               Print package version.
     --stdin                 Read input from STDIN instead of file.
-    --parse
-    --ast
-    --tc
-    --print
-    --run
+    --parse                 Parse source and report any errors.
+    --ast                   Produce JSON AST for parsed source.
+    --tc                    Perform type-checking for parsed source and report any errors.
+    --print                 Print source parsed source back.
+    --run                   Given the function call statement as an entry point, execute program.
+                            Note that only primitive literal values are allowed as an arguments.
 `;
 
 const cli = {
@@ -113,7 +115,7 @@ function error(message: string): never {
         );
 
         if (!(entryPoint instanceof FunctionDefinition)) {
-            throw new Error("Unable to determine entry point function");
+            throw new Error(`Found no functions matching name "${entryStmt.callee.name}"`);
         }
 
         if (entryPoint.parameters.length !== entryStmt.args.length) {
@@ -148,5 +150,5 @@ function error(message: string): never {
 
     terminate(helpMessage);
 })().catch((e) => {
-    error(e);
+    error(e.message);
 });

@@ -5,13 +5,12 @@ import {
     ArrayType,
     Assert,
     Assignment,
+    BaseSrc,
     BinaryOperation,
     BooleanLiteral,
     BoolType,
     Branch,
     Cast,
-    Definition,
-    Expression,
     FunctionCall,
     FunctionDefinition,
     Identifier,
@@ -23,15 +22,15 @@ import {
     MemIdentifier,
     MemVariableDeclaration,
     Node,
+    NoSrc,
     NumberLiteral,
     PointerType,
     Return,
-    Statement,
+    Src,
     StoreField,
     StoreIndex,
     StructDefinition,
     TransactionCall,
-    Type,
     TypeVariableDeclaration,
     UnaryOperation,
     UserDefinedType,
@@ -43,14 +42,14 @@ import { BasicBlock, CFG } from "./cfg";
 export type PlainRepresentationHeader = {
     id: number;
     nodeType: string;
-    src: string;
+    src?: string;
 };
 
 export type PlainRepresentation = PlainRepresentationHeader & { [key: string]: unknown };
 
-export class MIRUnableToProducePlainRepresentation extends MIRError {
-    constructor(public readonly node: Node) {
-        super(`Unable to produce plain representation for node ${node.constructor.name}`);
+export class MIRPlainRepresentationError extends MIRError {
+    constructor(msg: string, public readonly node?: Node) {
+        super(msg);
     }
 }
 
@@ -58,8 +57,25 @@ function header(node: Node): PlainRepresentationHeader {
     return {
         id: node.id,
         nodeType: node.constructor.name,
-        src: node.src.pp()
+        src: srcToPlain(node.src)
     };
+}
+
+function srcToPlain(src: BaseSrc): any {
+    if (src instanceof Src) {
+        return {
+            start: src.start,
+            end: src.end
+        };
+    }
+
+    if (src instanceof NoSrc) {
+        return undefined;
+    }
+
+    throw new MIRPlainRepresentationError(
+        `Unable to produce plain representation for source location ${src.constructor.name}`
+    );
 }
 
 function bbToPlain(bb: BasicBlock): any {
@@ -91,7 +107,7 @@ function cfgToPlain(cfg: CFG): any {
     };
 }
 
-function defToPlain(node: Definition): PlainRepresentation {
+export function nodeToPlain(node: Node): PlainRepresentation {
     if (node instanceof FunctionDefinition) {
         return {
             ...header(node),
@@ -116,10 +132,6 @@ function defToPlain(node: Definition): PlainRepresentation {
         };
     }
 
-    throw new MIRUnableToProducePlainRepresentation(node);
-}
-
-function exprToPlain(node: Expression): PlainRepresentation {
     if (node instanceof NumberLiteral) {
         return {
             ...header(node),
@@ -174,10 +186,6 @@ function exprToPlain(node: Expression): PlainRepresentation {
         };
     }
 
-    throw new MIRUnableToProducePlainRepresentation(node);
-}
-
-function stmtToPlain(node: Statement): PlainRepresentation {
     if (node instanceof Abort) {
         return header(node);
     }
@@ -310,10 +318,6 @@ function stmtToPlain(node: Statement): PlainRepresentation {
         };
     }
 
-    throw new MIRUnableToProducePlainRepresentation(node);
-}
-
-function typeToPlain(node: Type): PlainRepresentation {
     if (node instanceof IntType) {
         return {
             ...header(node),
@@ -352,26 +356,6 @@ function typeToPlain(node: Type): PlainRepresentation {
             memArgs: node.memArgs.map(nodeToPlain),
             typeArgs: node.typeArgs.map(nodeToPlain)
         };
-    }
-
-    throw new MIRUnableToProducePlainRepresentation(node);
-}
-
-export function nodeToPlain(node: Node): PlainRepresentation {
-    if (node instanceof Definition) {
-        return defToPlain(node);
-    }
-
-    if (node instanceof Expression) {
-        return exprToPlain(node);
-    }
-
-    if (node instanceof Statement) {
-        return stmtToPlain(node);
-    }
-
-    if (node instanceof Type) {
-        return typeToPlain(node);
     }
 
     if (node instanceof MemConstant) {
@@ -417,5 +401,8 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         };
     }
 
-    throw new MIRUnableToProducePlainRepresentation(node);
+    throw new MIRPlainRepresentationError(
+        `Unable to produce plain representation for node ${node.constructor.name}`,
+        node
+    );
 }
