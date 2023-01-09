@@ -36,6 +36,29 @@ export type MemSubstitution = Map<MemVariableDeclaration, MemDesc>;
 export type TypeSubstitution = Map<TypeVariableDeclaration, Type>;
 export type Substitution = [MemSubstitution, TypeSubstitution];
 
+export function mergeSubstitutions(a: Substitution, b: Substitution): Substitution {
+    const memS: MemSubstitution = new Map(a[0].entries());
+    const typeS: TypeSubstitution = new Map(a[1].entries());
+
+    for (const [k, v] of b[0].entries()) {
+        if (memS.has(k)) {
+            throw new Error(`Error merging substitutions: mem id ${k.pp()} is defined in both`);
+        }
+
+        memS.set(k, v);
+    }
+
+    for (const [k, v] of b[1].entries()) {
+        if (typeS.has(k)) {
+            throw new Error(`Error merging substitutions: mem id ${k.pp()} is defined in both`);
+        }
+
+        typeS.set(k, v);
+    }
+
+    return [memS, typeS];
+}
+
 class Scope {
     private defs: Map<string, Def> = new Map();
     private parentScope: Scope | undefined = undefined;
@@ -582,6 +605,48 @@ export class Resolving {
         }
 
         return t;
+    }
+
+    public isConcrete(t: Type): boolean {
+        if (t instanceof BoolType || t instanceof IntType) {
+            return true;
+        }
+
+        if (t instanceof ArrayType) {
+            return this.isConcrete(t.baseType);
+        }
+
+        if (t instanceof PointerType) {
+            if (!(t.region instanceof MemConstant)) {
+                return false;
+            }
+
+            return this.isConcrete(t.toType);
+        }
+
+        if (t instanceof UserDefinedType) {
+            const decl = this.getTypeDecl(t);
+
+            if (decl === undefined || decl instanceof TypeVariableDeclaration) {
+                return false;
+            }
+
+            for (const memArg of t.memArgs) {
+                if (!(memArg instanceof MemConstant)) {
+                    return false;
+                }
+            }
+
+            for (const typeArg of t.typeArgs) {
+                if (!this.isConcrete(typeArg)) {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        throw new Error(`NYI type ${t.pp()}`);
     }
 
     private walkType(t: Type, cb: (nd: Type) => void): void {

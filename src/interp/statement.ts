@@ -37,6 +37,7 @@ import { fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator, fits } from "./expression";
 import { LiteralEvaluator } from "./literal";
 import {
+    BuiltinFrame,
     BuiltinFun,
     ComplexValue,
     EXCEPTION_MEM,
@@ -105,7 +106,7 @@ export class StatementExecutor {
     execAssignment(s: Assignment): void {
         const rVal = this.evaluator.evalExpression(s.rhs);
         this.assignTo(rVal, s.lhs, s);
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execBranch(s: Branch): void {
@@ -119,12 +120,12 @@ export class StatementExecutor {
         );
 
         const label = condVal ? s.trueLabel : s.falseLabel;
-        const newBB = (this.state.curFrame.fun.body as CFG).nodes.get(label);
+        const newBB = (this.state.curMachFrame.fun.body as CFG).nodes.get(label);
 
         this.assert(newBB !== undefined, `No BasicBlock found for label {0}`, s, label);
 
-        this.state.curFrame.curBB = newBB;
-        this.state.curFrame.curBBInd = 0;
+        this.state.curMachFrame.curBB = newBB;
+        this.state.curMachFrame.curBBInd = 0;
     }
 
     private allocMems(s: FunctionCall | TransactionCall): void {
@@ -146,7 +147,7 @@ export class StatementExecutor {
         }
     }
 
-    execFunctionCall(s: FunctionCall): void {
+    private execCallImpl(s: FunctionCall | TransactionCall): void {
         const callee = this.resolving.getIdDecl(s.callee);
 
         this.assert(
@@ -156,7 +157,15 @@ export class StatementExecutor {
             s.callee
         );
 
+        const memArgs = s.memArgs.map((memArg) => this.resolveMemDesc(memArg));
+        const typeArgs = s.typeArgs.map((typeArg) =>
+            this.resolving.concretizeType(typeArg, this.state.curMachFrame.substituion)
+        );
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
+
+        if (s instanceof TransactionCall) {
+            this.state.saveMemories();
+        }
 
         // Allocate memories in caller frame
         this.allocMems(s);
@@ -168,30 +177,50 @@ export class StatementExecutor {
                 this.internalError(`No builtin for empty function ${s.callee.name}`, s);
             }
 
-            const [aborted, returns] = builtin(this.state, argVs);
+            const newFrame = new BuiltinFrame(
+                callee,
+                zip(
+                    callee.parameters.map((d) => d.name),
+                    argVs
+                ),
+                memArgs,
+                typeArgs
+            );
 
-            this.returnValsToFrame(returns, aborted, this.state.curFrame);
+            this.state.stack.push(newFrame);
 
-            this.state.curFrame.curBBInd++;
+            const [aborted, returns] = builtin(this.state, newFrame);
+
+            this.state.stack.pop();
+
+            this.returnValsToFrame(returns, aborted, this.state.curMachFrame);
+
+            this.state.curMachFrame.curBBInd++;
         } else {
             const newFrame = new Frame(
                 callee,
                 zip(
                     callee.parameters.map((d) => d.name),
                     argVs
-                )
+                ),
+                memArgs,
+                typeArgs
             );
 
             this.state.stack.push(newFrame);
         }
     }
 
+    execFunctionCall(s: FunctionCall): void {
+        this.execCallImpl(s);
+    }
+
     execJump(s: Jump): void {
-        const newBB = (this.state.curFrame.fun.body as CFG).nodes.get(s.label);
+        const newBB = (this.state.curMachFrame.fun.body as CFG).nodes.get(s.label);
         this.assert(newBB !== undefined, `No BasicBlock found for label {0}`, s, s.label);
 
-        this.state.curFrame.curBB = newBB;
-        this.state.curFrame.curBBInd = 0;
+        this.state.curMachFrame.curBB = newBB;
+        this.state.curMachFrame.curBBInd = 0;
     }
 
     private assignTo(
@@ -217,7 +246,7 @@ export class StatementExecutor {
             lhsType
         );
 
-        this.state.curFrame.store.set(lhs.name, val);
+        this.state.curMachFrame.store.set(lhs.name, val);
     }
 
     private deref(val: PointerVal, e?: Expression): ComplexValue {
@@ -258,7 +287,7 @@ export class StatementExecutor {
         this.assert(val !== undefined, `Struct missing field {0}`, s, s.member);
 
         this.assignTo(val, s.lhs, s);
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execLoadIndex(s: LoadIndex): void {
@@ -288,7 +317,7 @@ export class StatementExecutor {
         const val = array[Number(index)];
 
         this.assignTo(val, s.lhs, s);
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execStoreField(s: StoreField): void {
@@ -305,7 +334,7 @@ export class StatementExecutor {
         const rVal = this.evaluator.evalExpression(s.rhs);
 
         struct.set(s.member, rVal);
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execStoreIndex(s: StoreIndex): void {
@@ -335,7 +364,7 @@ export class StatementExecutor {
         const rVal = this.evaluator.evalExpression(s.rhs);
 
         array[Number(index)] = rVal;
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     /// Helper to extract an interpreter value into
@@ -390,31 +419,7 @@ export class StatementExecutor {
     }
 
     execTransactionCall(s: TransactionCall): void {
-        const callee = this.resolving.getIdDecl(s.callee);
-
-        this.assert(
-            callee instanceof FunctionDefinition,
-            `Expected {0} to be a function`,
-            s,
-            s.callee
-        );
-
-        const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
-
-        const newFrame = new Frame(
-            callee,
-            zip(
-                callee.parameters.map((d) => d.name),
-                argVs
-            )
-        );
-
-        this.state.saveMemories();
-
-        // Allocate memories in caller frame, after check-pointing state
-        this.allocMems(s);
-
-        this.state.stack.push(newFrame);
+        this.execCallImpl(s);
     }
 
     private restoreMemsOnReturnFromTransaction(aborted: boolean, stmt: Statement) {
@@ -488,8 +493,12 @@ export class StatementExecutor {
         if (this.state.stack.length === 0) {
             this.returnValsToExternalCtx(retVals, false, s);
         } else {
-            this.returnValsToFrame(retVals, false, this.state.stack[this.state.stack.length - 1]);
-            this.state.curFrame.curBBInd++;
+            this.returnValsToFrame(
+                retVals,
+                false,
+                this.state.stack[this.state.stack.length - 1] as Frame
+            );
+            this.state.curMachFrame.curBBInd++;
         }
     }
 
@@ -505,12 +514,12 @@ export class StatementExecutor {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     execAbort(s: Abort): void {
-        let nRets = this.state.curFrame.fun.returns.length;
+        let nRets = this.state.curMachFrame.fun.returns.length;
 
         while (this.state.stack.length > 1) {
             this.state.stack.pop();
 
-            const curFrame = this.state.curFrame;
+            const curFrame = this.state.curMachFrame;
             const curStmt = curFrame.curBB.statements[curFrame.curBBInd];
 
             if (!(curStmt instanceof TransactionCall)) {
@@ -519,7 +528,7 @@ export class StatementExecutor {
             }
 
             this.returnValsToFrame(this.makePoisonRets(nRets), true, curFrame);
-            this.state.curFrame.curBBInd++;
+            this.state.curMachFrame.curBBInd++;
             return;
         }
 
@@ -554,7 +563,7 @@ export class StatementExecutor {
                 frameIdx--;
 
                 if (frameIdx >= 0) {
-                    const prevFrame = this.state.stack[frameIdx];
+                    const prevFrame = this.state.stack[frameIdx] as Frame;
                     const callInst = prevFrame.curStmt;
 
                     this.assert(
@@ -611,7 +620,7 @@ export class StatementExecutor {
         const ptr = this.state.define(newArr, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execAllocStruct(s: AllocStruct): void {
@@ -635,7 +644,7 @@ export class StatementExecutor {
         const ptr = this.state.define(newStruct, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execAssert(s: Assert): void {
@@ -652,7 +661,7 @@ export class StatementExecutor {
             this.error(`Assertion ${s.pp()} failed`, s);
         }
 
-        this.state.curFrame.curBBInd++;
+        this.state.curMachFrame.curBBInd++;
     }
 
     execStatement(s: Statement): void {
@@ -766,12 +775,12 @@ export function initAndCall(
     }
 
     // Next initialize root call
-    state.startRootCall(main, args, [], rootTrans);
+    state.startRootCall(main, args, [], [], rootTrans);
 
     // Finally interpret until we are done or aborted
     const stmtExec = new StatementExecutor(resolving, typing, state);
     while (state.running) {
-        const curStmt = state.curFrame.curBB.statements[state.curFrame.curBBInd];
+        const curStmt = state.curMachFrame.curBB.statements[state.curMachFrame.curBBInd];
         console.error(`Exec ${curStmt.pp()} in ${state.dump()}`);
         stmtExec.execStatement(curStmt);
     }
