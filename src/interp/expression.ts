@@ -14,7 +14,7 @@ import { InterpError, InterpInternalError, poison, PrimitiveValue, State } from 
 
 const two = BigInt(2);
 
-function getTypeRange(bits: number, signed: boolean): [bigint, bigint, bigint] {
+export function getTypeRange(bits: number, signed: boolean): [bigint, bigint, bigint] {
     const total = two ** BigInt(bits);
     const half = two ** BigInt(bits - 1);
 

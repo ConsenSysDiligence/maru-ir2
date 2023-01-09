@@ -160,15 +160,29 @@ export class StatementExecutor {
         // Allocate memories in caller frame
         this.allocMems(s);
 
-        const newFrame = new Frame(
-            callee,
-            zip(
-                callee.parameters.map((d) => d.name),
-                argVs
-            )
-        );
+        if (!callee.body) {
+            const builtin = this.state.builtins.get(s.callee.name);
 
-        this.state.stack.push(newFrame);
+            if (builtin === undefined) {
+                this.internalError(`No builtin for empty function ${s.callee.name}`, s);
+            }
+
+            const [aborted, returns] = builtin(this.state, argVs);
+
+            this.returnValsToFrame(returns, aborted, this.state.curFrame);
+
+            this.state.curFrame.curBBInd++;
+        } else {
+            const newFrame = new Frame(
+                callee,
+                zip(
+                    callee.parameters.map((d) => d.name),
+                    argVs
+                )
+            );
+
+            this.state.stack.push(newFrame);
+        }
     }
 
     execJump(s: Jump): void {
