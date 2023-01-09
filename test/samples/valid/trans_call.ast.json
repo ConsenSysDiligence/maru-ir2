@@ -126,8 +126,31 @@
                 }
             }
         ],
+        "returns": [
+            {
+                "id": 5,
+                "nodeType": "IntType",
+                "src": {
+                    "start": {
+                        "offset": 23,
+                        "line": 1,
+                        "column": 24
+                    },
+                    "end": {
+                        "offset": 25,
+                        "line": 1,
+                        "column": 26
+                    }
+                },
+                "signed": false,
+                "nbits": 8
+            }
+        ],
         "body": {
             "entry": "entry",
+            "exits": [
+                "entry"
+            ],
             "nodes": [
                 {
                     "label": "entry",
@@ -251,14 +274,10 @@
                                 }
                             ]
                         }
-                    ],
-                    "incoming": [],
-                    "outgoing": []
+                    ]
                 }
             ],
-            "exits": [
-                "entry"
-            ]
+            "edges": []
         }
     },
     {
@@ -317,8 +336,31 @@
             }
         ],
         "locals": [],
+        "returns": [
+            {
+                "id": 18,
+                "nodeType": "IntType",
+                "src": {
+                    "start": {
+                        "offset": 117,
+                        "line": 9,
+                        "column": 18
+                    },
+                    "end": {
+                        "offset": 120,
+                        "line": 9,
+                        "column": 21
+                    }
+                },
+                "signed": true,
+                "nbits": 16
+            }
+        ],
         "body": {
             "entry": "entry",
+            "exits": [
+                "non_negative"
+            ],
             "nodes": [
                 {
                     "label": "entry",
@@ -411,172 +453,6 @@
                             "trueLabel": "negative",
                             "falseLabel": "non_negative"
                         }
-                    ],
-                    "incoming": [],
-                    "outgoing": [
-                        {
-                            "to": "negative",
-                            "predicate": {
-                                "id": 22,
-                                "nodeType": "BinaryOperation",
-                                "src": {
-                                    "start": {
-                                        "offset": 149,
-                                        "line": 11,
-                                        "column": 16
-                                    },
-                                    "end": {
-                                        "offset": 158,
-                                        "line": 11,
-                                        "column": 25
-                                    }
-                                },
-                                "op": "<",
-                                "leftExpr": {
-                                    "id": 19,
-                                    "nodeType": "Identifier",
-                                    "src": {
-                                        "start": {
-                                            "offset": 149,
-                                            "line": 11,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 150,
-                                            "line": 11,
-                                            "column": 17
-                                        }
-                                    },
-                                    "name": "a"
-                                },
-                                "rightExpr": {
-                                    "id": 21,
-                                    "nodeType": "NumberLiteral",
-                                    "src": {
-                                        "start": {
-                                            "offset": 153,
-                                            "line": 11,
-                                            "column": 20
-                                        },
-                                        "end": {
-                                            "offset": 158,
-                                            "line": 11,
-                                            "column": 25
-                                        }
-                                    },
-                                    "value": "0",
-                                    "radix": 10,
-                                    "type": {
-                                        "id": 20,
-                                        "nodeType": "IntType",
-                                        "src": {
-                                            "start": {
-                                                "offset": 155,
-                                                "line": 11,
-                                                "column": 22
-                                            },
-                                            "end": {
-                                                "offset": 158,
-                                                "line": 11,
-                                                "column": 25
-                                            }
-                                        },
-                                        "signed": true,
-                                        "nbits": 16
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "to": "non_negative",
-                            "predicate": {
-                                "id": 31,
-                                "nodeType": "UnaryOperation",
-                                "src": {
-                                    "start": {
-                                        "offset": 149,
-                                        "line": 11,
-                                        "column": 16
-                                    },
-                                    "end": {
-                                        "offset": 158,
-                                        "line": 11,
-                                        "column": 25
-                                    }
-                                },
-                                "op": "!",
-                                "subExpr": {
-                                    "id": 22,
-                                    "nodeType": "BinaryOperation",
-                                    "src": {
-                                        "start": {
-                                            "offset": 149,
-                                            "line": 11,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 158,
-                                            "line": 11,
-                                            "column": 25
-                                        }
-                                    },
-                                    "op": "<",
-                                    "leftExpr": {
-                                        "id": 19,
-                                        "nodeType": "Identifier",
-                                        "src": {
-                                            "start": {
-                                                "offset": 149,
-                                                "line": 11,
-                                                "column": 16
-                                            },
-                                            "end": {
-                                                "offset": 150,
-                                                "line": 11,
-                                                "column": 17
-                                            }
-                                        },
-                                        "name": "a"
-                                    },
-                                    "rightExpr": {
-                                        "id": 21,
-                                        "nodeType": "NumberLiteral",
-                                        "src": {
-                                            "start": {
-                                                "offset": 153,
-                                                "line": 11,
-                                                "column": 20
-                                            },
-                                            "end": {
-                                                "offset": 158,
-                                                "line": 11,
-                                                "column": 25
-                                            }
-                                        },
-                                        "value": "0",
-                                        "radix": 10,
-                                        "type": {
-                                            "id": 20,
-                                            "nodeType": "IntType",
-                                            "src": {
-                                                "start": {
-                                                    "offset": 155,
-                                                    "line": 11,
-                                                    "column": 22
-                                                },
-                                                "end": {
-                                                    "offset": 158,
-                                                    "line": 11,
-                                                    "column": 25
-                                                }
-                                            },
-                                            "signed": true,
-                                            "nbits": 16
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     ]
                 },
                 {
@@ -666,91 +542,6 @@
                             },
                             "label": "non_negative"
                         }
-                    ],
-                    "incoming": [
-                        {
-                            "from": "entry",
-                            "predicate": {
-                                "id": 22,
-                                "nodeType": "BinaryOperation",
-                                "src": {
-                                    "start": {
-                                        "offset": 149,
-                                        "line": 11,
-                                        "column": 16
-                                    },
-                                    "end": {
-                                        "offset": 158,
-                                        "line": 11,
-                                        "column": 25
-                                    }
-                                },
-                                "op": "<",
-                                "leftExpr": {
-                                    "id": 19,
-                                    "nodeType": "Identifier",
-                                    "src": {
-                                        "start": {
-                                            "offset": 149,
-                                            "line": 11,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 150,
-                                            "line": 11,
-                                            "column": 17
-                                        }
-                                    },
-                                    "name": "a"
-                                },
-                                "rightExpr": {
-                                    "id": 21,
-                                    "nodeType": "NumberLiteral",
-                                    "src": {
-                                        "start": {
-                                            "offset": 153,
-                                            "line": 11,
-                                            "column": 20
-                                        },
-                                        "end": {
-                                            "offset": 158,
-                                            "line": 11,
-                                            "column": 25
-                                        }
-                                    },
-                                    "value": "0",
-                                    "radix": 10,
-                                    "type": {
-                                        "id": 20,
-                                        "nodeType": "IntType",
-                                        "src": {
-                                            "start": {
-                                                "offset": 155,
-                                                "line": 11,
-                                                "column": 22
-                                            },
-                                            "end": {
-                                                "offset": 158,
-                                                "line": 11,
-                                                "column": 25
-                                            }
-                                        },
-                                        "signed": true,
-                                        "nbits": 16
-                                    }
-                                }
-                            }
-                        }
-                    ],
-                    "outgoing": [
-                        {
-                            "to": "non_negative",
-                            "predicate": {
-                                "id": 32,
-                                "nodeType": "BooleanLiteral",
-                                "value": true
-                            }
-                        }
                     ]
                 },
                 {
@@ -791,18 +582,71 @@
                                 }
                             ]
                         }
-                    ],
-                    "incoming": [
-                        {
-                            "from": "entry",
-                            "predicate": {
-                                "id": 31,
-                                "nodeType": "UnaryOperation",
+                    ]
+                }
+            ],
+            "edges": [
+                {
+                    "from": "entry",
+                    "to": "negative",
+                    "predicate": {
+                        "id": 22,
+                        "nodeType": "BinaryOperation",
+                        "src": {
+                            "start": {
+                                "offset": 149,
+                                "line": 11,
+                                "column": 16
+                            },
+                            "end": {
+                                "offset": 158,
+                                "line": 11,
+                                "column": 25
+                            }
+                        },
+                        "op": "<",
+                        "leftExpr": {
+                            "id": 19,
+                            "nodeType": "Identifier",
+                            "src": {
+                                "start": {
+                                    "offset": 149,
+                                    "line": 11,
+                                    "column": 16
+                                },
+                                "end": {
+                                    "offset": 150,
+                                    "line": 11,
+                                    "column": 17
+                                }
+                            },
+                            "name": "a"
+                        },
+                        "rightExpr": {
+                            "id": 21,
+                            "nodeType": "NumberLiteral",
+                            "src": {
+                                "start": {
+                                    "offset": 153,
+                                    "line": 11,
+                                    "column": 20
+                                },
+                                "end": {
+                                    "offset": 158,
+                                    "line": 11,
+                                    "column": 25
+                                }
+                            },
+                            "value": "0",
+                            "radix": 10,
+                            "type": {
+                                "id": 20,
+                                "nodeType": "IntType",
                                 "src": {
                                     "start": {
-                                        "offset": 149,
+                                        "offset": 155,
                                         "line": 11,
-                                        "column": 16
+                                        "column": 22
                                     },
                                     "end": {
                                         "offset": 158,
@@ -810,15 +654,89 @@
                                         "column": 25
                                     }
                                 },
-                                "op": "!",
-                                "subExpr": {
-                                    "id": 22,
-                                    "nodeType": "BinaryOperation",
+                                "signed": true,
+                                "nbits": 16
+                            }
+                        }
+                    }
+                },
+                {
+                    "from": "entry",
+                    "to": "non_negative",
+                    "predicate": {
+                        "id": 31,
+                        "nodeType": "UnaryOperation",
+                        "src": {
+                            "start": {
+                                "offset": 149,
+                                "line": 11,
+                                "column": 16
+                            },
+                            "end": {
+                                "offset": 158,
+                                "line": 11,
+                                "column": 25
+                            }
+                        },
+                        "op": "!",
+                        "subExpr": {
+                            "id": 22,
+                            "nodeType": "BinaryOperation",
+                            "src": {
+                                "start": {
+                                    "offset": 149,
+                                    "line": 11,
+                                    "column": 16
+                                },
+                                "end": {
+                                    "offset": 158,
+                                    "line": 11,
+                                    "column": 25
+                                }
+                            },
+                            "op": "<",
+                            "leftExpr": {
+                                "id": 19,
+                                "nodeType": "Identifier",
+                                "src": {
+                                    "start": {
+                                        "offset": 149,
+                                        "line": 11,
+                                        "column": 16
+                                    },
+                                    "end": {
+                                        "offset": 150,
+                                        "line": 11,
+                                        "column": 17
+                                    }
+                                },
+                                "name": "a"
+                            },
+                            "rightExpr": {
+                                "id": 21,
+                                "nodeType": "NumberLiteral",
+                                "src": {
+                                    "start": {
+                                        "offset": 153,
+                                        "line": 11,
+                                        "column": 20
+                                    },
+                                    "end": {
+                                        "offset": 158,
+                                        "line": 11,
+                                        "column": 25
+                                    }
+                                },
+                                "value": "0",
+                                "radix": 10,
+                                "type": {
+                                    "id": 20,
+                                    "nodeType": "IntType",
                                     "src": {
                                         "start": {
-                                            "offset": 149,
+                                            "offset": 155,
                                             "line": 11,
-                                            "column": 16
+                                            "column": 22
                                         },
                                         "end": {
                                             "offset": 158,
@@ -826,77 +744,22 @@
                                             "column": 25
                                         }
                                     },
-                                    "op": "<",
-                                    "leftExpr": {
-                                        "id": 19,
-                                        "nodeType": "Identifier",
-                                        "src": {
-                                            "start": {
-                                                "offset": 149,
-                                                "line": 11,
-                                                "column": 16
-                                            },
-                                            "end": {
-                                                "offset": 150,
-                                                "line": 11,
-                                                "column": 17
-                                            }
-                                        },
-                                        "name": "a"
-                                    },
-                                    "rightExpr": {
-                                        "id": 21,
-                                        "nodeType": "NumberLiteral",
-                                        "src": {
-                                            "start": {
-                                                "offset": 153,
-                                                "line": 11,
-                                                "column": 20
-                                            },
-                                            "end": {
-                                                "offset": 158,
-                                                "line": 11,
-                                                "column": 25
-                                            }
-                                        },
-                                        "value": "0",
-                                        "radix": 10,
-                                        "type": {
-                                            "id": 20,
-                                            "nodeType": "IntType",
-                                            "src": {
-                                                "start": {
-                                                    "offset": 155,
-                                                    "line": 11,
-                                                    "column": 22
-                                                },
-                                                "end": {
-                                                    "offset": 158,
-                                                    "line": 11,
-                                                    "column": 25
-                                                }
-                                            },
-                                            "signed": true,
-                                            "nbits": 16
-                                        }
-                                    }
+                                    "signed": true,
+                                    "nbits": 16
                                 }
                             }
-                        },
-                        {
-                            "from": "negative",
-                            "predicate": {
-                                "id": 32,
-                                "nodeType": "BooleanLiteral",
-                                "value": true
-                            }
                         }
-                    ],
-                    "outgoing": []
+                    }
+                },
+                {
+                    "from": "negative",
+                    "to": "non_negative",
+                    "predicate": {
+                        "id": 32,
+                        "nodeType": "BooleanLiteral",
+                        "value": true
+                    }
                 }
-            ],
-            "exits": [
-                "non_negative"
             ]
         }
     },
@@ -1027,8 +890,31 @@
                 }
             }
         ],
+        "returns": [
+            {
+                "id": 36,
+                "nodeType": "IntType",
+                "src": {
+                    "start": {
+                        "offset": 300,
+                        "line": 21,
+                        "column": 20
+                    },
+                    "end": {
+                        "offset": 303,
+                        "line": 21,
+                        "column": 23
+                    }
+                },
+                "signed": true,
+                "nbits": 32
+            }
+        ],
         "body": {
             "entry": "entry",
+            "exits": [
+                "exit"
+            ],
             "nodes": [
                 {
                     "label": "entry",
@@ -1188,17 +1074,6 @@
                             },
                             "label": "header"
                         }
-                    ],
-                    "incoming": [],
-                    "outgoing": [
-                        {
-                            "to": "header",
-                            "predicate": {
-                                "id": 68,
-                                "nodeType": "BooleanLiteral",
-                                "value": true
-                            }
-                        }
                     ]
                 },
                 {
@@ -1272,151 +1147,6 @@
                             },
                             "trueLabel": "body",
                             "falseLabel": "exit"
-                        }
-                    ],
-                    "incoming": [
-                        {
-                            "from": "entry",
-                            "predicate": {
-                                "id": 68,
-                                "nodeType": "BooleanLiteral",
-                                "value": true
-                            }
-                        },
-                        {
-                            "from": "body",
-                            "predicate": {
-                                "id": 70,
-                                "nodeType": "BooleanLiteral",
-                                "value": true
-                            }
-                        }
-                    ],
-                    "outgoing": [
-                        {
-                            "to": "body",
-                            "predicate": {
-                                "id": 52,
-                                "nodeType": "BinaryOperation",
-                                "src": {
-                                    "start": {
-                                        "offset": 437,
-                                        "line": 30,
-                                        "column": 16
-                                    },
-                                    "end": {
-                                        "offset": 444,
-                                        "line": 30,
-                                        "column": 23
-                                    }
-                                },
-                                "op": "<",
-                                "leftExpr": {
-                                    "id": 50,
-                                    "nodeType": "Identifier",
-                                    "src": {
-                                        "start": {
-                                            "offset": 437,
-                                            "line": 30,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 440,
-                                            "line": 30,
-                                            "column": 19
-                                        }
-                                    },
-                                    "name": "ctr"
-                                },
-                                "rightExpr": {
-                                    "id": 51,
-                                    "nodeType": "Identifier",
-                                    "src": {
-                                        "start": {
-                                            "offset": 443,
-                                            "line": 30,
-                                            "column": 22
-                                        },
-                                        "end": {
-                                            "offset": 444,
-                                            "line": 30,
-                                            "column": 23
-                                        }
-                                    },
-                                    "name": "n"
-                                }
-                            }
-                        },
-                        {
-                            "to": "exit",
-                            "predicate": {
-                                "id": 69,
-                                "nodeType": "UnaryOperation",
-                                "src": {
-                                    "start": {
-                                        "offset": 437,
-                                        "line": 30,
-                                        "column": 16
-                                    },
-                                    "end": {
-                                        "offset": 444,
-                                        "line": 30,
-                                        "column": 23
-                                    }
-                                },
-                                "op": "!",
-                                "subExpr": {
-                                    "id": 52,
-                                    "nodeType": "BinaryOperation",
-                                    "src": {
-                                        "start": {
-                                            "offset": 437,
-                                            "line": 30,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 444,
-                                            "line": 30,
-                                            "column": 23
-                                        }
-                                    },
-                                    "op": "<",
-                                    "leftExpr": {
-                                        "id": 50,
-                                        "nodeType": "Identifier",
-                                        "src": {
-                                            "start": {
-                                                "offset": 437,
-                                                "line": 30,
-                                                "column": 16
-                                            },
-                                            "end": {
-                                                "offset": 440,
-                                                "line": 30,
-                                                "column": 19
-                                            }
-                                        },
-                                        "name": "ctr"
-                                    },
-                                    "rightExpr": {
-                                        "id": 51,
-                                        "nodeType": "Identifier",
-                                        "src": {
-                                            "start": {
-                                                "offset": 443,
-                                                "line": 30,
-                                                "column": 22
-                                            },
-                                            "end": {
-                                                "offset": 444,
-                                                "line": 30,
-                                                "column": 23
-                                            }
-                                        },
-                                        "name": "n"
-                                    }
-                                }
-                            }
                         }
                     ]
                 },
@@ -1627,72 +1357,6 @@
                             },
                             "label": "header"
                         }
-                    ],
-                    "incoming": [
-                        {
-                            "from": "header",
-                            "predicate": {
-                                "id": 52,
-                                "nodeType": "BinaryOperation",
-                                "src": {
-                                    "start": {
-                                        "offset": 437,
-                                        "line": 30,
-                                        "column": 16
-                                    },
-                                    "end": {
-                                        "offset": 444,
-                                        "line": 30,
-                                        "column": 23
-                                    }
-                                },
-                                "op": "<",
-                                "leftExpr": {
-                                    "id": 50,
-                                    "nodeType": "Identifier",
-                                    "src": {
-                                        "start": {
-                                            "offset": 437,
-                                            "line": 30,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 440,
-                                            "line": 30,
-                                            "column": 19
-                                        }
-                                    },
-                                    "name": "ctr"
-                                },
-                                "rightExpr": {
-                                    "id": 51,
-                                    "nodeType": "Identifier",
-                                    "src": {
-                                        "start": {
-                                            "offset": 443,
-                                            "line": 30,
-                                            "column": 22
-                                        },
-                                        "end": {
-                                            "offset": 444,
-                                            "line": 30,
-                                            "column": 23
-                                        }
-                                    },
-                                    "name": "n"
-                                }
-                            }
-                        }
-                    ],
-                    "outgoing": [
-                        {
-                            "to": "header",
-                            "predicate": {
-                                "id": 70,
-                                "nodeType": "BooleanLiteral",
-                                "value": true
-                            }
-                        }
                     ]
                 },
                 {
@@ -1733,13 +1397,112 @@
                                 }
                             ]
                         }
-                    ],
-                    "incoming": [
-                        {
-                            "from": "header",
-                            "predicate": {
-                                "id": 69,
-                                "nodeType": "UnaryOperation",
+                    ]
+                }
+            ],
+            "edges": [
+                {
+                    "from": "entry",
+                    "to": "header",
+                    "predicate": {
+                        "id": 68,
+                        "nodeType": "BooleanLiteral",
+                        "value": true
+                    }
+                },
+                {
+                    "from": "header",
+                    "to": "body",
+                    "predicate": {
+                        "id": 52,
+                        "nodeType": "BinaryOperation",
+                        "src": {
+                            "start": {
+                                "offset": 437,
+                                "line": 30,
+                                "column": 16
+                            },
+                            "end": {
+                                "offset": 444,
+                                "line": 30,
+                                "column": 23
+                            }
+                        },
+                        "op": "<",
+                        "leftExpr": {
+                            "id": 50,
+                            "nodeType": "Identifier",
+                            "src": {
+                                "start": {
+                                    "offset": 437,
+                                    "line": 30,
+                                    "column": 16
+                                },
+                                "end": {
+                                    "offset": 440,
+                                    "line": 30,
+                                    "column": 19
+                                }
+                            },
+                            "name": "ctr"
+                        },
+                        "rightExpr": {
+                            "id": 51,
+                            "nodeType": "Identifier",
+                            "src": {
+                                "start": {
+                                    "offset": 443,
+                                    "line": 30,
+                                    "column": 22
+                                },
+                                "end": {
+                                    "offset": 444,
+                                    "line": 30,
+                                    "column": 23
+                                }
+                            },
+                            "name": "n"
+                        }
+                    }
+                },
+                {
+                    "from": "header",
+                    "to": "exit",
+                    "predicate": {
+                        "id": 69,
+                        "nodeType": "UnaryOperation",
+                        "src": {
+                            "start": {
+                                "offset": 437,
+                                "line": 30,
+                                "column": 16
+                            },
+                            "end": {
+                                "offset": 444,
+                                "line": 30,
+                                "column": 23
+                            }
+                        },
+                        "op": "!",
+                        "subExpr": {
+                            "id": 52,
+                            "nodeType": "BinaryOperation",
+                            "src": {
+                                "start": {
+                                    "offset": 437,
+                                    "line": 30,
+                                    "column": 16
+                                },
+                                "end": {
+                                    "offset": 444,
+                                    "line": 30,
+                                    "column": 23
+                                }
+                            },
+                            "op": "<",
+                            "leftExpr": {
+                                "id": 50,
+                                "nodeType": "Identifier",
                                 "src": {
                                     "start": {
                                         "offset": 437,
@@ -1747,71 +1510,42 @@
                                         "column": 16
                                     },
                                     "end": {
+                                        "offset": 440,
+                                        "line": 30,
+                                        "column": 19
+                                    }
+                                },
+                                "name": "ctr"
+                            },
+                            "rightExpr": {
+                                "id": 51,
+                                "nodeType": "Identifier",
+                                "src": {
+                                    "start": {
+                                        "offset": 443,
+                                        "line": 30,
+                                        "column": 22
+                                    },
+                                    "end": {
                                         "offset": 444,
                                         "line": 30,
                                         "column": 23
                                     }
                                 },
-                                "op": "!",
-                                "subExpr": {
-                                    "id": 52,
-                                    "nodeType": "BinaryOperation",
-                                    "src": {
-                                        "start": {
-                                            "offset": 437,
-                                            "line": 30,
-                                            "column": 16
-                                        },
-                                        "end": {
-                                            "offset": 444,
-                                            "line": 30,
-                                            "column": 23
-                                        }
-                                    },
-                                    "op": "<",
-                                    "leftExpr": {
-                                        "id": 50,
-                                        "nodeType": "Identifier",
-                                        "src": {
-                                            "start": {
-                                                "offset": 437,
-                                                "line": 30,
-                                                "column": 16
-                                            },
-                                            "end": {
-                                                "offset": 440,
-                                                "line": 30,
-                                                "column": 19
-                                            }
-                                        },
-                                        "name": "ctr"
-                                    },
-                                    "rightExpr": {
-                                        "id": 51,
-                                        "nodeType": "Identifier",
-                                        "src": {
-                                            "start": {
-                                                "offset": 443,
-                                                "line": 30,
-                                                "column": 22
-                                            },
-                                            "end": {
-                                                "offset": 444,
-                                                "line": 30,
-                                                "column": 23
-                                            }
-                                        },
-                                        "name": "n"
-                                    }
-                                }
+                                "name": "n"
                             }
                         }
-                    ],
-                    "outgoing": []
+                    }
+                },
+                {
+                    "from": "body",
+                    "to": "header",
+                    "predicate": {
+                        "id": 70,
+                        "nodeType": "BooleanLiteral",
+                        "value": true
+                    }
                 }
-            ],
-            "exits": [
-                "exit"
             ]
         }
     },
@@ -1835,8 +1569,12 @@
         "typeParameters": [],
         "parameters": [],
         "locals": [],
+        "returns": [],
         "body": {
             "entry": "entry",
+            "exits": [
+                "entry"
+            ],
             "nodes": [
                 {
                     "label": "entry",
@@ -1858,14 +1596,10 @@
                             },
                             "values": []
                         }
-                    ],
-                    "incoming": [],
-                    "outgoing": []
+                    ]
                 }
             ],
-            "exits": [
-                "entry"
-            ]
+            "edges": []
         }
     },
     {
@@ -2027,8 +1761,12 @@
                 }
             }
         ],
+        "returns": [],
         "body": {
             "entry": "entry",
+            "exits": [
+                "entry"
+            ],
             "nodes": [
                 {
                     "label": "entry",
@@ -2485,14 +2223,10 @@
                             },
                             "values": []
                         }
-                    ],
-                    "incoming": [],
-                    "outgoing": []
+                    ]
                 }
             ],
-            "exits": [
-                "entry"
-            ]
+            "edges": []
         }
     }
 ]

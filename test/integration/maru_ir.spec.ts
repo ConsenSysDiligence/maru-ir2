@@ -11,10 +11,11 @@ OPTIONS:
     --help                  Print help message.
     --version               Print package version.
     --stdin                 Read input from STDIN instead of file.
-    --parse                 Parse source and report any errors.
-    --ast                   Produce JSON AST for parsed source.
-    --tc                    Perform type-checking for parsed source and report any errors.
-    --print                 Print parsed source back.
+    --from-ast              Process JSON AST as a program.
+    --parse                 Report any errors and quit.
+    --ast                   Produce JSON AST for program.
+    --tc                    Perform type-checking and report any errors.
+    --print                 Print program.
     --run                   Given the function call statement as an entry point, execute program.
                             Note that only primitive literal values are allowed as an arguments.`;
 
@@ -83,6 +84,13 @@ entry:
         1,
         undefined,
         'Only literal values are supported for "--run" option. Received: i32(0_i8)'
+    ],
+    [
+        ["test/samples/valid/trans_call.ast.json", "--from-ast", "--run", "call gauss(5_i32);"],
+        undefined,
+        0,
+        fse.readFileSync("test/samples/valid/trans_call.log", { encoding: "utf-8" }).trimEnd(),
+        undefined
     ],
     [
         ["test/samples/valid/trans_call.maruir", "--run", "call gauss(5_i32);"],

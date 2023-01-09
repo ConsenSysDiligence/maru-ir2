@@ -9,7 +9,9 @@ import {
     PrimitiveValue,
     State,
     StatementExecutor,
-    nodeToPlain
+    nodeToPlain,
+    Definition,
+    plainToNode
 } from "..";
 import { parseProgram } from "../parser";
 import { parseStatement } from "../parser/maruir_parser";
@@ -24,16 +26,17 @@ OPTIONS:
     --help                  Print help message.
     --version               Print package version.
     --stdin                 Read input from STDIN instead of file.
-    --parse                 Parse source and report any errors.
-    --ast                   Produce JSON AST for parsed source.
-    --tc                    Perform type-checking for parsed source and report any errors.
-    --print                 Print parsed source back.
+    --from-ast              Process JSON AST as a program.
+    --parse                 Report any errors and quit.
+    --ast                   Produce JSON AST for program.
+    --tc                    Perform type-checking and report any errors.
+    --print                 Print program.
     --run                   Given the function call statement as an entry point, execute program.
                             Note that only primitive literal values are allowed as an arguments.
 `;
 
 const cli = {
-    boolean: ["version", "help", "stdin", "parse", "ast", "tc", "print"],
+    boolean: ["version", "help", "stdin", "from-ast", "parse", "ast", "tc", "print"],
     string: ["run"],
     default: {}
 };
@@ -82,7 +85,9 @@ function error(message: string): never {
         contents = await fse.readFile(fileName, { encoding: "utf-8" });
     }
 
-    const defs = parseProgram(contents);
+    const defs: Definition[] = args["from-ast"]
+        ? JSON.parse(contents).map(plainToNode)
+        : parseProgram(contents);
 
     if (args.parse) {
         terminate("Parsing finished successfully");
