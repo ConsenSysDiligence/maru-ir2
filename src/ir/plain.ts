@@ -166,10 +166,7 @@ function plainToCfg(plain: any): CFG {
         getOrErr(cache, label, `Missing basic block for exit label "${label}"`)
     );
 
-    /**
-     * @todo Do we really need edges in CFG class itself? They are not assigned anywhere.
-     */
-    return new CFG(nodes, [], entry, exits);
+    return new CFG(nodes, entry, exits);
 }
 
 export function nodeToPlain(node: Node): PlainRepresentation {
