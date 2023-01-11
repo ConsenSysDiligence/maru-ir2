@@ -385,7 +385,7 @@ export class Resolving {
                 if (!this.isPrimitive(param.type)) {
                     throw new MIRTypeError(
                         def.src,
-                        `Cannot have non-primitive parameter ${def.name} in function ${def.name}`
+                        `Cannot have non-primitive parameter ${param.name} in function ${def.name}`
                     );
                 }
             }

@@ -1,3 +1,4 @@
+import { assert } from "console";
 import {
     ArrayType,
     Assignment,
@@ -34,7 +35,8 @@ import {
     GlobalVariable,
     GlobalVarLiteral,
     ArrayLiteral,
-    StructLiteral
+    StructLiteral,
+    TypeVariableDeclaration
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
 import { Resolving } from "./resolving";
@@ -744,18 +746,41 @@ export class Typing {
 
         if (["==", "!="].includes(expr.op)) {
             if (
-                !(
-                    lhsT instanceof IntType ||
-                    lhsT instanceof BoolType ||
-                    lhsT instanceof PointerType
-                )
+                lhsT instanceof IntType ||
+                lhsT instanceof BoolType ||
+                lhsT instanceof PointerType
             ) {
-                throw new MIRTypeError(
-                    expr,
-                    `Cannot perform equality check between ${lhsT.pp()} types.`
-                );
+                return boolT;
             }
-            return boolT;
+
+            if (lhsT instanceof UserDefinedType && rhsT instanceof UserDefinedType) {
+                const lhsDef = this.resolve.getTypeDecl(lhsT);
+                const rhsDef = this.resolve.getTypeDecl(rhsT);
+
+                if (
+                    lhsDef instanceof TypeVariableDeclaration &&
+                    rhsDef instanceof TypeVariableDeclaration
+                ) {
+                    // @note (dimo) Just a reminder, if we ever allow polymorphism over type vars this code needs to change
+                    assert(
+                        lhsT.memArgs.length === 0 &&
+                            rhsT.memArgs.length === 0 &&
+                            lhsT.typeArgs.length === 0 &&
+                            rhsT.typeArgs.length === 0,
+                        ``
+                    );
+
+                    // Since type vars can only take on primitive types, type vars can be compard for equality
+                    if (lhsDef === rhsDef) {
+                        return boolT;
+                    }
+                }
+            }
+
+            throw new MIRTypeError(
+                expr,
+                `Cannot perform equality check between ${lhsT.pp()} types.`
+            );
         }
 
         if (["<", ">", "<=", ">="].includes(expr.op)) {
