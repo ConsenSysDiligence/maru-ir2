@@ -129,9 +129,7 @@ function plainToCfg(plain: any): CFG {
     const nodes: BasicBlock[] = [];
 
     for (const plainBb of plain.nodes) {
-        const bb = new BasicBlock(plainBb.label);
-
-        bb.statements = plainBb.statements.map(plainToNode);
+        const bb = new BasicBlock(plainBb.label, plainBb.statements.map(plainToNode));
 
         nodes.push(bb);
 

@@ -1,0 +1,14 @@
+digraph gauss {
+  entry [label="ctr := 0_i32;
+sum := 0_i32;
+jump header;",style=filled,color=lightblue1,shape="box", xlabel="entry"];
+  header [label="branch (ctr < n) body exit;",style=filled,color=lightblue1,shape="box", xlabel="header"];
+  body [label="ctr := (ctr + 1_i32);
+sum := (sum + ctr);
+jump header;",style=filled,color=lightblue1,shape="box", xlabel="body"];
+  exit [label="return sum;",style=filled,color=lightblue1,shape="box", xlabel="exit"];
+  entry -> header[label="true"];
+  header -> body[label="(ctr < n)"];
+  header -> exit[label="!((ctr < n))"];
+  body -> header[label="true"];
+}

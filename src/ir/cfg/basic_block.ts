@@ -9,9 +9,10 @@ export class BasicBlock implements PPAble {
     incoming: Edge[];
     outgoing: Edge[];
 
-    constructor(label: string) {
+    constructor(label: string, statements: Statement[] = []) {
         this.label = label;
-        this.statements = [];
+        this.statements = statements;
+
         this.incoming = [];
         this.outgoing = [];
     }
@@ -106,13 +107,13 @@ export class BasicBlock implements PPAble {
         bb += "Incoming Edges:\n";
 
         for (const i of this.incoming) {
-            bb += `${i.from.label} ->  ${i.to.label}\n`;
+            bb += `${i.from.label} -> ${i.to.label}\n`;
         }
 
         bb += "Outgoing Edges:\n";
 
         for (const o of this.outgoing) {
-            bb += `${o.from.label} ->  ${o.to.label}\n`;
+            bb += `${o.from.label} -> ${o.to.label}\n`;
         }
 
         return bb;

@@ -81,9 +81,9 @@ describe("BasicBlock unit tests", () => {
             `Label: A
 IRStatements:
 Incoming Edges:
-C ->  A
+C -> A
 Outgoing Edges:
-A ->  B
+A -> B
 `
         );
 
@@ -91,9 +91,9 @@ A ->  B
             `Label: B
 IRStatements:
 Incoming Edges:
-A ->  B
+A -> B
 Outgoing Edges:
-B ->  C
+B -> C
 `
         );
 
@@ -101,9 +101,9 @@ B ->  C
             `Label: C
 IRStatements:
 Incoming Edges:
-B ->  C
+B -> C
 Outgoing Edges:
-C ->  A
+C -> A
 `
         );
     });

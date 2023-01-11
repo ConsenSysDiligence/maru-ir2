@@ -11,7 +11,8 @@ import {
     StatementExecutor,
     nodeToPlain,
     Definition,
-    plainToNode
+    plainToNode,
+    cfgToDot
 } from "..";
 import { parseProgram } from "../parser";
 import { parseStatement } from "../parser/maruir_parser";
@@ -31,13 +32,15 @@ OPTIONS:
     --ast                   Produce JSON AST for program.
     --tc                    Perform type-checking and report any errors.
     --print                 Print program.
+    --dot                   Given the comma-separated function names, print DOT representation for body.
+                            All functions are printed if no value provided.
     --run                   Given the function call statement as an entry point, execute program.
                             Note that only primitive literal values are allowed as an arguments.
 `;
 
 const cli = {
     boolean: ["version", "help", "stdin", "from-ast", "parse", "ast", "tc", "print"],
-    string: ["run"],
+    string: ["dot", "run"],
     default: {}
 };
 
@@ -95,6 +98,28 @@ function error(message: string): never {
 
     if (args.print) {
         terminate(defs.map((def) => def.pp()).join("\n"));
+    }
+
+    if ("dot" in args) {
+        let filter: (def: Definition) => def is FunctionDefinition;
+
+        if (args.dot) {
+            const names = (args.dot.includes(",") ? args.dot.split(",") : [args.dot]).map(
+                (name: string) => name.trim()
+            );
+
+            filter = (def): def is FunctionDefinition =>
+                def instanceof FunctionDefinition && names.includes(def.name);
+        } else {
+            filter = (def): def is FunctionDefinition => def instanceof FunctionDefinition;
+        }
+
+        terminate(
+            defs
+                .filter(filter)
+                .map((def) => cfgToDot(def.name, def.body))
+                .join("\n")
+        );
     }
 
     if (args.ast) {

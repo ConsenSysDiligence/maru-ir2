@@ -16,6 +16,8 @@ OPTIONS:
     --ast                   Produce JSON AST for program.
     --tc                    Perform type-checking and report any errors.
     --print                 Print program.
+    --dot                   Given the comma-separated function names, print DOT representation for body.
+                            All functions are printed if no value provided.
     --run                   Given the function call statement as an entry point, execute program.
                             Note that only primitive literal values are allowed as an arguments.`;
 
@@ -40,6 +42,15 @@ const cases: Array<
         `fun foo() {
 entry:
     return ;
+}`,
+        undefined
+    ],
+    [
+        ["test/samples/valid/fun.maruir", "--dot"],
+        undefined,
+        0,
+        `digraph foo {
+  entry [label="return ;",style=filled,color=lightblue1,shape="box", xlabel="entry"];
 }`,
         undefined
     ],
@@ -89,14 +100,27 @@ entry:
         ["test/samples/valid/trans_call.ast.json", "--from-ast", "--run", "call gauss(5_i32);"],
         undefined,
         0,
-        fse.readFileSync("test/samples/valid/trans_call.log", { encoding: "utf-8" }).trimEnd(),
+        fse
+            .readFileSync("test/samples/valid/trans_call.gauss.log", { encoding: "utf-8" })
+            .trimEnd(),
         undefined
     ],
     [
         ["test/samples/valid/trans_call.maruir", "--run", "call gauss(5_i32);"],
         undefined,
         0,
-        fse.readFileSync("test/samples/valid/trans_call.log", { encoding: "utf-8" }).trimEnd(),
+        fse
+            .readFileSync("test/samples/valid/trans_call.gauss.log", { encoding: "utf-8" })
+            .trimEnd(),
+        undefined
+    ],
+    [
+        ["test/samples/valid/trans_call.maruir", "--dot", "gauss"],
+        undefined,
+        0,
+        fse
+            .readFileSync("test/samples/valid/trans_call.gauss.dot", { encoding: "utf-8" })
+            .trimEnd(),
         undefined
     ],
     [

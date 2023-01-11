@@ -96,8 +96,7 @@ export function buildCFG(
 
     // For empty functions build a CFG with a single empty BB
     if (rawStmts.length === 0) {
-        entry = new BasicBlock("entry");
-        entry.statements.push(new Return(bodyLoc, []));
+        entry = new BasicBlock("entry", [new Return(bodyLoc, [])]);
 
         return new CFG([entry], entry, [entry]);
     }
@@ -120,9 +119,7 @@ export function buildCFG(
 
     const bbMap = new Map(nodes.map((n) => [n.label, n]));
     const addBB = () => {
-        const newBB = new BasicBlock(curLabel as string);
-
-        newBB.statements = curStmts;
+        const newBB = new BasicBlock(curLabel as string, curStmts);
 
         if (bbMap.has(curLabel as string)) {
             throw new MIRSyntaxError(curStmts[0].src, `Duplicate basic block label ${curLabel}`)
