@@ -11,7 +11,42 @@ Program
 
 Definition
     = StructDefinition
-    / FunctionDefinition;
+    / FunctionDefinition
+    / GlobalVariable
+
+GlobalVariable
+    = VAR __ name: Identifier __ COLON __ typ: Type __ "=" __ initialValue: GlobalVarLiteral {
+        return new GlobalVariable(Src.fromPegsRange(location()), name, typ, initialValue);
+    }
+
+GlobalVarLiteral
+    = NumberLiteral
+    / BooleanLiteral
+    / ArrayLiteral
+    / StructLiteral
+
+LiteralList
+    = head: GlobalVarLiteral tail: (__ COMMA __ decl: GlobalVarLiteral { return decl; })* {
+        return [head, ...tail];
+    }
+
+ArrayLiteral
+    = LBRACKET __ literals: LiteralList ?__ RBRACKET {
+        return new ArrayLiteral(Src.fromPegsRange(location()), literals !== null ? literals : []);
+    }
+
+FieldLiteral
+    = field: Identifier __ COLON __ value: GlobalVarLiteral { return [field, value]; }
+
+FieldLiteralList
+    = head: FieldLiteral tail: (__ COMMA __ decl: FieldLiteral { return decl; })* {
+        return [head, ...tail];
+    }
+
+StructLiteral
+    = LCBRACE __ fields: FieldLiteralList __ RCBRACE {
+        return new StructLiteral(Src.fromPegsRange(location()), fields);
+    }
 
 TypeVariableDeclaration
     = id: Identifier { return new TypeVariableDeclaration(Src.fromPegsRange(location()), id); }
@@ -467,6 +502,7 @@ ALLOC="alloc"
 ASSERT="assert"
 FRESH="'fresh"
 OUT="out"
+VAR="var"
 
 Keyword
     = STRUCT
@@ -487,6 +523,7 @@ Keyword
     / ALLOC
     / ASSERT
     / FRESH
+    / VAR
 
 Identifier =
     !((Keyword ![a-zA-Z0-9_]) / IntType) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

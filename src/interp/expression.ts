@@ -302,7 +302,11 @@ export class ExprEvaluator {
         }
 
         if (e instanceof Identifier) {
-            const res = this.state.curFrame.store.get(e.name);
+            let res = this.state.curMachFrame.store.get(e.name);
+
+            if (res === undefined) {
+                res = this.state.globals.get(e.name);
+            }
 
             this.assert(
                 res !== undefined,

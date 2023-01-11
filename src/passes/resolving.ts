@@ -1,3 +1,4 @@
+import { EXCEPTION_MEM } from "../interp";
 import {
     ArrayType,
     BaseSrc,
@@ -5,19 +6,22 @@ import {
     Definition,
     FunctionCall,
     FunctionDefinition,
+    GlobalVariable,
     Identifier,
     IntType,
     MemConstant,
+    MemDesc,
     MemIdentifier,
     MemVariableDeclaration,
     PointerType,
     StructDefinition,
+    TransactionCall,
     Type,
     TypeVariableDeclaration,
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
-import { walk, MIRTypeError, pp } from "../utils";
+import { walk, MIRTypeError, pp, zip } from "../utils";
 
 type Def =
     | FunctionDefinition
@@ -25,7 +29,35 @@ type Def =
     | VariableDeclaration
     | MemVariableDeclaration
     | TypeVariableDeclaration
-    | MemIdentifier;
+    | MemIdentifier
+    | GlobalVariable;
+
+export type MemSubstitution = Map<MemVariableDeclaration, MemDesc>;
+export type TypeSubstitution = Map<TypeVariableDeclaration, Type>;
+export type Substitution = [MemSubstitution, TypeSubstitution];
+
+export function mergeSubstitutions(a: Substitution, b: Substitution): Substitution {
+    const memS: MemSubstitution = new Map(a[0].entries());
+    const typeS: TypeSubstitution = new Map(a[1].entries());
+
+    for (const [k, v] of b[0].entries()) {
+        if (memS.has(k)) {
+            throw new Error(`Error merging substitutions: mem id ${k.pp()} is defined in both`);
+        }
+
+        memS.set(k, v);
+    }
+
+    for (const [k, v] of b[1].entries()) {
+        if (typeS.has(k)) {
+            throw new Error(`Error merging substitutions: mem id ${k.pp()} is defined in both`);
+        }
+
+        typeS.set(k, v);
+    }
+
+    return [memS, typeS];
+}
 
 class Scope {
     private defs: Map<string, Def> = new Map();
@@ -186,13 +218,18 @@ export class Resolving {
         const global = new Scope();
 
         for (const def of this.defs) {
-            if (def instanceof StructDefinition || def instanceof FunctionDefinition) {
+            if (
+                def instanceof StructDefinition ||
+                def instanceof FunctionDefinition ||
+                def instanceof GlobalVariable
+            ) {
                 global.define(def);
             } else {
                 throw new Error(`NYI def ${def.pp()}`);
             }
         }
 
+        // Build resolution maps
         for (const def of this.defs) {
             let defScope: Scope;
 
@@ -200,16 +237,37 @@ export class Resolving {
                 defScope = global.makeFunScope(def);
             } else if (def instanceof StructDefinition) {
                 defScope = global.makeStructScope(def);
+            } else if (def instanceof GlobalVariable) {
+                defScope = global;
             } else {
-                throw new Error(`NYI def ${def.pp}`);
+                throw new Error(`NYI def ${def.pp()}`);
             }
 
-            this.analyzeOneDef(def, defScope);
+            this.resolveOneDef(def, defScope);
         }
 
-        // After we build the resolving maps, check that fresh/out memories are used correctly
+        // Check that
+        /// 1. expressions identifiers map to locals/args/globals
+        /// 2. MemVars map to MemVarDecls
+        /// 3. User defined types map to sturcts or type vars
         for (const def of this.defs) {
-            this.checkIdentifiers(def as FunctionDefinition | StructDefinition);
+            this.checkIdentifiers(def as FunctionDefinition | StructDefinition | GlobalVariable);
+        }
+
+        /// Check that
+        /// 1. types of parameters, returns, global var initializers and field types are all primitive
+        /// 2. Pointers only point to complex types
+        /// 3. Complex types only contain primitive types
+        for (const def of this.defs) {
+            if (
+                def instanceof FunctionDefinition ||
+                def instanceof StructDefinition ||
+                def instanceof GlobalVariable
+            ) {
+                this.checkTypeStructures(def);
+            } else {
+                throw new Error(`NYI def ${def.pp()}`);
+            }
         }
     }
 
@@ -279,7 +337,13 @@ export class Resolving {
         }
     }
 
-    private analyzeOneDef(def: StructDefinition | FunctionDefinition, scope: Scope) {
+    /**
+     * Walk all expression/memory/type identifiers in this def and resolve them
+     */
+    private resolveOneDef(
+        def: StructDefinition | FunctionDefinition | GlobalVariable,
+        scope: Scope
+    ) {
         // 1. Resolve all identifiers/user-defined types to their declaration
         walk(def, (nd) => {
             if (nd instanceof Identifier || nd instanceof MemIdentifier) {
@@ -294,7 +358,9 @@ export class Resolving {
                 this._typeDecls.set(nd, scope.getTypeDecl(nd));
             }
         });
+    }
 
+    private checkTypeStructures(def: StructDefinition | FunctionDefinition | GlobalVariable) {
         // 2. Check all types make sense given the resolution. (With resolution we can distinguish TVars from Structs)
         walk(def, (nd) => {
             if (nd instanceof Type) {
@@ -304,6 +370,7 @@ export class Resolving {
 
         // 3. For structs check all fields are primitive
         //    For functions check that all params/locals/returns are primitive
+        //    For global variable declaration check that their type is primitive, and any pointers in it are in exception memory
         if (def instanceof StructDefinition) {
             for (const [name, fieldT] of def.fields) {
                 if (!this.isPrimitive(fieldT)) {
@@ -313,12 +380,12 @@ export class Resolving {
                     );
                 }
             }
-        } else {
+        } else if (def instanceof FunctionDefinition) {
             for (const param of def.parameters) {
                 if (!this.isPrimitive(param.type)) {
                     throw new MIRTypeError(
                         def.src,
-                        `Cannot have non-primitive parameter ${def.name} in function ${def.name}`
+                        `Cannot have non-primitive parameter ${param.name} in function ${def.name}`
                     );
                 }
             }
@@ -340,15 +407,280 @@ export class Resolving {
                     );
                 }
             }
+        } else if (def instanceof GlobalVariable) {
+            if (!this.isPrimitive(def.type)) {
+                throw new MIRTypeError(
+                    def.src,
+                    `Cannot declare global variable ${
+                        def.name
+                    } of non-primitive type ${def.type.pp()}`
+                );
+            }
+
+            this.walkType(def.type, (t) => {
+                if (
+                    t instanceof PointerType &&
+                    !(t.region instanceof MemConstant && t.region.name === EXCEPTION_MEM)
+                ) {
+                    throw new MIRTypeError(
+                        def.type.src,
+                        `Cannot have global variables that potentially points to memories other than ${EXCEPTION_MEM}`
+                    );
+                }
+            });
         }
     }
 
-    private checkIdentifiers(def: FunctionDefinition | StructDefinition): void {
+    private makeTypeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): TypeSubstitution {
+        let formals: TypeVariableDeclaration[];
+        let actuals: Type[];
+        let argDesc: string;
+
+        if (arg instanceof UserDefinedType) {
+            if (arg.typeArgs.length === 0) {
+                return new Map();
+            }
+
+            const decl = this.getTypeDecl(arg);
+
+            if (!(decl instanceof StructDefinition)) {
+                throw new MIRTypeError(
+                    arg.src,
+                    `User defined type with args ${arg.pp()} should resolve to struct, not ${pp(
+                        decl
+                    )}`
+                );
+            }
+
+            formals = decl.typeParameters;
+            actuals = arg.typeArgs;
+            argDesc = `Struct ${arg.name}`;
+        } else {
+            const calleeDef = this.getIdDecl(arg.callee);
+
+            if (!(calleeDef instanceof FunctionDefinition)) {
+                throw new MIRTypeError(
+                    arg.callee.src,
+                    `Expected function name not ${arg.callee.pp()}`
+                );
+            }
+
+            formals = calleeDef.typeParameters;
+            actuals = arg.typeArgs;
+            argDesc = `Function ${arg.callee.pp()}`;
+        }
+
+        if (formals.length !== actuals.length) {
+            throw new MIRTypeError(
+                arg.src,
+                `${argDesc} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+            );
+        }
+
+        return new Map(zip(formals, actuals));
+    }
+
+    private makeMemSubst(arg: UserDefinedType | FunctionCall | TransactionCall): MemSubstitution {
+        let formals: MemVariableDeclaration[];
+        let actuals: MemDesc[];
+        let argDesc: string;
+
+        if (arg instanceof UserDefinedType) {
+            if (arg.memArgs.length === 0) {
+                return new Map();
+            }
+
+            const decl = this.getTypeDecl(arg);
+
+            if (!(decl instanceof StructDefinition)) {
+                throw new MIRTypeError(
+                    arg.src,
+                    `User defined type with args ${arg.pp()} should resolve to struct, not ${pp(
+                        decl
+                    )}`
+                );
+            }
+
+            formals = decl.memoryParameters;
+            actuals = arg.memArgs;
+            argDesc = `Struct ${arg.name}`;
+        } else {
+            const calleeDef = this.getIdDecl(arg.callee);
+
+            if (!(calleeDef instanceof FunctionDefinition)) {
+                throw new MIRTypeError(
+                    arg.callee.src,
+                    `Expected function name not ${arg.callee.pp()}`
+                );
+            }
+
+            formals = calleeDef.memoryParameters;
+            actuals = arg.memArgs;
+            argDesc = `Function ${arg.callee.pp()}`;
+        }
+
+        if (formals.length !== actuals.length) {
+            throw new MIRTypeError(
+                arg.src,
+                `${argDesc} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+            );
+        }
+
+        return new Map(zip(formals, actuals));
+    }
+
+    public makeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): Substitution {
+        return [this.makeMemSubst(arg), this.makeTypeSubst(arg)];
+    }
+
+    public concretizeType(t: Type, subst: Substitution): Type {
+        const [memSubst, typeSubst] = subst;
+
+        // Check if t is a mapped type var
+        if (t instanceof UserDefinedType && t.memArgs.length === 0 && t.typeArgs.length === 0) {
+            const decl = this.getTypeDecl(t);
+
+            if (decl instanceof TypeVariableDeclaration) {
+                const mappedT = typeSubst.get(decl);
+
+                if (!mappedT) {
+                    return t;
+                }
+
+                return this.concretizeType(mappedT, subst);
+            }
+
+            // Struct with no polymorphic params
+            return t;
+        }
+
+        const concretizeMemDesc = (arg: MemDesc): MemDesc => {
+            while (arg instanceof MemIdentifier) {
+                // Out mem identifier. Return a "non-out" version
+                if (arg.out) {
+                    return new MemIdentifier(arg.src, arg.name, false);
+                }
+
+                const decl = this.getMemIdDecl(arg);
+
+                // Shouldn't happen at this point
+                if (decl === undefined) {
+                    throw new Error(`Internal error: Undefined mem identifier ${arg.pp()}`);
+                }
+
+                if (decl instanceof MemIdentifier) {
+                    arg = decl;
+                    continue;
+                }
+
+                const newVal = memSubst.get(decl);
+
+                if (!newVal) {
+                    break;
+                }
+
+                arg = newVal;
+            }
+
+            return arg;
+        };
+
+        if (t instanceof UserDefinedType) {
+            const concreteMemArgs = t.memArgs.map(concretizeMemDesc);
+            const concreteTypeArgs = t.typeArgs.map((tArg) => this.concretizeType(tArg, subst));
+
+            return new UserDefinedType(t.src, t.name, concreteMemArgs, concreteTypeArgs);
+        }
+
+        if (t instanceof PointerType) {
+            return new PointerType(
+                t.src,
+                this.concretizeType(t.toType, subst),
+                concretizeMemDesc(t.region)
+            );
+        }
+
+        if (t instanceof ArrayType) {
+            return new ArrayType(t.src, this.concretizeType(t.baseType, subst));
+        }
+
+        return t;
+    }
+
+    public isConcrete(t: Type): boolean {
+        if (t instanceof BoolType || t instanceof IntType) {
+            return true;
+        }
+
+        if (t instanceof ArrayType) {
+            return this.isConcrete(t.baseType);
+        }
+
+        if (t instanceof PointerType) {
+            if (!(t.region instanceof MemConstant)) {
+                return false;
+            }
+
+            return this.isConcrete(t.toType);
+        }
+
+        if (t instanceof UserDefinedType) {
+            const decl = this.getTypeDecl(t);
+
+            if (decl === undefined || decl instanceof TypeVariableDeclaration) {
+                return false;
+            }
+
+            for (const memArg of t.memArgs) {
+                if (!(memArg instanceof MemConstant)) {
+                    return false;
+                }
+            }
+
+            for (const typeArg of t.typeArgs) {
+                if (!this.isConcrete(typeArg)) {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        throw new Error(`NYI type ${t.pp()}`);
+    }
+
+    private walkType(t: Type, cb: (nd: Type) => void): void {
+        walk(t, (nd) => {
+            cb(nd as Type);
+
+            if (nd instanceof PointerType && nd.toType instanceof UserDefinedType) {
+                const def = this.getTypeDecl(nd.toType);
+
+                if (def instanceof StructDefinition) {
+                    const subst = this.makeSubst(nd.toType);
+
+                    for (const [, fieldT] of def.fields) {
+                        const concreteFieldT = this.concretizeType(fieldT, subst);
+
+                        this.walkType(concreteFieldT, cb);
+                    }
+                }
+            }
+        });
+    }
+
+    private checkIdentifiers(def: FunctionDefinition | StructDefinition | GlobalVariable): void {
         walk(def, (nd) => {
             if (nd instanceof Identifier) {
                 const decl = this._idDecls.get(nd);
 
-                if (!(decl instanceof VariableDeclaration || decl instanceof FunctionDefinition)) {
+                if (
+                    !(
+                        decl instanceof VariableDeclaration ||
+                        decl instanceof FunctionDefinition ||
+                        decl instanceof GlobalVariable
+                    )
+                ) {
                     throw new MIRTypeError(
                         nd.src,
                         `Expression identifier ${

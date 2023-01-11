@@ -1,0 +1,27 @@
+struct Foo<M> {
+	a: u8;
+	b: u8[] *M;
+}
+
+var a: u256 = 1_u256
+
+var b: u256[] * #exception = [1_u256, 2_u256, 3_u256]
+
+var c: Foo<#exception> * #exception = {
+	a: 4_u8,
+	b: [42_u8, 43_u8, 44_u8]
+}
+
+fun main()
+locals x: u256,
+	   y: u256[] * #exception,
+	   z: Foo<#exception> *#exception,
+	   w: u8[] *#exception;
+{
+	entry:
+		x := a;
+		y := b;
+		z := c;
+		load z.b in w;
+		return;
+}
