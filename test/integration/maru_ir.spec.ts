@@ -49,8 +49,13 @@ entry:
         ["test/samples/valid/fun.maruir", "--dot"],
         undefined,
         0,
-        `digraph foo {
-  entry [label="return ;",style=filled,color=lightblue1,shape="box", xlabel="entry"];
+        `digraph "foo" {
+  node[style=filled, color=lightblue1, shape="box"];
+  label="foo";
+  labelloc="t"
+
+  entry [label="return ;", xlabel="entry"];
+  
 }`,
         undefined
     ],

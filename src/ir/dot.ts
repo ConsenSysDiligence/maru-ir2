@@ -3,8 +3,8 @@ import { CFG } from "./cfg";
 export function cfgToDot(name: string, cfg?: CFG): string {
     const indent = " ".repeat(2);
 
-    let nodeTxt = "";
-    let edgeTxt = "";
+    const nodes = [];
+    const edges = [];
 
     if (cfg === undefined) {
         return `digraph ${name} {}`;
@@ -13,28 +13,21 @@ export function cfgToDot(name: string, cfg?: CFG): string {
     for (const node of cfg.nodes.values()) {
         const body = node.statements.map((stmt) => stmt.pp().replace(/"/g, '\\"')).join("\n");
 
-        nodeTxt +=
-            indent +
-            node.label +
-            ' [label="' +
-            body +
-            '",style=filled,color=lightblue1,shape="box", xlabel="' +
-            node.label +
-            '"];\n';
+        nodes.push(`${node.label} [label="${body}", xlabel="${node.label}"];`);
 
         for (const edge of node.outgoing) {
             const predicate = edge.predicate === undefined ? "true" : edge.predicate.pp();
 
-            edgeTxt +=
-                indent +
-                edge.from.label +
-                " -> " +
-                edge.to.label +
-                '[label="' +
-                predicate +
-                '"];\n';
+            edges.push(`${edge.from.label} -> ${edge.to.label} [label="${predicate}"];`);
         }
     }
 
-    return "digraph " + name + " {\n" + nodeTxt + edgeTxt + "}";
+    return `digraph "${name}" {
+  node[style=filled, color=lightblue1, shape="box"];
+  label="${name}";
+  labelloc="t"
+
+  ${nodes.join("\n" + indent)}
+  ${edges.join("\n" + indent)}
+}`;
 }
