@@ -768,7 +768,7 @@ export function runProgram(
 ): [Resolving, Typing, State, StatementExecutor] {
     const resolving = new Resolving(defs);
     const typing = new Typing(defs, resolving);
-    const state = new State(defs, main, [], [], rootTrans, builtins);
+    const state = new State(defs, [], rootTrans, builtins);
 
     const litEvaluator = new LiteralEvaluator(resolving, state);
 

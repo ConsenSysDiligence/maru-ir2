@@ -173,8 +173,6 @@ export class State {
 
     constructor(
         program: Definition[],
-        entryFun: FunctionDefinition,
-        entryFunArgs: PrimitiveValue[],
         entryMemArgs: MemConstant[],
         isTransaction: boolean,
         builtins: Map<string, BuiltinFun>
@@ -186,6 +184,7 @@ export class State {
         for (const memName of this.getInitialMemories(program)) {
             this.memories.set(memName, new Map());
         }
+
         this.builtins = builtins;
         this.memoriesStack = [];
         this.failure = undefined;
@@ -331,6 +330,7 @@ export class State {
         }
 
         const stackStrs = this.stack.map((frame) => frame.dump(indent));
+
         stackStrs.reverse();
 
         return `Stack:\n${stackStrs.join("\n")}\nMemories:\n${mems.join("\n")}`;
@@ -341,6 +341,7 @@ export class State {
 
         if (curMax === undefined) {
             const mem = this.memories.get(memory) as Memory;
+
             curMax = mem.size === 0 ? 0 : Math.max(...mem.keys()) + 1;
         }
 
@@ -352,6 +353,7 @@ export class State {
     public define(val: ComplexValue, memory: string): PointerVal {
         const mem = this.memories.get(memory) as Memory;
         const ptr = this.getNewPtr(memory);
+
         mem.set(ptr, val);
 
         return [memory, ptr];
