@@ -3,13 +3,13 @@ import fse from "fs-extra";
 import {
     eq,
     FunctionDefinition,
-    runProgram,
     Memory,
     parseProgram,
     poison,
     pp,
     Program,
     Resolving,
+    runProgram,
     State,
     StatementExecutor,
     Typing
@@ -21,8 +21,8 @@ function runTest(
     rootTrans: boolean
 ): [Program, Resolving, Typing, State, StatementExecutor] {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
-    const defs = parseProgram(contents);
-    const entryPoint = defs.find(
+    const program = parseProgram(contents);
+    const entryPoint = program.find(
         (def): def is FunctionDefinition => def instanceof FunctionDefinition && def.name === "main"
     );
 
@@ -37,7 +37,7 @@ function runTest(
     }
 
     const [resolving, typing, state, stmtExec] = runProgram(
-        defs,
+        program,
         entryPoint,
         [],
         new Map(),
@@ -47,7 +47,7 @@ function runTest(
         }
     );
 
-    return [defs, resolving, typing, state, stmtExec];
+    return [program, resolving, typing, state, stmtExec];
 }
 
 describe("Interpreter tests", () => {

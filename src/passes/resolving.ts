@@ -1,9 +1,8 @@
-import { EXCEPTION_MEM } from "../interp";
+import { EXCEPTION_MEM, Program } from "../interp";
 import {
     ArrayType,
     BaseSrc,
     BoolType,
-    Definition,
     FunctionCall,
     FunctionDefinition,
     GlobalVariable,
@@ -21,7 +20,7 @@ import {
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
-import { walk, MIRTypeError, pp, zip } from "../utils";
+import { MIRTypeError, pp, walk, zip } from "../utils";
 
 type Def =
     | FunctionDefinition
@@ -195,7 +194,7 @@ export class Resolving {
     >;
     private _typeDecls: Map<UserDefinedType, TypeDecl>;
 
-    constructor(public readonly defs: Definition[]) {
+    constructor(public readonly program: Program) {
         this._idDecls = new Map();
         this._typeDecls = new Map();
 
@@ -217,7 +216,7 @@ export class Resolving {
     private runAnalysis(): void {
         const global = new Scope();
 
-        for (const def of this.defs) {
+        for (const def of this.program) {
             if (
                 def instanceof StructDefinition ||
                 def instanceof FunctionDefinition ||
@@ -230,7 +229,7 @@ export class Resolving {
         }
 
         // Build resolution maps
-        for (const def of this.defs) {
+        for (const def of this.program) {
             let defScope: Scope;
 
             if (def instanceof FunctionDefinition) {
@@ -250,7 +249,7 @@ export class Resolving {
         /// 1. expressions identifiers map to locals/args/globals
         /// 2. MemVars map to MemVarDecls
         /// 3. User defined types map to sturcts or type vars
-        for (const def of this.defs) {
+        for (const def of this.program) {
             this.checkIdentifiers(def as FunctionDefinition | StructDefinition | GlobalVariable);
         }
 
@@ -258,7 +257,7 @@ export class Resolving {
         /// 1. types of parameters, returns, global var initializers and field types are all primitive
         /// 2. Pointers only point to complex types
         /// 3. Complex types only contain primitive types
-        for (const def of this.defs) {
+        for (const def of this.program) {
             if (
                 def instanceof FunctionDefinition ||
                 def instanceof StructDefinition ||

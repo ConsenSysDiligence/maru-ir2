@@ -17,10 +17,10 @@ describe("Resolving test", () => {
     for (const file of files) {
         it(file, () => {
             const contents = fse.readFileSync(file, { encoding: "utf-8" });
-            const defs = parseProgram(contents);
-            const resolving = new Resolving(defs);
+            const proram = parseProgram(contents);
+            const resolving = new Resolving(proram);
 
-            for (const def of defs) {
+            for (const def of proram) {
                 if (!(def instanceof FunctionDefinition && def.body)) {
                     continue;
                 }
@@ -51,9 +51,9 @@ describe("Resolving negative tests", () => {
     for (const file of files) {
         it(file, () => {
             const contents = fse.readFileSync(file, { encoding: "utf-8" });
-            const defs = parseProgram(contents);
+            const program = parseProgram(contents);
 
-            expect(() => new Resolving(defs)).toThrow(MIRTypeError);
+            expect(() => new Resolving(program)).toThrow(MIRTypeError);
         });
     }
 });

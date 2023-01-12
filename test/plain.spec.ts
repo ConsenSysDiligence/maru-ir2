@@ -31,13 +31,13 @@ describe("nodeToPlain/plainToNode coversion tests", () => {
             it(file, () => {
                 const contents = fse.readFileSync(file, { encoding: "utf-8" });
 
-                const originalDefs = parseProgram(contents);
-                const plainDefs = originalDefs.map(nodeToPlain);
-                const importedDefs = plainDefs.map(plainToNode);
+                const originalProgram = parseProgram(contents);
+                const plainProgram = originalProgram.map(nodeToPlain);
+                const importedProgram = plainProgram.map(plainToNode);
 
-                for (let i = 0; i < originalDefs.length; i++) {
-                    const originalDef = originalDefs[i];
-                    const importedDef = importedDefs[i];
+                for (let i = 0; i < originalProgram.length; i++) {
+                    const originalDef = originalProgram[i];
+                    const importedDef = importedProgram[i];
 
                     expect(importedDef.pp()).toEqual(originalDef.pp());
                 }

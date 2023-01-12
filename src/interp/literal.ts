@@ -59,6 +59,7 @@ export class LiteralEvaluator {
 
             if (toT instanceof ArrayType && lit instanceof ArrayLiteral) {
                 const arrayVal = lit.values.map((v) => this.evalLiteral(v, toT.baseType));
+
                 return this.state.define(arrayVal, expectedT.region.name);
             }
 
@@ -66,7 +67,13 @@ export class LiteralEvaluator {
                 const def = this.resolving.getTypeDecl(toT);
                 const structVal = new Map<string, PrimitiveValue>();
 
-                this.assert(def instanceof StructDefinition, lit, ``);
+                this.assert(
+                    def instanceof StructDefinition,
+                    lit,
+                    `Expected struct definition, got {0}`,
+                    def
+                );
+
                 const litMap = new Map(lit.fields);
                 const subst = this.resolving.makeSubst(toT);
 

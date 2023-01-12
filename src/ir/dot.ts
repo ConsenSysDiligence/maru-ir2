@@ -1,4 +1,5 @@
 import { CFG } from "./cfg";
+import { FunctionDefinition } from "./definitions";
 
 export function cfgToDot(name: string, cfg?: CFG): string {
     const indent = " ".repeat(2);
@@ -7,7 +8,7 @@ export function cfgToDot(name: string, cfg?: CFG): string {
     const edges = [];
 
     if (cfg === undefined) {
-        return `digraph ${name} {}`;
+        return `digraph "${name}" {}`;
     }
 
     for (const node of cfg.nodes.values()) {
@@ -30,4 +31,8 @@ export function cfgToDot(name: string, cfg?: CFG): string {
   ${nodes.join("\n" + indent)}
   ${edges.join("\n" + indent)}
 }`;
+}
+
+export function fnToDot(fn: FunctionDefinition): string {
+    return cfgToDot(fn.name, fn.body);
 }

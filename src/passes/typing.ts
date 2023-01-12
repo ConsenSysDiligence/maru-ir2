@@ -1,15 +1,23 @@
 import { assert } from "console";
+import { Program } from "../interp";
 import {
+    Abort,
+    AllocArray,
+    AllocStruct,
+    ArrayLiteral,
     ArrayType,
+    Assert,
     Assignment,
     BinaryOperation,
     BooleanLiteral,
     BoolType,
     Branch,
-    Definition,
+    Cast,
     Expression,
     FunctionCall,
     FunctionDefinition,
+    GlobalVariable,
+    GlobalVarLiteral,
     Identifier,
     IntType,
     Jump,
@@ -23,20 +31,12 @@ import {
     StoreField,
     StoreIndex,
     StructDefinition,
-    Abort,
+    StructLiteral,
     TransactionCall,
     Type,
+    TypeVariableDeclaration,
     UnaryOperation,
-    UserDefinedType,
-    AllocArray,
-    AllocStruct,
-    Assert,
-    Cast,
-    GlobalVariable,
-    GlobalVarLiteral,
-    ArrayLiteral,
-    StructLiteral,
-    TypeVariableDeclaration
+    UserDefinedType
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
 import { Resolving } from "./resolving";
@@ -51,8 +51,9 @@ export const boolT = new BoolType(noSrc);
 export class Typing {
     typeCache: Map<Expression, Type>;
 
-    constructor(public readonly defs: Definition[], private readonly resolve: Resolving) {
+    constructor(public readonly program: Program, private readonly resolve: Resolving) {
         this.typeCache = new Map();
+
         this.runAnalysis();
     }
 
@@ -61,7 +62,7 @@ export class Typing {
     }
 
     private runAnalysis(): void {
-        for (const def of this.defs) {
+        for (const def of this.program) {
             if (def instanceof FunctionDefinition && def.body !== undefined) {
                 for (const bb of def.body.nodes.values()) {
                     for (const stmt of bb.statements) {

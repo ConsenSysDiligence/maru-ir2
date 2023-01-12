@@ -3,14 +3,15 @@ import fse from "fs-extra";
 import minimist from "minimist";
 import {
     BooleanLiteral,
-    cfgToDot,
     Definition,
+    fnToDot,
     FunctionCall,
     FunctionDefinition,
     nodeToPlain,
     NumberLiteral,
     plainToNode,
     PrimitiveValue,
+    Program,
     runProgram
 } from "..";
 import { parseProgram } from "../parser";
@@ -87,7 +88,7 @@ function error(message: string): never {
         contents = await fse.readFile(fileName, { encoding: "utf-8" });
     }
 
-    const defs: Definition[] = args["from-ast"]
+    const program: Program = args["from-ast"]
         ? JSON.parse(contents).map(plainToNode)
         : parseProgram(contents);
 
@@ -96,7 +97,7 @@ function error(message: string): never {
     }
 
     if (args.print) {
-        terminate(defs.map((def) => def.pp()).join("\n"));
+        terminate(program.map((def) => def.pp()).join("\n"));
     }
 
     if ("dot" in args) {
@@ -113,22 +114,17 @@ function error(message: string): never {
             filter = (def): def is FunctionDefinition => def instanceof FunctionDefinition;
         }
 
-        terminate(
-            defs
-                .filter(filter)
-                .map((def) => cfgToDot(def.name, def.body))
-                .join("\n")
-        );
+        terminate(program.filter(filter).map(fnToDot).join("\n"));
     }
 
     if (args.ast) {
-        terminate(JSON.stringify(defs.map(nodeToPlain), undefined, 4));
+        terminate(JSON.stringify(program.map(nodeToPlain), undefined, 4));
     }
 
     if (args.tc) {
-        const resolving = new Resolving(defs);
+        const resolving = new Resolving(program);
 
-        new Typing(defs, resolving);
+        new Typing(program, resolving);
 
         terminate("Type-checking finished successfully");
     }
@@ -140,7 +136,7 @@ function error(message: string): never {
             throw new Error('Option value for "--run" should contain a function call statement');
         }
 
-        const entryPoint = defs.find(
+        const entryPoint = program.find(
             (def) => def instanceof FunctionDefinition && def.name === entryStmt.callee.name
         );
 
@@ -154,7 +150,7 @@ function error(message: string): never {
             );
         }
 
-        const entryArgs = entryStmt.args.map((arg): PrimitiveValue => {
+        const entryArgs = entryStmt.args.map((arg, i): PrimitiveValue => {
             if (arg instanceof NumberLiteral || arg instanceof BooleanLiteral) {
                 return arg.value;
             }
@@ -164,7 +160,7 @@ function error(message: string): never {
             );
         });
 
-        runProgram(defs, entryPoint, entryArgs, new Map(), true, (stmt, state) => {
+        runProgram(program, entryPoint, entryArgs, new Map(), true, (stmt, state) => {
             console.log(`Exec ${stmt.pp()} in ${state.dump()}`);
         });
 

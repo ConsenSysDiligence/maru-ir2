@@ -759,21 +759,21 @@ function noop(): void {
 }
 
 export function runProgram(
-    defs: Program,
+    program: Program,
     main: FunctionDefinition,
     args: PrimitiveValue[],
     builtins: Map<string, BuiltinFun>,
     rootTrans: boolean,
     callback: (stmt: Statement, state: State) => void = noop
 ): [Resolving, Typing, State, StatementExecutor] {
-    const resolving = new Resolving(defs);
-    const typing = new Typing(defs, resolving);
-    const state = new State(defs, [], rootTrans, builtins);
+    const resolving = new Resolving(program);
+    const typing = new Typing(program, resolving);
+    const state = new State(program, [], rootTrans, builtins);
 
     const litEvaluator = new LiteralEvaluator(resolving, state);
 
     // First initialize globals
-    for (const def of defs) {
+    for (const def of program) {
         if (def instanceof GlobalVariable) {
             state.globals.set(def.name, litEvaluator.evalLiteral(def.initialValue, def.type));
         }

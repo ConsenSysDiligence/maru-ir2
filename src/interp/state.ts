@@ -111,9 +111,11 @@ export class Frame extends BaseFrame {
 
     dump(indent: string): string {
         const storeStrs = [];
+
         for (const [name, val] of this.store) {
             storeStrs.push(`${name}: ${pp(val)}`);
         }
+
         return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
 
@@ -138,9 +140,11 @@ export class BuiltinFrame extends BaseFrame {
 
     dump(indent: string): string {
         const storeStrs = [];
+
         for (const [name, val] of this.store) {
             storeStrs.push(`${name}: ${pp(val)}`);
         }
+
         return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
 }
@@ -172,7 +176,7 @@ export class State {
     memoriesStack: Memories[];
 
     constructor(
-        program: Definition[],
+        program: Program,
         entryMemArgs: MemConstant[],
         isTransaction: boolean,
         builtins: Map<string, BuiltinFun>
@@ -317,7 +321,7 @@ export class State {
 
     dump(): string {
         const mems = [];
-        const indent = "    ";
+        const indent = " ".repeat(4);
 
         for (const [memName, memory] of this.memories) {
             const memContents = [];

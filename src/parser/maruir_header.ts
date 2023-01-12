@@ -1,5 +1,5 @@
+import { Program } from "../interp";
 import {
-    Definition,
     StructDefinition,
     IntType,
     BoolType,
@@ -65,11 +65,11 @@ export function parseSource(source: string, options: ParseOptions) {
     }
 }
 
-export function parseProgram(source: string): Definition[] {
+export function parseProgram(source: string): Program {
     return parseSource(source, { startRule: "Program" });
 }
 
-export function parseStatement(source: string): Expression {
+export function parseStatement(source: string): Statement {
     return parseSource(source, { startRule: "Statement" });
 }
 
