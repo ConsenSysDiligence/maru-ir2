@@ -1,0 +1,9 @@
+struct Foo {
+	a: u8;
+	b: u8[] *#exception;
+}
+
+var c: Foo* #exception = {
+	a: 1_i8,
+	b: [42_u8, 43_u8, 44_u8]
+}

@@ -1,5 +1,4 @@
-import { Identifier } from "../expressions";
-import { MemConstant } from "../misc";
+import { MemConstant, MemIdentifier } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "./type";
@@ -8,7 +7,7 @@ export class PointerType extends Type {
     constructor(
         src: BaseSrc,
         public readonly toType: Type,
-        public readonly region: Identifier | MemConstant // TODO (@dimo): Pick better type for storing regions
+        public readonly region: MemIdentifier | MemConstant // TODO (@dimo): Pick better type for storing regions
     ) {
         super(src);
     }
