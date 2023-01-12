@@ -150,7 +150,7 @@ function error(message: string): never {
             );
         }
 
-        const entryArgs = entryStmt.args.map((arg, i): PrimitiveValue => {
+        const entryArgs = entryStmt.args.map((arg): PrimitiveValue => {
             if (arg instanceof NumberLiteral || arg instanceof BooleanLiteral) {
                 return arg.value;
             }
