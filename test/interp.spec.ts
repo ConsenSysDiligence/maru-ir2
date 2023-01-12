@@ -3,7 +3,7 @@ import fse from "fs-extra";
 import {
     eq,
     FunctionDefinition,
-    initAndCall,
+    runProgram,
     Memory,
     parseProgram,
     poison,
@@ -22,17 +22,30 @@ function runTest(
 ): [Program, Resolving, Typing, State, StatementExecutor] {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
     const defs = parseProgram(contents);
-    const entryPoint = defs.filter((x) => x instanceof FunctionDefinition && x.name === "main");
+    const entryPoint = defs.find(
+        (def): def is FunctionDefinition => def instanceof FunctionDefinition && def.name === "main"
+    );
 
     // Tests need to have a main() entry function
-    expect(entryPoint.length).toEqual(1);
-
-    const main = entryPoint[0] as FunctionDefinition;
+    if (entryPoint === undefined) {
+        throw new Error('Unable to find entry point function "main"');
+    }
 
     // main() must not have any parameters
-    expect(main.parameters.length).toEqual(0);
+    if (entryPoint.parameters.length > 0) {
+        throw new Error('Entry point function "main" should not have any defined parameters');
+    }
 
-    const [resolving, typing, state, stmtExec] = initAndCall(defs, main, [], new Map(), rootTrans);
+    const [resolving, typing, state, stmtExec] = runProgram(
+        defs,
+        entryPoint,
+        [],
+        new Map(),
+        rootTrans,
+        (stmt, state) => {
+            console.error(`Exec ${stmt.pp()} in ${state.dump()}`);
+        }
+    );
 
     return [defs, resolving, typing, state, stmtExec];
 }

@@ -3,16 +3,15 @@ import fse from "fs-extra";
 import minimist from "minimist";
 import {
     BooleanLiteral,
+    cfgToDot,
+    Definition,
     FunctionCall,
     FunctionDefinition,
-    NumberLiteral,
-    PrimitiveValue,
-    State,
-    StatementExecutor,
     nodeToPlain,
-    Definition,
+    NumberLiteral,
     plainToNode,
-    cfgToDot
+    PrimitiveValue,
+    runProgram
 } from "..";
 import { parseProgram } from "../parser";
 import { parseStatement } from "../parser/maruir_parser";
@@ -126,10 +125,11 @@ function error(message: string): never {
         terminate(JSON.stringify(defs.map(nodeToPlain), undefined, 4));
     }
 
-    const resolving = new Resolving(defs);
-    const typing = new Typing(defs, resolving);
-
     if (args.tc) {
+        const resolving = new Resolving(defs);
+
+        new Typing(defs, resolving);
+
         terminate("Type-checking finished successfully");
     }
 
@@ -154,7 +154,7 @@ function error(message: string): never {
             );
         }
 
-        const entryArgs: PrimitiveValue[] = entryStmt.args.map((arg) => {
+        const entryArgs = entryStmt.args.map((arg): PrimitiveValue => {
             if (arg instanceof NumberLiteral || arg instanceof BooleanLiteral) {
                 return arg.value;
             }
@@ -164,16 +164,9 @@ function error(message: string): never {
             );
         });
 
-        const state = new State(defs, entryPoint, entryArgs, [], true, new Map());
-        const engine = new StatementExecutor(resolving, typing, state);
-
-        while (state.running) {
-            const stmt = state.curFrame.curBB.statements[state.curFrame.curBBInd];
-
+        runProgram(defs, entryPoint, entryArgs, new Map(), true, (stmt, state) => {
             console.log(`Exec ${stmt.pp()} in ${state.dump()}`);
-
-            engine.execStatement(stmt);
-        }
+        });
 
         terminate();
     }

@@ -1,34 +1,34 @@
 import {
+    Abort,
+    AllocArray,
+    AllocStruct,
+    Assert,
     Assignment,
     BoolType,
     Branch,
     Expression,
     FunctionCall,
     FunctionDefinition,
+    GlobalVariable,
     Identifier,
     IntType,
     Jump,
     LoadField,
     LoadIndex,
+    MemConstant,
+    MemDesc,
+    MemIdentifier,
+    MemVariableDeclaration,
     NoSrc,
+    noSrc,
     PointerType,
     Return,
     Statement,
     StoreField,
     StoreIndex,
-    Abort,
-    TransactionCall,
-    Type,
-    AllocArray,
-    AllocStruct,
-    MemConstant,
     StructDefinition,
-    Assert,
-    MemDesc,
-    MemVariableDeclaration,
-    MemIdentifier,
-    noSrc,
-    GlobalVariable
+    TransactionCall,
+    Type
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
@@ -754,12 +754,17 @@ export class StatementExecutor {
     }
 }
 
-export function initAndCall(
+function noop(): void {
+    /** do nothing */
+}
+
+export function runProgram(
     defs: Program,
     main: FunctionDefinition,
     args: PrimitiveValue[],
     builtins: Map<string, BuiltinFun>,
-    rootTrans: boolean
+    rootTrans: boolean,
+    callback: (stmt: Statement, state: State) => void = noop
 ): [Resolving, Typing, State, StatementExecutor] {
     const resolving = new Resolving(defs);
     const typing = new Typing(defs, resolving);
@@ -779,9 +784,12 @@ export function initAndCall(
 
     // Finally interpret until we are done or aborted
     const stmtExec = new StatementExecutor(resolving, typing, state);
+
     while (state.running) {
         const curStmt = state.curMachFrame.curBB.statements[state.curMachFrame.curBBInd];
-        console.error(`Exec ${curStmt.pp()} in ${state.dump()}`);
+
+        callback(curStmt, state);
+
         stmtExec.execStatement(curStmt);
     }
 

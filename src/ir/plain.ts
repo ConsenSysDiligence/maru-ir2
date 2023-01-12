@@ -2,6 +2,7 @@ import {
     Abort,
     AllocArray,
     AllocStruct,
+    ArrayLiteral,
     ArrayType,
     Assert,
     Assignment,
@@ -13,6 +14,8 @@ import {
     Cast,
     FunctionCall,
     FunctionDefinition,
+    GlobalVariable,
+    GlobalVarLiteral,
     Identifier,
     IntType,
     Jump,
@@ -33,6 +36,7 @@ import {
     StoreField,
     StoreIndex,
     StructDefinition,
+    StructLiteral,
     TransactionCall,
     TypeVariableDeclaration,
     UnaryOperation,
@@ -437,6 +441,22 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         };
     }
 
+    if (node instanceof ArrayLiteral) {
+        return {
+            ...header(node),
+
+            values: node.values.map(nodeToPlain)
+        };
+    }
+
+    if (node instanceof StructLiteral) {
+        return {
+            ...header(node),
+
+            fields: node.fields.map(([name, value]) => [name, nodeToPlain(value)])
+        };
+    }
+
     if (node instanceof FunctionDefinition) {
         return {
             ...header(node),
@@ -459,6 +479,16 @@ export function nodeToPlain(node: Node): PlainRepresentation {
             memoryParameters: node.memoryParameters.map(nodeToPlain),
             typeParameters: node.typeParameters.map(nodeToPlain),
             fields: node.fields.map(([name, type]) => [name, nodeToPlain(type)])
+        };
+    }
+
+    if (node instanceof GlobalVariable) {
+        return {
+            ...header(node),
+
+            name: node.name,
+            type: nodeToPlain(node.type),
+            initialValue: nodeToPlain(node.initialValue)
         };
     }
 
@@ -666,6 +696,20 @@ export function plainToNode(plain: PlainRepresentation): Node {
         return new VariableDeclaration(plainToSrc(plain.src), plain.name, plainToNode(plain.type));
     }
 
+    if (plain.nodeType === ArrayLiteral.name) {
+        return new ArrayLiteral(plainToSrc(plain.src), plain.values.map(plainToNode));
+    }
+
+    if (plain.nodeType === StructLiteral.name) {
+        return new StructLiteral(
+            plainToSrc(plain.src),
+            (plain.fields as Array<[string, any]>).map(([name, value]) => [
+                name,
+                plainToNode(value) as GlobalVarLiteral
+            ])
+        );
+    }
+
     if (plain.nodeType === FunctionDefinition.name) {
         return new FunctionDefinition(
             plainToSrc(plain.src),
@@ -686,6 +730,15 @@ export function plainToNode(plain: PlainRepresentation): Node {
             plain.typeParameters.map(plainToNode),
             plain.name,
             (plain.fields as Array<[string, any]>).map(([name, type]) => [name, plainToNode(type)])
+        );
+    }
+
+    if (plain.nodeType === GlobalVariable.name) {
+        return new GlobalVariable(
+            plainToSrc(plain.src),
+            plain.name,
+            plainToNode(plain.type),
+            plainToNode(plain.initialValue) as GlobalVarLiteral
         );
     }
 
