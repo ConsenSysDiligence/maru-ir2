@@ -156,7 +156,7 @@ function error(message: string): never {
 
         const state = new State(program, [], true, new Map());
 
-        const litEvaluator = new LiteralEvaluator(resolving, state);
+        const literalEvaluator = new LiteralEvaluator(resolving, state);
         const stmtExecutor = new StatementExecutor(resolving, typing, state);
 
         const entryArgs = entryStmt.args.map((arg, i): PrimitiveValue => {
@@ -168,7 +168,7 @@ function error(message: string): never {
                 arg instanceof ArrayLiteral ||
                 arg instanceof StructLiteral
             ) {
-                return litEvaluator.evalLiteral(arg, expectedT);
+                return literalEvaluator.evalLiteral(arg, expectedT);
             }
 
             throw new Error(
@@ -177,7 +177,7 @@ function error(message: string): never {
         });
 
         const flow = runProgram(
-            litEvaluator,
+            literalEvaluator,
             stmtExecutor,
             program,
             state,

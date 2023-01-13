@@ -37,10 +37,10 @@ function runTest(file: string, rootTrans: boolean): State {
     const typing = new Typing(program, resolving);
     const state = new State(program, [], rootTrans, new Map());
 
-    const litEvaluator = new LiteralEvaluator(resolving, state);
+    const literalEvaluator = new LiteralEvaluator(resolving, state);
     const stmtExecutor = new StatementExecutor(resolving, typing, state);
 
-    const flow = runProgram(litEvaluator, stmtExecutor, program, state, entryPoint, [], true);
+    const flow = runProgram(literalEvaluator, stmtExecutor, program, state, entryPoint, [], true);
 
     for (const stmt of flow) {
         console.error(`Exec ${stmt.pp()} in ${state.dump()}`);
