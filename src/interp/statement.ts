@@ -758,8 +758,8 @@ export function* runProgram(
     stmtExecutor: StatementExecutor,
     program: Program,
     state: State,
-    main: FunctionDefinition,
-    args: PrimitiveValue[],
+    entryPoint: FunctionDefinition,
+    entryArgs: PrimitiveValue[],
     rootTrans: boolean
 ): Generator<Statement> {
     // First initialize globals
@@ -770,7 +770,7 @@ export function* runProgram(
     }
 
     // Next initialize root call
-    state.startRootCall(main, args, [], [], rootTrans);
+    state.startRootCall(entryPoint, entryArgs, [], [], rootTrans);
 
     // Finally interpret until we are done or aborted
     while (state.running) {
