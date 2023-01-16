@@ -3,11 +3,11 @@ import fse from "fs-extra";
 import {
     eq,
     FunctionDefinition,
+    LiteralEvaluator,
     Memory,
     parseProgram,
     poison,
     pp,
-    Program,
     Resolving,
     runProgram,
     State,
@@ -16,10 +16,7 @@ import {
 } from "../src";
 import { searchRecursive } from "./utils";
 
-function runTest(
-    file: string,
-    rootTrans: boolean
-): [Program, Resolving, Typing, State, StatementExecutor] {
+function runTest(file: string, rootTrans: boolean): State {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
     const program = parseProgram(contents);
     const entryPoint = program.find(
@@ -36,18 +33,20 @@ function runTest(
         throw new Error('Entry point function "main" should not have any defined parameters');
     }
 
-    const [resolving, typing, state, stmtExec] = runProgram(
-        program,
-        entryPoint,
-        [],
-        new Map(),
-        rootTrans,
-        (stmt, state) => {
-            console.error(`Exec ${stmt.pp()} in ${state.dump()}`);
-        }
-    );
+    const resolving = new Resolving(program);
+    const typing = new Typing(program, resolving);
+    const state = new State(program, [], rootTrans, new Map());
 
-    return [program, resolving, typing, state, stmtExec];
+    const literalEvaluator = new LiteralEvaluator(resolving, state);
+    const stmtExecutor = new StatementExecutor(resolving, typing, state);
+
+    const flow = runProgram(literalEvaluator, stmtExecutor, program, state, entryPoint, [], true);
+
+    for (const stmt of flow) {
+        console.error(`Exec ${stmt.pp()} in ${state.dump()}`);
+    }
+
+    return state;
 }
 
 describe("Interpreter tests", () => {
@@ -55,7 +54,8 @@ describe("Interpreter tests", () => {
 
     for (const file of files) {
         it(file, () => {
-            const [, , , state] = runTest(file, false);
+            const state = runTest(file, false);
+
             expect(state.externalReturns).toBeDefined();
             expect(state.failed).toEqual(false);
         });
@@ -69,7 +69,7 @@ describe("Failing interpreter tests", () => {
 
     for (const file of files) {
         it(file, () => {
-            const [, , , state] = runTest(file, false);
+            const state = runTest(file, false);
 
             expect(state.externalReturns).not.toBeDefined();
             expect(state.failed).toEqual(true);
@@ -79,7 +79,8 @@ describe("Failing interpreter tests", () => {
 
 describe("Abort on root call", () => {
     it("Normal call", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/root_abort.maruir", false);
+        const state = runTest("test/samples/valid/interp/root_abort.maruir", false);
+
         expect(state.externalReturns).toEqual([poison]);
         expect(state.failed).toEqual(false);
         expect(state.memories.has("memory")).toBeTruthy();
@@ -94,7 +95,8 @@ describe("Abort on root call", () => {
     });
 
     it("Transaction call", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/root_abort.maruir", true);
+        const state = runTest("test/samples/valid/interp/root_abort.maruir", true);
+
         expect(state.externalReturns).toEqual([poison, true]);
         expect(state.failed).toEqual(false);
         expect(state.memories.has("memory")).toBeTruthy();
@@ -110,6 +112,7 @@ describe("Abort on root call", () => {
 
 function checkFreshMems(state: State, expectedContents: Array<Array<[number, string]>>): boolean {
     const freshMems = [...state.memories.keys()].filter((x) => x.startsWith("__fresh_mem"));
+
     freshMems.sort();
 
     if (freshMems.length !== expectedContents.length) {
@@ -142,7 +145,8 @@ function checkFreshMems(state: State, expectedContents: Array<Array<[number, str
 
 describe("Fresh memories", () => {
     it("Create 2 fresh memories", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/fresh_mem.maruir", true);
+        const state = runTest("test/samples/valid/interp/fresh_mem.maruir", true);
+
         expect(state.externalReturns).toEqual([false]);
         expect(state.failed).toEqual(false);
         console.error(`State: `, state.dump());
@@ -153,7 +157,8 @@ describe("Fresh memories", () => {
     });
 
     it("Recursive fresh memories", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/fresh_mem_recursive.maruir", true);
+        const state = runTest("test/samples/valid/interp/fresh_mem_recursive.maruir", true);
+
         expect(state.externalReturns).toEqual([false]);
         expect(state.failed).toEqual(false);
         console.error(`State: `, state.dump());
@@ -173,7 +178,8 @@ describe("Fresh memories", () => {
     });
 
     it("Iterative fresh memories", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/fresh_mem_iterative.maruir", true);
+        const state = runTest("test/samples/valid/interp/fresh_mem_iterative.maruir", true);
+
         expect(state.externalReturns).toEqual([false]);
         expect(state.failed).toEqual(false);
         console.error(`State: `, state.dump());

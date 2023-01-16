@@ -2,17 +2,22 @@
 import fse from "fs-extra";
 import minimist from "minimist";
 import {
+    ArrayLiteral,
     BooleanLiteral,
     Definition,
     fnToDot,
     FunctionCall,
     FunctionDefinition,
+    LiteralEvaluator,
     nodeToPlain,
     NumberLiteral,
     plainToNode,
     PrimitiveValue,
     Program,
-    runProgram
+    runProgram,
+    State,
+    StatementExecutor,
+    StructLiteral
 } from "..";
 import { parseProgram } from "../parser";
 import { parseStatement } from "../parser/maruir_parser";
@@ -121,11 +126,10 @@ function error(message: string): never {
         terminate(JSON.stringify(program.map(nodeToPlain), undefined, 4));
     }
 
+    const resolving = new Resolving(program);
+    const typing = new Typing(program, resolving);
+
     if (args.tc) {
-        const resolving = new Resolving(program);
-
-        new Typing(program, resolving);
-
         terminate("Type-checking finished successfully");
     }
 
@@ -150,9 +154,21 @@ function error(message: string): never {
             );
         }
 
-        const entryArgs = entryStmt.args.map((arg): PrimitiveValue => {
-            if (arg instanceof NumberLiteral || arg instanceof BooleanLiteral) {
-                return arg.value;
+        const state = new State(program, [], true, new Map());
+
+        const literalEvaluator = new LiteralEvaluator(resolving, state);
+        const stmtExecutor = new StatementExecutor(resolving, typing, state);
+
+        const entryArgs = entryStmt.args.map((arg, i): PrimitiveValue => {
+            const expectedT = entryPoint.parameters[i].type;
+
+            if (
+                arg instanceof NumberLiteral ||
+                arg instanceof BooleanLiteral ||
+                arg instanceof ArrayLiteral ||
+                arg instanceof StructLiteral
+            ) {
+                return literalEvaluator.evalLiteral(arg, expectedT);
             }
 
             throw new Error(
@@ -160,9 +176,23 @@ function error(message: string): never {
             );
         });
 
-        runProgram(program, entryPoint, entryArgs, new Map(), true, (stmt, state) => {
+        const flow = runProgram(
+            literalEvaluator,
+            stmtExecutor,
+            program,
+            state,
+            entryPoint,
+            entryArgs,
+            true
+        );
+
+        for (const stmt of flow) {
             console.log(`Exec ${stmt.pp()} in ${state.dump()}`);
-        });
+        }
+
+        if (state.failure) {
+            throw state.failure;
+        }
 
         terminate();
     }

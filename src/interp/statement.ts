@@ -38,7 +38,6 @@ import { ExprEvaluator, fits } from "./expression";
 import { LiteralEvaluator } from "./literal";
 import {
     BuiltinFrame,
-    BuiltinFun,
     ComplexValue,
     EXCEPTION_MEM,
     Frame,
@@ -583,7 +582,10 @@ export class StatementExecutor {
                 const memName = this.state.stack[frameIdx].freshMemories.get(decl);
 
                 if (memName === undefined) {
-                    this.error(`Trying to access memory ${decl.pp()} before it is initialized`);
+                    this.error(
+                        `Trying to access memory ${decl.pp()} before it is initialized`,
+                        decl
+                    );
                 }
 
                 return new MemConstant(noSrc, memName);
@@ -754,24 +756,15 @@ export class StatementExecutor {
     }
 }
 
-function noop(): void {
-    /** do nothing */
-}
-
-export function runProgram(
+export function* runProgram(
+    litEvaluator: LiteralEvaluator,
+    stmtExecutor: StatementExecutor,
     program: Program,
-    main: FunctionDefinition,
-    args: PrimitiveValue[],
-    builtins: Map<string, BuiltinFun>,
-    rootTrans: boolean,
-    callback: (stmt: Statement, state: State) => void = noop
-): [Resolving, Typing, State, StatementExecutor] {
-    const resolving = new Resolving(program);
-    const typing = new Typing(program, resolving);
-    const state = new State(program, [], rootTrans, builtins);
-
-    const litEvaluator = new LiteralEvaluator(resolving, state);
-
+    state: State,
+    entryPoint: FunctionDefinition,
+    entryArgs: PrimitiveValue[],
+    rootTrans: boolean
+): Generator<Statement> {
     // First initialize globals
     for (const def of program) {
         if (def instanceof GlobalVariable) {
@@ -780,18 +773,14 @@ export function runProgram(
     }
 
     // Next initialize root call
-    state.startRootCall(main, args, [], [], rootTrans);
+    state.startRootCall(entryPoint, entryArgs, [], [], rootTrans);
 
     // Finally interpret until we are done or aborted
-    const stmtExec = new StatementExecutor(resolving, typing, state);
-
     while (state.running) {
-        const curStmt = state.curMachFrame.curBB.statements[state.curMachFrame.curBBInd];
+        const stmt = state.curMachFrame.curBB.statements[state.curMachFrame.curBBInd];
 
-        callback(curStmt, state);
+        yield stmt;
 
-        stmtExec.execStatement(curStmt);
+        stmtExecutor.execStatement(stmt);
     }
-
-    return [resolving, typing, state, stmtExec];
 }

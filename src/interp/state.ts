@@ -164,7 +164,7 @@ export class State {
     memories: Memories;
     builtins: Map<string, BuiltinFun>;
     externalReturns: any[] | undefined;
-    private failure: InterpError | undefined;
+    failure: InterpError | undefined;
     rootMemArgs: MemConstant[];
     globals: Store;
     public rootIsTransaction: boolean;
