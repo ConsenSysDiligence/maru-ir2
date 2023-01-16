@@ -167,7 +167,7 @@ export class State {
     failure: InterpError | undefined;
     rootMemArgs: MemConstant[];
     globals: Store;
-    public rootIsTransaction: boolean;
+    rootIsTransaction: boolean;
     maxMemPtr: Map<string, number>;
 
     /**
