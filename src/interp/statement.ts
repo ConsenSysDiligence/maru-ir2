@@ -582,7 +582,10 @@ export class StatementExecutor {
                 const memName = this.state.stack[frameIdx].freshMemories.get(decl);
 
                 if (memName === undefined) {
-                    this.error(`Trying to access memory ${decl.pp()} before it is initialized`);
+                    this.error(
+                        `Trying to access memory ${decl.pp()} before it is initialized`,
+                        decl
+                    );
                 }
 
                 return new MemConstant(noSrc, memName);

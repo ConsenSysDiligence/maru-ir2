@@ -190,6 +190,10 @@ function error(message: string): never {
             console.log(`Exec ${stmt.pp()} in ${state.dump()}`);
         }
 
+        if (state.failure) {
+            throw state.failure;
+        }
+
         terminate();
     }
 
