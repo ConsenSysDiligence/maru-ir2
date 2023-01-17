@@ -1,0 +1,10 @@
+Exec arr := alloc u8[3_u8] in #memory; in Stack:
+    main:entry:0 arr := alloc u8[3_u8] in #memory; <arr: !POISON!, res: !POISON!>
+Memories:
+    exception: []
+    memory: []
+Exec load arr[3_u8] in res; in Stack:
+    main:entry:1 load arr[3_u8] in res; <arr: [memory,0], res: !POISON!>
+Memories:
+    exception: []
+    memory: [0: [!POISON!,!POISON!,!POISON!]]

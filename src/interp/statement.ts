@@ -19,7 +19,6 @@ import {
     MemDesc,
     MemIdentifier,
     MemVariableDeclaration,
-    NoSrc,
     noSrc,
     PointerType,
     Return,
@@ -33,7 +32,7 @@ import {
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { Resolving, Typing } from "../passes";
-import { fmt, pp, PPIsh, zip } from "../utils";
+import { fill, fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator, fits } from "./expression";
 import { LiteralEvaluator } from "./literal";
 import {
@@ -62,11 +61,11 @@ export class StatementExecutor {
     }
 
     private error(msg: string, e?: Node): never {
-        throw new InterpError(e === undefined ? new NoSrc() : e, msg, this.state);
+        throw new InterpError(e === undefined ? noSrc : e.src, msg, this.state);
     }
 
     private internalError(msg: string, e?: Node): never {
-        throw new InterpInternalError(e === undefined ? new NoSrc() : e, msg, this.state);
+        throw new InterpInternalError(e === undefined ? noSrc : e.src, msg, this.state);
     }
 
     private assert(
@@ -104,7 +103,9 @@ export class StatementExecutor {
 
     execAssignment(s: Assignment): void {
         const rVal = this.evaluator.evalExpression(s.rhs);
+
         this.assignTo(rVal, s.lhs, s);
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -216,6 +217,7 @@ export class StatementExecutor {
 
     execJump(s: Jump): void {
         const newBB = (this.state.curMachFrame.fun.body as CFG).nodes.get(s.label);
+
         this.assert(newBB !== undefined, `No BasicBlock found for label {0}`, s, s.label);
 
         this.state.curMachFrame.curBB = newBB;
@@ -286,6 +288,7 @@ export class StatementExecutor {
         this.assert(val !== undefined, `Struct missing field {0}`, s, s.member);
 
         this.assignTo(val, s.lhs, s);
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -316,6 +319,7 @@ export class StatementExecutor {
         const val = array[Number(index)];
 
         this.assignTo(val, s.lhs, s);
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -333,6 +337,7 @@ export class StatementExecutor {
         const rVal = this.evaluator.evalExpression(s.rhs);
 
         struct.set(s.member, rVal);
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -363,6 +368,7 @@ export class StatementExecutor {
         const rVal = this.evaluator.evalExpression(s.rhs);
 
         array[Number(index)] = rVal;
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -377,6 +383,7 @@ export class StatementExecutor {
             }
 
             const res: any = {};
+
             for (const [field, val] of complexVal) {
                 res[field] = this.jsEncode(val);
             }
@@ -401,6 +408,7 @@ export class StatementExecutor {
 
         if (jsV instanceof Array) {
             const encodedArr = jsV.map((el) => this.jsDecode(el, memory));
+
             return this.state.define(encodedArr, memory);
         }
 
@@ -447,6 +455,7 @@ export class StatementExecutor {
 
         if (this.state.rootIsTransaction) {
             vals.push(aborted);
+
             this.restoreMemsOnReturnFromTransaction(aborted, stmt);
         }
 
@@ -466,6 +475,7 @@ export class StatementExecutor {
         // If this was a transaction call handle restoring memories
         if (stmt instanceof TransactionCall) {
             vals.push(aborted);
+
             this.restoreMemsOnReturnFromTransaction(aborted, stmt);
         }
 
@@ -473,7 +483,7 @@ export class StatementExecutor {
 
         this.assert(
             lhss.length === vals.length,
-            `Mismatch in returns - expected {0} got {0}`,
+            `Mismatch in returns - expected {0} got {1}`,
             stmt,
             lhss.length,
             vals.length
@@ -487,6 +497,7 @@ export class StatementExecutor {
 
     execReturn(s: Return): void {
         const retVals = s.values.map((v) => this.evaluator.evalExpression(v));
+
         this.state.stack.pop();
 
         if (this.state.stack.length === 0) {
@@ -497,18 +508,13 @@ export class StatementExecutor {
                 false,
                 this.state.stack[this.state.stack.length - 1] as Frame
             );
+
             this.state.curMachFrame.curBBInd++;
         }
     }
 
-    private makePoisonRets(nRets: number): PrimitiveValue[] {
-        const retVals: PrimitiveValue[] = [];
-
-        for (let i = 0; i < nRets; i++) {
-            retVals.push(poison);
-        }
-
-        return retVals;
+    private makePoisonArr(nRets: number): PrimitiveValue[] {
+        return fill(nRets, poison);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -523,16 +529,20 @@ export class StatementExecutor {
 
             if (!(curStmt instanceof TransactionCall)) {
                 nRets = curFrame.fun.returns.length;
+
                 continue;
             }
 
-            this.returnValsToFrame(this.makePoisonRets(nRets), true, curFrame);
+            this.returnValsToFrame(this.makePoisonArr(nRets), true, curFrame);
+
             this.state.curMachFrame.curBBInd++;
+
             return;
         }
 
         this.state.stack.pop();
-        this.returnValsToExternalCtx(this.makePoisonRets(nRets), true, s);
+
+        this.returnValsToExternalCtx(this.makePoisonArr(nRets), true, s);
     }
 
     private resolveMemDesc(m: MemDesc): MemConstant {
@@ -607,21 +617,17 @@ export class StatementExecutor {
         );
 
         if (size < 0) {
-            this.error(`Array size ${size} is too big!`, s.size);
+            this.error(`Array size ${size} is negative`, s.size);
         }
 
-        this.assert(size < Number.MAX_SAFE_INTEGER, `Array size {0} is too big!`, s.size, size);
+        this.assert(size < Number.MAX_SAFE_INTEGER, `Array size {0} is too big`, s.size, size);
 
-        const newArr = [];
-
-        for (let i = 0; i < Number(size); i++) {
-            newArr.push(poison);
-        }
-
+        const arr = this.makePoisonArr(Number(size));
         const mem = this.resolveMemDesc(s.mem);
-        const ptr = this.state.define(newArr, mem.name);
+        const ptr = this.state.define(arr, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -646,6 +652,7 @@ export class StatementExecutor {
         const ptr = this.state.define(newStruct, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
+
         this.state.curMachFrame.curBBInd++;
     }
 
@@ -674,84 +681,68 @@ export class StatementExecutor {
 
         try {
             if (s instanceof Assignment) {
-                this.execAssignment(s);
-                return;
+                return this.execAssignment(s);
             }
 
             if (s instanceof Branch) {
-                this.execBranch(s);
-                return;
+                return this.execBranch(s);
             }
 
             if (s instanceof FunctionCall) {
-                this.execFunctionCall(s);
-                return;
+                return this.execFunctionCall(s);
             }
 
             if (s instanceof Jump) {
-                this.execJump(s);
-                return;
+                return this.execJump(s);
             }
 
             if (s instanceof LoadField) {
-                this.execLoadField(s);
-                return;
+                return this.execLoadField(s);
             }
 
             if (s instanceof LoadIndex) {
-                this.execLoadIndex(s);
-                return;
+                return this.execLoadIndex(s);
             }
 
             if (s instanceof StoreField) {
-                this.execStoreField(s);
-                return;
+                return this.execStoreField(s);
             }
 
             if (s instanceof StoreIndex) {
-                this.execStoreIndex(s);
-                return;
+                return this.execStoreIndex(s);
             }
 
             if (s instanceof TransactionCall) {
-                this.execTransactionCall(s);
-                return;
+                return this.execTransactionCall(s);
             }
 
             if (s instanceof Abort) {
-                this.execAbort(s);
-                return;
+                return this.execAbort(s);
             }
 
             if (s instanceof Return) {
-                this.execReturn(s);
-                return;
+                return this.execReturn(s);
             }
 
             if (s instanceof AllocArray) {
-                this.execAllocArray(s);
-                return;
+                return this.execAllocArray(s);
             }
 
             if (s instanceof AllocStruct) {
-                this.execAllocStruct(s);
-                return;
+                return this.execAllocStruct(s);
             }
 
             if (s instanceof Assert) {
-                this.execAssert(s);
-                return;
+                return this.execAssert(s);
             }
 
-            this.internalError(`Unknown statement ${pp(s)}`);
+            this.internalError(`Unknown statement ${pp(s)}`, s);
         } catch (e) {
             if (e instanceof InterpError) {
                 this.state.fail(e);
-
-                return;
+            } else {
+                throw e;
             }
-
-            throw e;
         }
     }
 }

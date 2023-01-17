@@ -120,6 +120,16 @@ entry:
         undefined
     ],
     [
+        ["test/samples/invalid/interp/arr_oob.maruir", "--run", "call main();"],
+        undefined,
+        1,
+        fse
+            .readFileSync("test/samples/invalid/interp/arr_oob.main.log", { encoding: "utf-8" })
+            .trimEnd(),
+        `6:9: Index 3 OoB.
+main:entry:1 load arr[3_u8] in res;`
+    ],
+    [
         ["test/samples/valid/trans_call.maruir", "--dot", "gauss"],
         undefined,
         0,

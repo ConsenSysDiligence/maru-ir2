@@ -23,3 +23,13 @@ export function zip<T1, T2>(a1: T1[], a2: T2[]): Array<[T1, T2]> {
 
     return res;
 }
+
+export function fill<T>(size: number, value: T): T[] {
+    const res: T[] = [];
+
+    for (let i = 0; i < size; i++) {
+        res.push(value);
+    }
+
+    return res;
+}
