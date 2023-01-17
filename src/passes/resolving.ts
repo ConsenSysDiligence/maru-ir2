@@ -569,6 +569,7 @@ export class Resolving {
 
                 if (decl instanceof MemIdentifier) {
                     arg = decl;
+
                     continue;
                 }
 
@@ -616,11 +617,11 @@ export class Resolving {
         }
 
         if (t instanceof PointerType) {
-            if (!(t.region instanceof MemConstant)) {
-                return false;
+            if (t.region instanceof MemConstant) {
+                return this.isConcrete(t.toType);
             }
 
-            return this.isConcrete(t.toType);
+            return false;
         }
 
         if (t instanceof UserDefinedType) {
@@ -642,7 +643,7 @@ export class Resolving {
                 }
             }
 
-            return false;
+            return true;
         }
 
         throw new Error(`NYI type ${t.pp()}`);
@@ -687,6 +688,7 @@ export class Resolving {
                         } should refer to variable or function, not ${pp(decl)}`
                     );
                 }
+
                 return;
             }
 

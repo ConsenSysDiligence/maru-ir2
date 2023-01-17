@@ -57,7 +57,7 @@ export class Typing {
         this.runAnalysis();
     }
 
-    public typeOf(e: Expression): Type | undefined {
+    typeOf(e: Expression): Type | undefined {
         return this.typeCache.get(e);
     }
 
@@ -502,13 +502,11 @@ export class Typing {
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
         if (stmt instanceof Assignment) {
-            this.tcAssignment(stmt);
-            return;
+            return this.tcAssignment(stmt);
         }
 
         if (stmt instanceof Branch) {
-            this.tcBranch(stmt);
-            return;
+            return this.tcBranch(stmt);
         }
 
         if (stmt instanceof Jump) {
@@ -516,38 +514,31 @@ export class Typing {
         }
 
         if (stmt instanceof LoadField) {
-            this.tcLoadField(stmt);
-            return;
+            return this.tcLoadField(stmt);
         }
 
         if (stmt instanceof LoadIndex) {
-            this.tcLoadIndex(stmt);
-            return;
+            return this.tcLoadIndex(stmt);
         }
 
         if (stmt instanceof StoreField) {
-            this.tcStoreField(stmt);
-            return;
+            return this.tcStoreField(stmt);
         }
 
         if (stmt instanceof StoreIndex) {
-            this.tcStoreIndex(stmt);
-            return;
+            return this.tcStoreIndex(stmt);
         }
 
         if (stmt instanceof Return) {
-            this.tcReturn(stmt, fun);
-            return;
+            return this.tcReturn(stmt, fun);
         }
 
         if (stmt instanceof FunctionCall) {
-            this.tcFunctionCall(stmt);
-            return;
+            return this.tcFunctionCall(stmt);
         }
 
         if (stmt instanceof TransactionCall) {
-            this.tcTransactionCall(stmt);
-            return;
+            return this.tcTransactionCall(stmt);
         }
 
         if (stmt instanceof Abort) {
@@ -556,24 +547,21 @@ export class Typing {
         }
 
         if (stmt instanceof AllocArray) {
-            this.tcAllocArray(stmt);
-            return;
+            return this.tcAllocArray(stmt);
         }
 
         if (stmt instanceof AllocStruct) {
-            this.tcAllocStruct(stmt);
-            return;
+            return this.tcAllocStruct(stmt);
         }
 
         if (stmt instanceof Assert) {
-            this.tcAssert(stmt);
-            return;
+            return this.tcAssert(stmt);
         }
 
         throw new Error(`NYI statement ${stmt.pp()}`);
     }
 
-    public tcInitLiteral(lit: GlobalVarLiteral, expectedType: Type): void {
+    tcInitLiteral(lit: GlobalVarLiteral, expectedType: Type): void {
         if (lit instanceof BooleanLiteral && eq(expectedType, boolT)) {
             return;
         }
@@ -633,6 +621,7 @@ export class Typing {
             for (const [field, lit] of actualFields) {
                 const fieldT = formalFields.get(field) as Type;
                 const concreteFieldT = this.resolve.concretizeType(fieldT, subst);
+
                 this.tcInitLiteral(lit, concreteFieldT);
             }
 
@@ -659,6 +648,7 @@ export class Typing {
         res = this.typeOfExpressionImpl(expr);
 
         this.typeCache.set(expr, res);
+
         return res;
     }
 

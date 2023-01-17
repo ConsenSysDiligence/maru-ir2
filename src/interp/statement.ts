@@ -170,7 +170,19 @@ export class StatementExecutor {
         // Allocate memories in caller frame
         this.allocMems(s);
 
-        if (!callee.body) {
+        if (callee.body) {
+            const newFrame = new Frame(
+                callee,
+                zip(
+                    callee.parameters.map((d) => d.name),
+                    argVs
+                ),
+                memArgs,
+                typeArgs
+            );
+
+            this.state.stack.push(newFrame);
+        } else {
             const builtin = this.state.builtins.get(s.callee.name);
 
             if (builtin === undefined) {
@@ -196,18 +208,6 @@ export class StatementExecutor {
             this.returnValsToFrame(returns, aborted, this.state.curMachFrame);
 
             this.state.curMachFrame.curBBInd++;
-        } else {
-            const newFrame = new Frame(
-                callee,
-                zip(
-                    callee.parameters.map((d) => d.name),
-                    argVs
-                ),
-                memArgs,
-                typeArgs
-            );
-
-            this.state.stack.push(newFrame);
         }
     }
 
@@ -240,7 +240,7 @@ export class StatementExecutor {
 
         this.assert(
             this.agrees(val, lhsType) || val === poison,
-            `Cannot assign {0} to {1} of type {}`,
+            `Cannot assign {0} to {1} of type {2}`,
             inStmt,
             val,
             lhs,
@@ -374,7 +374,7 @@ export class StatementExecutor {
 
     /// Helper to extract an interpreter value into
     /// a normal JS value. Supports maps and arrays.
-    public jsEncode(v: PrimitiveValue): any {
+    jsEncode(v: PrimitiveValue): any {
         if (v instanceof Array) {
             const complexVal = this.deref(v);
 
@@ -397,7 +397,7 @@ export class StatementExecutor {
     /// Helper to convert a normal JS value into an interpreter value.
     /// If the JS value is complex, then it is encoded in the provided
     /// `memory`
-    public jsDecode(jsV: any, memory: string): PrimitiveValue {
+    jsDecode(jsV: any, memory: string): PrimitiveValue {
         if (typeof jsV === "number") {
             return BigInt(jsV);
         }
@@ -407,19 +407,19 @@ export class StatementExecutor {
         }
 
         if (jsV instanceof Array) {
-            const encodedArr = jsV.map((el) => this.jsDecode(el, memory));
+            const arr = jsV.map((el) => this.jsDecode(el, memory));
 
-            return this.state.define(encodedArr, memory);
+            return this.state.define(arr, memory);
         }
 
         if (jsV instanceof Object) {
-            const encodedStruct = new Map();
+            const struct = new Map();
 
             for (const field in jsV) {
-                encodedStruct.set(field, this.jsDecode(jsV[field], memory));
+                struct.set(field, this.jsDecode(jsV[field], memory));
             }
 
-            return this.state.define(encodedStruct, memory);
+            return this.state.define(struct, memory);
         }
 
         throw new Error(`Cannot encode ${pp(jsV)} into interpreter`);
@@ -440,6 +440,7 @@ export class StatementExecutor {
             this.assert(curExcMem !== undefined, `Missing #exception memory`, stmt);
 
             this.state.memories = lastSave;
+
             this.state.memories.set(EXCEPTION_MEM, curExcMem);
         }
     }
@@ -620,7 +621,7 @@ export class StatementExecutor {
             this.error(`Array size ${size} is negative`, s.size);
         }
 
-        this.assert(size < Number.MAX_SAFE_INTEGER, `Array size {0} is too big`, s.size, size);
+        this.assert(size <= Number.MAX_SAFE_INTEGER, `Array size {0} is too big`, s.size, size);
 
         const arr = this.makePoisonArr(Number(size));
         const mem = this.resolveMemDesc(s.mem);
@@ -632,8 +633,6 @@ export class StatementExecutor {
     }
 
     execAllocStruct(s: AllocStruct): void {
-        const newStruct = new Map<string, PrimitiveValue>();
-
         const decl = this.resolving.getTypeDecl(s.type);
 
         this.assert(
@@ -644,12 +643,14 @@ export class StatementExecutor {
             decl
         );
 
+        const struct = new Map<string, PrimitiveValue>();
+
         for (const [fieldName] of decl.fields) {
-            newStruct.set(fieldName, poison);
+            struct.set(fieldName, poison);
         }
 
         const mem = this.resolveMemDesc(s.mem);
-        const ptr = this.state.define(newStruct, mem.name);
+        const ptr = this.state.define(struct, mem.name);
 
         this.assignTo(ptr, s.lhs, s);
 
