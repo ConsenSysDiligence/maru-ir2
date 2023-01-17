@@ -274,7 +274,7 @@ export class Resolving {
      * Return true IFF `t` is a primitive type. Note we need resolving, to distinguish type vars from structures, as they
      * both look like a UserDefinedType.
      */
-    public isPrimitive(t: Type): boolean {
+    isPrimitive(t: Type): boolean {
         if (t instanceof IntType || t instanceof BoolType || t instanceof PointerType) {
             return true;
         }
@@ -528,11 +528,11 @@ export class Resolving {
         return new Map(zip(formals, actuals));
     }
 
-    public makeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): Substitution {
+    makeSubst(arg: UserDefinedType | FunctionCall | TransactionCall): Substitution {
         return [this.makeMemSubst(arg), this.makeTypeSubst(arg)];
     }
 
-    public concretizeType(t: Type, subst: Substitution): Type {
+    concretizeType(t: Type, subst: Substitution): Type {
         const [memSubst, typeSubst] = subst;
 
         // Check if t is a mapped type var
@@ -542,11 +542,9 @@ export class Resolving {
             if (decl instanceof TypeVariableDeclaration) {
                 const mappedT = typeSubst.get(decl);
 
-                if (!mappedT) {
-                    return t;
+                if (mappedT) {
+                    return this.concretizeType(mappedT, subst);
                 }
-
-                return this.concretizeType(mappedT, subst);
             }
 
             // Struct with no polymorphic params
@@ -563,7 +561,7 @@ export class Resolving {
                 const decl = this.getMemIdDecl(arg);
 
                 // Shouldn't happen at this point
-                if (decl === undefined) {
+                if (!decl) {
                     throw new Error(`Internal error: Undefined mem identifier ${arg.pp()}`);
                 }
 
@@ -607,7 +605,7 @@ export class Resolving {
         return t;
     }
 
-    public isConcrete(t: Type): boolean {
+    isConcrete(t: Type): boolean {
         if (t instanceof BoolType || t instanceof IntType) {
             return true;
         }
