@@ -4,6 +4,7 @@ import {
     BuiltinFun,
     eq,
     FunctionDefinition,
+    InterpInternalError,
     LiteralEvaluator,
     Memory,
     parseProgram,
@@ -210,7 +211,7 @@ describe("Fresh memories", () => {
 });
 
 describe("Builtins", () => {
-    it("Custom builtin", () => {
+    it("Supplied custom builtin", () => {
         const builtins = new Map<string, BuiltinFun>([
             [
                 "customBuiltin",
@@ -230,5 +231,11 @@ describe("Builtins", () => {
         const exc = state.memories.get("exception") as Memory;
 
         expect(exc.size).toEqual(0);
+    });
+
+    it("Missing custom builtin", () => {
+        expect(() => runTest("test/samples/valid/builtin.maruir", false)).toThrow(
+            InterpInternalError
+        );
     });
 });

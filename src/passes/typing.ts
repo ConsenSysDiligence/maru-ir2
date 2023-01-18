@@ -513,6 +513,10 @@ export class Typing {
             return;
         }
 
+        if (stmt instanceof Abort) {
+            return;
+        }
+
         if (stmt instanceof LoadField) {
             return this.tcLoadField(stmt);
         }
@@ -539,11 +543,6 @@ export class Typing {
 
         if (stmt instanceof TransactionCall) {
             return this.tcTransactionCall(stmt);
-        }
-
-        if (stmt instanceof Abort) {
-            /// Nothing to do.
-            return;
         }
 
         if (stmt instanceof AllocArray) {
@@ -635,8 +634,8 @@ export class Typing {
     }
 
     /**
-     * Compute the type of an expression. Actual implementation in
-     * `tcExpressionImpl`. Caches the results in `typeCache`.
+     * Compute the type of an expression. Actual implementation in `tcExpressionImpl`.
+     * Caches the results in `typeCache`.
      */
     private typeOfExpression(expr: Expression): Type {
         let res = this.typeCache.get(expr);
@@ -710,9 +709,9 @@ export class Typing {
         const lhsT = this.typeOfExpression(expr.leftExpr);
         const rhsT = this.typeOfExpression(expr.rightExpr);
 
-        /// Power and bitshifts are the only binary operators
-        /// where we don't insist that the left and right sub-expressions
-        /// are of the same type.
+        // Power and bitshifts are the only binary operators
+        // where we don't insist that the left and right sub-expressions
+        // are of the same type.
         if (["**", ">>", "<<"].includes(expr.op)) {
             if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
                 throw new MIRTypeError(

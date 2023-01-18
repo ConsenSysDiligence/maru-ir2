@@ -38,7 +38,8 @@ export class LiteralEvaluator {
     }
 
     /**
-     * Evaluate a literal in the current state. Note that if the literal is an array or struct,
+     * Evaluate a literal in the current state.
+     * Note that if the literal is an array or struct,
      * this will define that array/struct in the corresponding memory.
      *
      * We assume that the literals have been type checked at this point

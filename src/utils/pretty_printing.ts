@@ -95,6 +95,7 @@ export function fmt(message: string, ...details: PPIsh[]): string {
     for (let i = 0; i < details.length; i++) {
         const detail = details[i];
         const part = pp(detail);
+
         message = message.replace(new RegExp("\\{" + i + "\\}", "g"), part);
     }
 

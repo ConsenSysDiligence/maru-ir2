@@ -185,9 +185,12 @@ export class StatementExecutor {
         } else {
             const builtin = this.state.builtins.get(s.callee.name);
 
-            if (builtin === undefined) {
-                this.internalError(`No builtin for empty function ${s.callee.name}`, s);
-            }
+            this.assert(
+                builtin !== undefined,
+                `No builtin for empty function {0}`,
+                s,
+                s.callee.name
+            );
 
             const newFrame = new BuiltinFrame(
                 callee,
