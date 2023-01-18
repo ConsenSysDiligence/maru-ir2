@@ -1,6 +1,7 @@
 import expect from "expect";
 import fse from "fs-extra";
 import {
+    BuiltinFun,
     eq,
     FunctionDefinition,
     LiteralEvaluator,
@@ -17,7 +18,11 @@ import {
 } from "../src";
 import { searchRecursive } from "./utils";
 
-function runTest(file: string, rootTrans: boolean): State {
+function runTest(
+    file: string,
+    rootTrans: boolean,
+    builtins = new Map<string, BuiltinFun>()
+): State {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
     const program = parseProgram(contents);
     const entryPoint = program.find(
@@ -36,7 +41,7 @@ function runTest(file: string, rootTrans: boolean): State {
 
     const resolving = new Resolving(program);
     const typing = new Typing(program, resolving);
-    const state = new State(program, [], rootTrans, new Map());
+    const state = new State(program, [], rootTrans, builtins);
 
     const literalEvaluator = new LiteralEvaluator(resolving, state);
     const stmtExecutor = new StatementExecutor(resolving, typing, state);
@@ -201,5 +206,29 @@ describe("Fresh memories", () => {
                 [[0, "[0,0,0,0]"]]
             ])
         ).toBeTruthy();
+    });
+});
+
+describe("Builtins", () => {
+    it("Custom builtin", () => {
+        const builtins = new Map<string, BuiltinFun>([
+            [
+                "customBuiltin",
+                (s, f) => {
+                    const v = f.args[0][1];
+
+                    return [false, [v]];
+                }
+            ]
+        ]);
+
+        const state = runTest("test/samples/valid/builtin.maruir", false, builtins);
+
+        expect(state.externalReturns).toEqual([]);
+        expect(state.failed).toEqual(false);
+
+        const exc = state.memories.get("exception") as Memory;
+
+        expect(exc.size).toEqual(0);
     });
 });
