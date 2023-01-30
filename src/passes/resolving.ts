@@ -274,6 +274,32 @@ export class Resolving {
                 throw new Error(`NYI def ${def.pp()}`);
             }
         }
+
+        // Finally check that all terminator functions return never
+        for (const def of this.defs) {
+            if (!(def instanceof FunctionDefinition && def.body !== undefined)) {
+                continue;
+            }
+
+            for (const [, bb] of def.body.nodes) {
+                const lastStmt = bb.statements[bb.statements.length - 1];
+
+                if (!(lastStmt instanceof FunctionCall)) {
+                    continue;
+                }
+
+                const def = this.getIdDecl(lastStmt.callee) as FunctionDefinition;
+
+                if (!(def.returns.length === 1 && def.returns[0] instanceof NeverType)) {
+                    throw new MIRTypeError(
+                        lastStmt.src,
+                        `Invalid terminator statement ${lastStmt.pp()}: Function ${
+                            def.name
+                        } doesn't return never`
+                    );
+                }
+            }
+        }
     }
 
     /**

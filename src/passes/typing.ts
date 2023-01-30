@@ -36,7 +36,8 @@ import {
     GlobalVarLiteral,
     ArrayLiteral,
     StructLiteral,
-    TypeVariableDeclaration
+    TypeVariableDeclaration,
+    NeverType
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
 import { Resolving } from "./resolving";
@@ -293,9 +294,9 @@ export class Typing {
             this.resolve.concretizeType(decl.type, subst)
         );
 
-        const concreteFormalRetTs = calleeDef.returns.map((typ) =>
-            this.resolve.concretizeType(typ, subst)
-        );
+        const concreteFormalRetTs = calleeDef.returns
+            .filter((typ) => !(typ instanceof NeverType))
+            .map((typ) => this.resolve.concretizeType(typ, subst));
 
         if (concreteFormalArgTs.length !== stmt.args.length) {
             throw new MIRTypeError(
