@@ -249,7 +249,7 @@ export class StatementExecutor {
         this.state.curMachFrame.store.set(lhs.name, val);
     }
 
-    private deref(val: PointerVal, e?: Expression): ComplexValue {
+    public deref(val: PointerVal, e?: Expression): ComplexValue {
         const mem = this.state.memories.get(val[0]);
 
         this.assert(mem !== undefined, `Memory {0} not found.`, e, val[0]);

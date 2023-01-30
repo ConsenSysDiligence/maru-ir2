@@ -23,7 +23,7 @@ import {
 } from "../ir";
 import { walk, MIRTypeError, pp, zip } from "../utils";
 
-type Def =
+export type Def =
     | FunctionDefinition
     | StructDefinition
     | VariableDeclaration
@@ -59,7 +59,7 @@ export function mergeSubstitutions(a: Substitution, b: Substitution): Substituti
     return [memS, typeS];
 }
 
-class Scope {
+export class Scope {
     private defs: Map<string, Def> = new Map();
     private parentScope: Scope | undefined = undefined;
 
@@ -111,7 +111,7 @@ class Scope {
         return def;
     }
 
-    define(arg: Def) {
+    define(arg: Def): void {
         const curDef = this.get(arg.name);
 
         if (curDef !== undefined) {
@@ -178,6 +178,10 @@ class Scope {
         }
 
         return scope;
+    }
+
+    definitions(): Iterable<Def> {
+        return this.defs.values();
     }
 }
 

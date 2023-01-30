@@ -831,11 +831,58 @@ export class Typing {
     private typeOfCast(expr: Cast): Type {
         const innerT = this.typeOfExpression(expr.subExpr);
 
-        if (!(innerT instanceof IntType)) {
-            throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+        if (expr.toType instanceof IntType) {
+            if (!(innerT instanceof IntType)) {
+                throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+            }
+
+            return expr.toType;
         }
 
-        return expr.toType;
+        if (expr.toType instanceof PointerType && expr.toType.toType instanceof UserDefinedType) {
+            const toDef = this.resolve.getTypeDecl(expr.toType.toType);
+
+            if (!(toDef instanceof StructDefinition)) {
+                throw new MIRTypeError(expr, `Cannot cast to type ${expr.toType.pp()}`);
+            }
+
+            if (!(innerT instanceof PointerType && innerT.toType instanceof UserDefinedType)) {
+                throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+            }
+
+            const innerDef = this.resolve.getTypeDecl(innerT.toType);
+
+            if (!(innerDef instanceof StructDefinition)) {
+                throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+            }
+
+            if (toDef.fields.length >= innerDef.fields.length) {
+                throw new MIRTypeError(expr, `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`);
+            }
+
+            for (let i = 0; i < toDef.fields.length; i++) {
+                const [toFieldName, toFieldType] = toDef.fields[i];
+                const [innerFieldName, innerFieldType] = innerDef.fields[i];
+
+                if (toFieldName !== innerFieldName) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`
+                    );
+                }
+
+                if (!eq(toFieldType, innerFieldType)) {
+                    throw new MIRTypeError(
+                        expr,
+                        `Cannot cast ${innerT.pp()} to ${expr.toType.pp()}`
+                    );
+                }
+            }
+
+            return expr.toType;
+        }
+
+        throw new MIRTypeError(expr, `Cannot cast to type ${expr.toType.pp()}`);
     }
 
     private typeOfExpressionImpl(expr: Expression): Type {
