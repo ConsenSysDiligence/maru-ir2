@@ -1,0 +1,3 @@
+var b: never = 0_u256
+
+fun foo(a: u256) { }

@@ -45,7 +45,8 @@ import {
     Cast,
     GlobalVariable,
     ArrayLiteral,
-    StructLiteral
+    StructLiteral,
+    NeverType
 } from "../ir";
 import { BasicBlock, CFG, Edge } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";

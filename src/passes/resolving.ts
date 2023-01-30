@@ -13,6 +13,7 @@ import {
     MemDesc,
     MemIdentifier,
     MemVariableDeclaration,
+    NeverType,
     PointerType,
     StructDefinition,
     TransactionCall,
@@ -403,12 +404,16 @@ export class Resolving {
                 }
             }
 
-            for (const t of def.returns) {
-                if (!this.isPrimitive(t)) {
-                    throw new MIRTypeError(
-                        def.src,
-                        `Cannot return non-primitive type ${t.pp()} in function ${def.name}`
-                    );
+            if (def.returns.length === 1 && def.returns[0] instanceof NeverType) {
+                // Ok
+            } else {
+                for (const t of def.returns) {
+                    if (!this.isPrimitive(t)) {
+                        throw new MIRTypeError(
+                            def.src,
+                            `Cannot return non-primitive type ${t.pp()} in function ${def.name}`
+                        );
+                    }
                 }
             }
         } else if (def instanceof GlobalVariable) {

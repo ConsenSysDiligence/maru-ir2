@@ -158,6 +158,7 @@ UserDefinedType
 PrimitiveType
     = IntType
     / BOOL { return new BoolType(Src.fromPegsRange(location())); }
+    / NEVER { return new NeverType(Src.fromPegsRange(location())); }
     / UserDefinedType
     / LPAREN innerT: Type RPAREN { return innerT; }
 
@@ -503,6 +504,7 @@ ASSERT="assert"
 FRESH="'fresh"
 OUT="out"
 VAR="var"
+NEVER="never"
 
 Keyword
     = STRUCT

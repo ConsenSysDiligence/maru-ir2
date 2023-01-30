@@ -1,0 +1,5 @@
+fun foo(a: u256): never 
+{
+entry:
+	abort;
+}
