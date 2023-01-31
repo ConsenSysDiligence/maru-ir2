@@ -138,16 +138,6 @@ export class Scope {
             scope.define(mVar);
         }
 
-        for (const node of fun.children()) {
-            if (node instanceof FunctionCall) {
-                for (const memArg of node.memArgs) {
-                    if (memArg instanceof MemIdentifier && memArg.out) {
-                        scope.define(memArg);
-                    }
-                }
-            }
-        }
-
         for (const tVar of fun.typeParameters) {
             scope.define(tVar);
         }
@@ -528,12 +518,7 @@ export class Resolving {
             if (nd instanceof MemIdentifier) {
                 const decl = this._idDecls.get(nd);
 
-                if (
-                    !(
-                        decl instanceof MemVariableDeclaration ||
-                        (decl instanceof MemIdentifier && decl.out)
-                    )
-                ) {
+                if (!(decl instanceof MemVariableDeclaration)) {
                     throw new MIRTypeError(
                         nd.src,
                         `Memory identifier ${
@@ -542,58 +527,6 @@ export class Resolving {
                             decl
                         )}`
                     );
-                }
-
-                return;
-            }
-
-            if (nd instanceof StructDefinition) {
-                for (const decl of nd.memoryParameters) {
-                    if (decl.fresh) {
-                        throw new MIRTypeError(decl.src, `Struct cannot have fresh memories`);
-                    }
-                }
-
-                return;
-            }
-
-            if (nd instanceof FunctionCall) {
-                const funDecl = this._idDecls.get(nd.callee) as FunctionDefinition;
-
-                for (let i = 0; i < nd.memArgs.length; i++) {
-                    const arg = nd.memArgs[i];
-                    const argDecl = funDecl.memoryParameters[i];
-
-                    if (arg instanceof MemConstant) {
-                        if (argDecl.fresh) {
-                            throw new MIRTypeError(
-                                arg.src,
-                                `Cannot pass in memory constant ${
-                                    arg.name
-                                } for a fresh memory var ${pp(argDecl)}`
-                            );
-                        }
-
-                        continue;
-                    }
-
-                    if (arg.out && !argDecl.fresh) {
-                        throw new MIRTypeError(
-                            arg.src,
-                            `Cannot declare memory ${arg.name} as out if correspoarging var ${pp(
-                                argDecl
-                            )} is not fresh`
-                        );
-                    }
-
-                    if (!arg.out && argDecl.fresh) {
-                        throw new MIRTypeError(
-                            arg.src,
-                            `Cannot pass in memory var ${arg.name} for a fresh memory var ${pp(
-                                argDecl
-                            )}`
-                        );
-                    }
                 }
 
                 return;

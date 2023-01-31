@@ -27,7 +27,6 @@ import {
     MemDesc,
     MemVariableDeclaration,
     MemIdentifier,
-    noSrc,
     GlobalVariable
 } from "../ir";
 import { CFG } from "../ir/cfg";
@@ -128,25 +127,6 @@ export class StatementExecutor {
         this.state.curMachFrame.curBBInd = 0;
     }
 
-    private allocMems(s: FunctionCall | TransactionCall): void {
-        const callee = this.resolving.getIdDecl(s.callee) as FunctionDefinition;
-
-        for (let i = 0; i < s.memArgs.length; i++) {
-            const formal = callee.memoryParameters[i];
-            const actual = s.memArgs[i];
-
-            if (formal.fresh) {
-                this.assert(
-                    actual instanceof MemIdentifier && actual.out,
-                    `Cannot pass constant for fresh mem parameter`,
-                    actual
-                );
-
-                this.state.allocFreshMem(actual);
-            }
-        }
-    }
-
     private execCallImpl(s: FunctionCall | TransactionCall): void {
         const callee = this.resolving.getIdDecl(s.callee);
 
@@ -170,9 +150,6 @@ export class StatementExecutor {
         if (s instanceof TransactionCall) {
             this.state.saveMemories();
         }
-
-        // Allocate memories in caller frame
-        this.allocMems(s);
 
         if (!callee.body) {
             const builtin = this.state.builtins.get(s.callee.name);
@@ -551,46 +528,39 @@ export class StatementExecutor {
             const curFrame = this.state.stack[frameIdx];
             const decl = this.resolving.getMemIdDecl(m);
 
-            this.assert(decl !== undefined, `Expected memvar decl for {0}`, m, m.name);
+            this.assert(
+                decl instanceof MemVariableDeclaration,
+                `Expected memvar decl for {0}`,
+                m,
+                m.name
+            );
 
-            if (decl instanceof MemVariableDeclaration) {
-                const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
+            const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
+
+            this.assert(
+                varIdx !== -1,
+                `{0} not defined on function {1}`,
+                decl,
+                decl,
+                curFrame.fun.name
+            );
+
+            frameIdx--;
+
+            if (frameIdx >= 0) {
+                const prevFrame = this.state.stack[frameIdx] as Frame;
+                const callInst = prevFrame.curStmt;
 
                 this.assert(
-                    varIdx !== -1,
-                    `{0} not defined on function {1}`,
-                    decl,
-                    decl,
-                    curFrame.fun.name
+                    callInst instanceof FunctionCall || callInst instanceof TransactionCall,
+                    `Expected last frame instructions to be a call not {0}`,
+                    callInst,
+                    callInst
                 );
 
-                frameIdx--;
-
-                if (frameIdx >= 0) {
-                    const prevFrame = this.state.stack[frameIdx] as Frame;
-                    const callInst = prevFrame.curStmt;
-
-                    this.assert(
-                        callInst instanceof FunctionCall || callInst instanceof TransactionCall,
-                        `Expected last frame instructions to be a call not {0}`,
-                        callInst,
-                        callInst
-                    );
-
-                    m = callInst.memArgs[varIdx];
-                } else {
-                    m = this.state.rootMemArgs[varIdx];
-                }
+                m = callInst.memArgs[varIdx];
             } else {
-                this.assert(decl.out, `{0} resolved to non-out parameter {1}`, m, decl);
-
-                const memName = this.state.stack[frameIdx].freshMemories.get(decl);
-
-                if (memName === undefined) {
-                    this.error(`Trying to access memory ${decl.pp()} before it is initialized`);
-                }
-
-                return new MemConstant(noSrc, memName);
+                m = this.state.rootMemArgs[varIdx];
             }
         }
 
