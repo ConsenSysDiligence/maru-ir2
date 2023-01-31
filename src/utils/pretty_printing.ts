@@ -1,3 +1,5 @@
+import { Scope, Substitution } from "../passes";
+
 export interface PPAble {
     pp(): string;
 }
@@ -99,4 +101,14 @@ export function fmt(message: string, ...details: PPIsh[]): string {
     }
 
     return message;
+}
+
+export function ppSubst(subst: Substitution): string {
+    return `[${ppMap(subst[0])}, ${ppMap(subst[1])}]`;
+}
+
+export function ppScope(scope: Scope): string {
+    return `<${[...scope.definitions()].map((def) => def.name).join(", ")}, ${
+        scope.parentScope ? ppScope(scope.parentScope) : ""
+    }>`;
 }

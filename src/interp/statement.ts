@@ -32,7 +32,7 @@ import {
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
-import { Resolving, Typing } from "../passes";
+import { concretizeType, Resolving, Typing } from "../passes";
 import { fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator, fits } from "./expression";
 import { LiteralEvaluator } from "./literal";
@@ -159,7 +159,11 @@ export class StatementExecutor {
 
         const memArgs = s.memArgs.map((memArg) => this.resolveMemDesc(memArg));
         const typeArgs = s.typeArgs.map((typeArg) =>
-            this.resolving.concretizeType(typeArg, this.state.curMachFrame.substituion)
+            concretizeType(
+                typeArg,
+                this.state.curMachFrame.substituion,
+                this.resolving.getScope(this.state.curMachFrame.fun)
+            )
         );
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
 

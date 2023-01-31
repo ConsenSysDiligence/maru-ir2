@@ -1,4 +1,4 @@
-import { assert } from "console";
+import assert from "assert";
 import {
     ArrayType,
     Assignment,
@@ -40,7 +40,8 @@ import {
     NeverType
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
-import { Resolving } from "./resolving";
+import { concretizeType, makeSubst } from "./poly";
+import { Resolving, Scope } from "./resolving";
 
 export const boolT = new BoolType(noSrc);
 
@@ -51,6 +52,7 @@ export const boolT = new BoolType(noSrc);
  */
 export class Typing {
     typeCache: Map<Expression, Type>;
+    curScope!: Scope;
 
     constructor(public readonly defs: Definition[], private readonly resolve: Resolving) {
         this.typeCache = new Map();
@@ -64,12 +66,14 @@ export class Typing {
     private runAnalysis(): void {
         for (const def of this.defs) {
             if (def instanceof FunctionDefinition && def.body !== undefined) {
+                this.curScope = this.resolve.getScope(def);
                 for (const bb of def.body.nodes.values()) {
                     for (const stmt of bb.statements) {
                         this.tcStatement(stmt, def);
                     }
                 }
             } else if (def instanceof GlobalVariable) {
+                this.curScope = this.resolve.global;
                 this.tcInitLiteral(def.initialValue, def.type);
             }
         }
@@ -111,7 +115,11 @@ export class Typing {
             );
         }
 
-        return this.resolve.concretizeType(matchingFields[0][1], this.resolve.makeSubst(userType));
+        return concretizeType(
+            matchingFields[0][1],
+            makeSubst(userType, this.curScope),
+            this.resolve.getScope(def)
+        );
     }
 
     /**
@@ -288,15 +296,16 @@ export class Typing {
             );
         }
 
-        const subst = this.resolve.makeSubst(stmt);
+        const subst = makeSubst(stmt, this.curScope);
+        const funScope = this.resolve.getScope(calleeDef);
 
         const concreteFormalArgTs = calleeDef.parameters.map((decl) =>
-            this.resolve.concretizeType(decl.type, subst)
+            concretizeType(decl.type, subst, funScope)
         );
 
         const concreteFormalRetTs = calleeDef.returns
             .filter((typ) => !(typ instanceof NeverType))
-            .map((typ) => this.resolve.concretizeType(typ, subst));
+            .map((typ) => concretizeType(typ, subst, funScope));
 
         if (concreteFormalArgTs.length !== stmt.args.length) {
             throw new MIRTypeError(
@@ -357,14 +366,15 @@ export class Typing {
             );
         }
 
-        const subst = this.resolve.makeSubst(stmt);
+        const subst = makeSubst(stmt, this.curScope);
+        const funScope = this.resolve.getScope(calleeDef);
 
         const concreteFormalArgTs = calleeDef.parameters.map((decl) =>
-            this.resolve.concretizeType(decl.type, subst)
+            concretizeType(decl.type, subst, funScope)
         );
 
         const concreteFormalRetTs = calleeDef.returns.map((typ) =>
-            this.resolve.concretizeType(typ, subst)
+            concretizeType(typ, subst, funScope)
         );
 
         if (concreteFormalArgTs.length !== stmt.args.length) {
@@ -628,11 +638,11 @@ export class Typing {
                 }
             }
 
-            const subst = this.resolve.makeSubst(expectedType.toType);
+            const subst = makeSubst(expectedType.toType, this.curScope);
 
             for (const [field, lit] of actualFields) {
                 const fieldT = formalFields.get(field) as Type;
-                const concreteFieldT = this.resolve.concretizeType(fieldT, subst);
+                const concreteFieldT = concretizeType(fieldT, subst, this.resolve.getScope(def));
                 this.tcInitLiteral(lit, concreteFieldT);
             }
 
