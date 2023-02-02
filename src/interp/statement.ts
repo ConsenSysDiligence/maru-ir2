@@ -210,9 +210,12 @@ export class StatementExecutor {
         inStmt: Statement,
         ignorePoison = false
     ): void {
-        const lhsType = this.typing.typeOf(lhs);
+        let lhsType = this.typing.typeOf(lhs);
 
         this.assert(lhsType !== undefined, `Missing type for {0}`, lhs, lhs);
+
+        const funScope = this.resolving.global.scopeOf(this.state.curMachFrame.fun);
+        lhsType = concretizeType(lhsType, this.state.curMachFrame.substituion, funScope);
 
         if (val === poison && !ignorePoison) {
             this.error(`Attempt to assign ${val.pp()} to ${lhs.pp()}`, inStmt);
@@ -220,7 +223,7 @@ export class StatementExecutor {
 
         this.assert(
             this.agrees(val, lhsType) || val === poison,
-            `Cannot assign {0} to {1} of type {}`,
+            `Cannot assign {0} to {1} of type {2}`,
             inStmt,
             val,
             lhs,

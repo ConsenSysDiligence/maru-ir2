@@ -14,7 +14,7 @@ import {
     MemConstant,
     PointerType
 } from "../ir";
-import { MIRTypeError, pp, zip } from "../utils";
+import { MIRTypeError, pp, walk, zip } from "../utils";
 import { TypeSubstitution, MemSubstitution, Substitution, Scope } from "./resolving";
 
 function makeTypeSubst(
@@ -216,4 +216,28 @@ export function isConcrete(t: Type, scope: Scope): boolean {
     }
 
     throw new Error(`NYI type ${t.pp()}`);
+}
+
+/**
+ * Recursively walk a type. Whenever a polymorphic struct type is encountered,
+ * concretize it.
+ */
+export function walkType(t: Type, cb: (nd: Type) => void, scope: Scope): void {
+    walk(t, (nd) => {
+        cb(nd as Type);
+
+        if (nd instanceof PointerType && nd.toType instanceof UserDefinedType) {
+            const def = scope.getTypeDecl(nd.toType);
+
+            if (def instanceof StructDefinition) {
+                const subst = makeSubst(nd.toType, scope);
+
+                for (const [, fieldT] of def.fields) {
+                    const concreteFieldT = concretizeType(fieldT, subst, scope.scopeOf(def));
+
+                    walkType(concreteFieldT, cb, scope);
+                }
+            }
+        }
+    });
 }

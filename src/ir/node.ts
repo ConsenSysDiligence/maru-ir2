@@ -6,6 +6,7 @@ let nodeCtr = 0;
 export abstract class Node implements PPAble, StructEqualityComparable {
     readonly id: number;
     readonly src: BaseSrc;
+    public readonly md = new Map<string, any>();
 
     constructor(src: BaseSrc) {
         this.id = nodeCtr++;

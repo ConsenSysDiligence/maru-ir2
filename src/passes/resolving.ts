@@ -62,6 +62,8 @@ export function mergeSubstitutions(a: Substitution, b: Substitution): Substituti
 
 export class Scope {
     private defs: Map<string, Def> = new Map();
+    private subScopes: Map<StructDefinition | FunctionDefinition, Scope> = new Map();
+
     public readonly parentScope: Scope | undefined = undefined;
 
     constructor(parentScope?: Scope) {
@@ -150,6 +152,7 @@ export class Scope {
             scope.define(local);
         }
 
+        this.subScopes.set(fun, scope);
         return scope;
     }
 
@@ -168,11 +171,22 @@ export class Scope {
             scope.define(tVar);
         }
 
+        this.subScopes.set(struct, scope);
         return scope;
     }
 
     definitions(): Iterable<Def> {
         return this.defs.values();
+    }
+
+    scopeOf(def: StructDefinition | FunctionDefinition): Scope {
+        const res = this.subScopes.get(def);
+
+        if (res === undefined) {
+            throw new MIRTypeError(def.src, `${def.constructor.name} ${def} doesn't have a scope`);
+        }
+
+        return res;
     }
 }
 
