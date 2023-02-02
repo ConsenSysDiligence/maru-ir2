@@ -39,4 +39,14 @@ export class StructDefinition extends Definition {
     children(): Iterable<Node> {
         return [...this.fields.map((p) => p[1]), ...this.memoryParameters, ...this.typeParameters];
     }
+
+    getFieldType(name: string): Type | undefined {
+        for (const [field, fieldT] of this.fields) {
+            if (field === name) {
+                return fieldT;
+            }
+        }
+
+        return undefined;
+    }
 }

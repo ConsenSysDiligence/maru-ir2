@@ -45,7 +45,8 @@ import {
     Cast,
     GlobalVariable,
     ArrayLiteral,
-    StructLiteral
+    StructLiteral,
+    NeverType
 } from "../ir";
 import { BasicBlock, CFG } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
@@ -86,8 +87,17 @@ function buildBinaryExpression(
 }
 
 /**
- * Build a `CFG` from a list of raw `Statement`s or pairs `[label, Statement]`
- * parsed from a source file.
+ * Primitive check that a given statement "looks like" a terminator. However not all function calls are terminators -
+ * only those that return never. But we can't do this check until we compute resolving. So we do the second half of it in the
+ * resolving pass.
+ */
+function isTerminator(stmt: Statement): boolean {
+    return stmt instanceof TerminatorStmt || stmt instanceof FunctionCall || stmt instanceof TransactionCall
+}
+
+/**
+ * Build a `CFG` from a list of raw `Statement`s or pairs `[label, Statement]` parsed from a
+ * .rsimp file.
  */
 export function buildCFG(
     rawStmts: Array<Statement | [string, Statement]>,
@@ -173,8 +183,7 @@ export function buildCFG(
         }
 
         const lastStmt = bb.statements[bb.statements.length - 1];
-
-        if (!(lastStmt instanceof TerminatorStmt)) {
+        if (!isTerminator(lastStmt)) {
             throw new MIRSyntaxError(
                 lastStmt.src,
                 `Found basic block that ends in non-terminator statement ${lastStmt.pp()}.`
@@ -205,6 +214,11 @@ export function buildCFG(
 
             bb.addOutgoing(destBB, new BooleanLiteral(noSrc, true));
 
+            continue;
+        }
+
+        // A call to a function that doesn't return
+        if (lastStmt instanceof FunctionCall || lastStmt instanceof TransactionCall) {
             continue;
         }
 

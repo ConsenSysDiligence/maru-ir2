@@ -1,0 +1,10 @@
+fun foo(a: u256)
+{
+entry:
+	return;
+}
+
+fun boo(): never {
+	entry:
+		call foo(0_u256);
+}

@@ -285,9 +285,18 @@ export class ExprEvaluator {
     private evalCast(e: Cast): PrimitiveValue {
         const subValue = this.evalExpression(e.subExpr);
 
-        this.assert(typeof subValue === "bigint", e, `Unexpected value {0} in int cast`, subValue);
+        if (e.toType instanceof IntType) {
+            this.assert(
+                typeof subValue === "bigint",
+                e,
+                `Unexpected value {0} in int cast`,
+                subValue
+            );
 
-        return adjustIntToTypeSize(e.toType, subValue);
+            return adjustIntToTypeSize(e.toType, subValue);
+        }
+
+        this.internalError(e, `NYI cast to type ${e.toType.pp()}`);
     }
 
     evalExpression(e: Expression): PrimitiveValue {

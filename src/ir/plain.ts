@@ -25,6 +25,7 @@ import {
     MemDesc,
     MemIdentifier,
     MemVariableDeclaration,
+    NeverType,
     Node,
     noSrc,
     NoSrc,
@@ -371,6 +372,10 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         return header(node);
     }
 
+    if (node instanceof NeverType) {
+        return header(node);
+    }
+
     if (node instanceof ArrayType) {
         return {
             ...header(node),
@@ -410,8 +415,7 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         return {
             ...header(node),
 
-            name: node.name,
-            out: node.out
+            name: node.name
         };
     }
 
@@ -419,8 +423,7 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         return {
             ...header(node),
 
-            name: node.name,
-            fresh: node.fresh
+            name: node.name
         };
     }
 
@@ -655,6 +658,10 @@ export function plainToNode(plain: PlainRepresentation): Node {
         return new BoolType(plainToSrc(plain.src));
     }
 
+    if (plain.nodeType === NeverType.name) {
+        return new NeverType(plainToSrc(plain.src));
+    }
+
     if (plain.nodeType === ArrayType.name) {
         return new ArrayType(plainToSrc(plain.src), plainToNode(plain.baseType));
     }
@@ -681,11 +688,11 @@ export function plainToNode(plain: PlainRepresentation): Node {
     }
 
     if (plain.nodeType === MemIdentifier.name) {
-        return new MemIdentifier(plainToSrc(plain.src), plain.name, plain.out);
+        return new MemIdentifier(plainToSrc(plain.src), plain.name);
     }
 
     if (plain.nodeType === MemVariableDeclaration.name) {
-        return new MemVariableDeclaration(plainToSrc(plain.src), plain.name, plain.fresh);
+        return new MemVariableDeclaration(plainToSrc(plain.src), plain.name);
     }
 
     if (plain.nodeType === TypeVariableDeclaration.name) {

@@ -18,4 +18,14 @@ export class StructLiteral extends Node {
     children(): Iterable<Node> {
         return [...this.fields.map((x) => x[1])];
     }
+
+    field(needle: string): GlobalVarLiteral | undefined {
+        for (const [name, lit] of this.fields) {
+            if (needle === name) {
+                return lit;
+            }
+        }
+
+        return undefined;
+    }
 }

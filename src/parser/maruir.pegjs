@@ -52,7 +52,7 @@ TypeVariableDeclaration
     = id: Identifier { return new TypeVariableDeclaration(Src.fromPegsRange(location()), id); }
 
 MemVariableDeclaration
-    = fresh :FRESH? __ id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id, fresh !== null); }
+    = id: Identifier { return new MemVariableDeclaration(Src.fromPegsRange(location()), id); }
 
 TypeIdList
     = head: TypeVariableDeclaration tail: (__ COMMA __ decl: TypeVariableDeclaration { return decl; })* {
@@ -122,7 +122,7 @@ FunctionDefinition
     }
 
 MemVar
-    = out: OUT? __ name: Identifier { return new MemIdentifier(Src.fromPegsRange(location()), name, out !== null); }
+    = name: Identifier { return new MemIdentifier(Src.fromPegsRange(location()), name); }
 
 MemConst
     = HASHTAG name: Identifier { return new MemConstant(Src.fromPegsRange(location()), name); }
@@ -158,6 +158,7 @@ UserDefinedType
 PrimitiveType
     = IntType
     / BOOL { return new BoolType(Src.fromPegsRange(location())); }
+    / NEVER { return new NeverType(Src.fromPegsRange(location())); }
     / UserDefinedType
     / LPAREN innerT: Type RPAREN { return innerT; }
 
@@ -500,9 +501,8 @@ TRANSCALL="trans_call"
 ABORT="abort"
 ALLOC="alloc"
 ASSERT="assert"
-FRESH="'fresh"
-OUT="out"
 VAR="var"
+NEVER="never"
 
 Keyword
     = STRUCT
@@ -522,7 +522,6 @@ Keyword
     / ABORT
     / ALLOC
     / ASSERT
-    / FRESH
     / VAR
 
 Identifier =

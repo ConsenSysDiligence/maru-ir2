@@ -1,14 +1,10 @@
 import { Node } from "../node";
 import { BaseSrc } from "../source";
-import { IntType } from "../types";
+import { Type } from "../types";
 import { Expression } from "./expression";
 
 export class Cast extends Expression {
-    constructor(
-        src: BaseSrc,
-        public readonly toType: IntType,
-        public readonly subExpr: Expression
-    ) {
+    constructor(src: BaseSrc, public readonly toType: Type, public readonly subExpr: Expression) {
         super(src);
     }
 

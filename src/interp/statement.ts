@@ -31,7 +31,7 @@ import {
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
-import { Resolving, Typing } from "../passes";
+import { concretizeType, Resolving, Typing } from "../passes";
 import { fill, fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator, fits } from "./expression";
 import { LiteralEvaluator } from "./literal";
@@ -128,25 +128,6 @@ export class StatementExecutor {
         this.state.curMachFrame.curBBInd = 0;
     }
 
-    private allocMems(s: FunctionCall | TransactionCall): void {
-        const callee = this.resolving.getIdDecl(s.callee) as FunctionDefinition;
-
-        for (let i = 0; i < s.memArgs.length; i++) {
-            const formal = callee.memoryParameters[i];
-            const actual = s.memArgs[i];
-
-            if (formal.fresh) {
-                this.assert(
-                    actual instanceof MemIdentifier && actual.out,
-                    `Cannot pass constant for fresh mem parameter`,
-                    actual
-                );
-
-                this.state.allocFreshMem(actual);
-            }
-        }
-    }
-
     private execCallImpl(s: FunctionCall | TransactionCall): void {
         const callee = this.resolving.getIdDecl(s.callee);
 
@@ -159,16 +140,17 @@ export class StatementExecutor {
 
         const memArgs = s.memArgs.map((memArg) => this.resolveMemDesc(memArg));
         const typeArgs = s.typeArgs.map((typeArg) =>
-            this.resolving.concretizeType(typeArg, this.state.curMachFrame.substituion)
+            concretizeType(
+                typeArg,
+                this.state.curMachFrame.substituion,
+                this.resolving.getScope(this.state.curMachFrame.fun)
+            )
         );
         const argVs = s.args.map((expr) => this.evaluator.evalExpression(expr));
 
         if (s instanceof TransactionCall) {
             this.state.saveMemories();
         }
-
-        // Allocate memories in caller frame
-        this.allocMems(s);
 
         if (callee.body) {
             const newFrame = new Frame(
@@ -187,7 +169,7 @@ export class StatementExecutor {
 
             this.assert(
                 builtin !== undefined,
-                `No builtin for empty function {0}`,
+                "No builtin for empty function {0}",
                 s,
                 s.callee.name
             );
@@ -253,7 +235,7 @@ export class StatementExecutor {
         this.state.curMachFrame.store.set(lhs.name, val);
     }
 
-    private deref(val: PointerVal, e?: Expression): ComplexValue {
+    public deref(val: PointerVal, e?: Expression): ComplexValue {
         const mem = this.state.memories.get(val[0]);
 
         this.assert(mem !== undefined, `Memory {0} not found.`, e, val[0]);
@@ -560,49 +542,39 @@ export class StatementExecutor {
             const curFrame = this.state.stack[frameIdx];
             const decl = this.resolving.getMemIdDecl(m);
 
-            this.assert(decl !== undefined, `Expected memvar decl for {0}`, m, m.name);
+            this.assert(
+                decl instanceof MemVariableDeclaration,
+                `Expected memvar decl for {0}`,
+                m,
+                m.name
+            );
 
-            if (decl instanceof MemVariableDeclaration) {
-                const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
+            const varIdx = curFrame.fun.memoryParameters.indexOf(decl);
+
+            this.assert(
+                varIdx !== -1,
+                `{0} not defined on function {1}`,
+                decl,
+                decl,
+                curFrame.fun.name
+            );
+
+            frameIdx--;
+
+            if (frameIdx >= 0) {
+                const prevFrame = this.state.stack[frameIdx] as Frame;
+                const callInst = prevFrame.curStmt;
 
                 this.assert(
-                    varIdx !== -1,
-                    `{0} not defined on function {1}`,
-                    decl,
-                    decl,
-                    curFrame.fun.name
+                    callInst instanceof FunctionCall || callInst instanceof TransactionCall,
+                    `Expected last frame instructions to be a call not {0}`,
+                    callInst,
+                    callInst
                 );
 
-                frameIdx--;
-
-                if (frameIdx >= 0) {
-                    const prevFrame = this.state.stack[frameIdx] as Frame;
-                    const callInst = prevFrame.curStmt;
-
-                    this.assert(
-                        callInst instanceof FunctionCall || callInst instanceof TransactionCall,
-                        `Expected last frame instructions to be a call not {0}`,
-                        callInst,
-                        callInst
-                    );
-
-                    m = callInst.memArgs[varIdx];
-                } else {
-                    m = this.state.rootMemArgs[varIdx];
-                }
+                m = callInst.memArgs[varIdx];
             } else {
-                this.assert(decl.out, `{0} resolved to non-out parameter {1}`, m, decl);
-
-                const memName = this.state.stack[frameIdx].freshMemories.get(decl);
-
-                if (memName === undefined) {
-                    this.error(
-                        `Trying to access memory ${decl.pp()} before it is initialized`,
-                        decl
-                    );
-                }
-
-                return new MemConstant(noSrc, memName);
+                m = this.state.rootMemArgs[varIdx];
             }
         }
 

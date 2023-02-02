@@ -13,7 +13,7 @@ import {
     Type,
     UserDefinedType
 } from "../ir";
-import { Resolving } from "../passes";
+import { concretizeType, makeSubst, Resolving } from "../passes";
 import { PPIsh, fmt } from "../utils";
 import { State, InterpInternalError, PrimitiveValue } from "./state";
 
@@ -76,14 +76,17 @@ export class LiteralEvaluator {
                 );
 
                 const litMap = new Map(lit.fields);
-                const subst = this.resolving.makeSubst(toT);
+                const subst = makeSubst(toT, this.resolving.global);
 
                 for (const [name, fieldT] of def.fields) {
                     const fieldLit = litMap.get(name) as GlobalVarLiteral;
 
                     structVal.set(
                         name,
-                        this.evalLiteral(fieldLit, this.resolving.concretizeType(fieldT, subst))
+                        this.evalLiteral(
+                            fieldLit,
+                            concretizeType(fieldT, subst, this.resolving.getScope(def))
+                        )
                     );
                 }
 

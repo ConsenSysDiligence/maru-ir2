@@ -24,4 +24,16 @@ export class IntType extends Type {
     children(): Iterable<Node> {
         return [];
     }
+
+    limits(): [bigint, bigint] {
+        return this.signed
+            ? [-1n << BigInt(this.nbits - 1), (1n << BigInt(this.nbits - 1)) - 1n]
+            : [0n, (1n << BigInt(this.nbits)) - 1n];
+    }
+
+    fits(value: bigint): boolean {
+        const [min, max] = this.limits();
+
+        return min <= value && value <= max;
+    }
 }
