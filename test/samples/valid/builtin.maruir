@@ -1,0 +1,12 @@
+fun customBuiltin(v: u256): u256
+locals res: u256;
+
+fun main()
+locals x: u256, y: u256;
+{
+	entry:
+        x := 32_u256;
+		y := call customBuiltin(x);
+		assert x == y;
+		return;
+}

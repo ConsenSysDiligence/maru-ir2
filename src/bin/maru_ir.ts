@@ -1,14 +1,69 @@
 #!/usr/bin/env node
 import fse from "fs-extra";
 import minimist from "minimist";
+import {
+    ArrayLiteral,
+    BooleanLiteral,
+    Definition,
+    fnToDot,
+    FunctionCall,
+    FunctionDefinition,
+    LiteralEvaluator,
+    nodeToPlain,
+    NumberLiteral,
+    plainToNode,
+    PrimitiveValue,
+    Program,
+    runProgram,
+    State,
+    StatementExecutor,
+    StructLiteral
+} from "..";
 import { parseProgram } from "../parser";
+import { parseStatement } from "../parser/maruir_parser";
 import { Resolving, Typing } from "../passes";
 
+const helpMessage = `Utility for working with maruir files.
+USAGE:
+
+$ maru-ir <filename>
+
+OPTIONS:
+    --help                  Print help message.
+    --version               Print package version.
+    --stdin                 Read input from STDIN instead of file.
+    --from-ast              Process JSON AST as a program.
+    --parse                 Report any errors and quit.
+    --ast                   Produce JSON AST for program.
+    --tc                    Perform type-checking and report any errors.
+    --print                 Print program.
+    --dot                   Given the comma-separated function names, print DOT representation for body.
+                            All functions are printed if no value provided.
+    --run                   Given the function call statement as an entry point, execute program.
+                            Note that only primitive literal values are allowed as an arguments.
+`;
+
 const cli = {
-    boolean: ["version", "help", "stdin"],
-    string: [],
+    boolean: ["version", "help", "stdin", "from-ast", "parse", "ast", "tc", "print"],
+    string: ["dot", "run"],
     default: {}
 };
+
+function terminate(message?: string, exitCode = 0): never {
+    if (message !== undefined) {
+        if (exitCode === 0) {
+            console.log(message);
+        } else {
+            console.error(message);
+        }
+    }
+
+    process.exit(exitCode);
+}
+
+function error(message: string): never {
+    terminate(message, 1);
+}
 
 (async () => {
     const args = minimist(process.argv.slice(2), cli);
@@ -16,41 +71,133 @@ const cli = {
     if (args.version) {
         const { version } = require("../../package.json");
 
-        console.log(version);
-    } else if (args.help || (!args._.length && !args.stdin)) {
-        const message = `Utility for working with maruir files.
-USAGE:
-$ maru-ir <filename>
+        terminate(version);
+    }
 
-OPTIONS:
-    --help                  Print help message.
-    --version               Print package version.
-    --stdin                 Read input from STDIN instead of file.
-`;
+    if (args.help) {
+        terminate(helpMessage);
+    }
 
-        console.log(message);
+    let fileName: string;
+    let contents: string;
+
+    if (args.stdin) {
+        fileName = "stdin";
+        contents = await fse.readFile(process.stdin.fd, { encoding: "utf-8" });
     } else {
-        let fileName: string;
-        let contents: string;
-
-        if (args.stdin) {
-            fileName = "stdin";
-            contents = await fse.readFile(process.stdin.fd, { encoding: "utf-8" });
-        } else {
-            fileName = args._[0];
-            contents = fse.readFileSync(fileName, { encoding: "utf-8" });
+        if (args._.length !== 1) {
+            throw new Error("Specify single file name to process");
         }
 
-        const defs = parseProgram(contents);
-
-        const resolving = new Resolving(defs);
-
-        new Typing(defs, resolving);
-
-        console.log(defs.map((def) => def.pp()).join("\n"));
+        fileName = args._[0];
+        contents = await fse.readFile(fileName, { encoding: "utf-8" });
     }
-})().catch((e) => {
-    console.log(e.message);
 
-    process.exit(1);
+    const program: Program = args["from-ast"]
+        ? JSON.parse(contents).map(plainToNode)
+        : parseProgram(contents);
+
+    if (args.parse) {
+        terminate("Parsing finished successfully");
+    }
+
+    if (args.print) {
+        terminate(program.map((def) => def.pp()).join("\n"));
+    }
+
+    if ("dot" in args) {
+        let filter: (def: Definition) => def is FunctionDefinition;
+
+        if (args.dot) {
+            const names = (args.dot.includes(",") ? args.dot.split(",") : [args.dot]).map(
+                (name: string) => name.trim()
+            );
+
+            filter = (def): def is FunctionDefinition =>
+                def instanceof FunctionDefinition && names.includes(def.name);
+        } else {
+            filter = (def): def is FunctionDefinition => def instanceof FunctionDefinition;
+        }
+
+        terminate(program.filter(filter).map(fnToDot).join("\n"));
+    }
+
+    if (args.ast) {
+        terminate(JSON.stringify(program.map(nodeToPlain), undefined, 4));
+    }
+
+    const resolving = new Resolving(program);
+    const typing = new Typing(program, resolving);
+
+    if (args.tc) {
+        terminate("Type-checking finished successfully");
+    }
+
+    if (args.run) {
+        const entryStmt = parseStatement(args.run);
+
+        if (!(entryStmt instanceof FunctionCall)) {
+            throw new Error('Option value for "--run" should contain a function call statement');
+        }
+
+        const entryPoint = program.find(
+            (def) => def instanceof FunctionDefinition && def.name === entryStmt.callee.name
+        );
+
+        if (!(entryPoint instanceof FunctionDefinition)) {
+            throw new Error(`Found no functions matching name "${entryStmt.callee.name}"`);
+        }
+
+        if (entryPoint.parameters.length !== entryStmt.args.length) {
+            throw new Error(
+                `Parameters cound mismatch: expected ${entryPoint.parameters.length}, received ${entryStmt.args.length}`
+            );
+        }
+
+        const state = new State(program, [], true, new Map());
+
+        const literalEvaluator = new LiteralEvaluator(resolving, state);
+        const stmtExecutor = new StatementExecutor(resolving, typing, state);
+
+        const entryArgs = entryStmt.args.map((arg, i): PrimitiveValue => {
+            const expectedT = entryPoint.parameters[i].type;
+
+            if (
+                arg instanceof NumberLiteral ||
+                arg instanceof BooleanLiteral ||
+                arg instanceof ArrayLiteral ||
+                arg instanceof StructLiteral
+            ) {
+                return literalEvaluator.evalLiteral(arg, expectedT);
+            }
+
+            throw new Error(
+                `Only literal values are supported for "--run" option. Received: ${arg.pp()}`
+            );
+        });
+
+        const flow = runProgram(
+            literalEvaluator,
+            stmtExecutor,
+            program,
+            state,
+            entryPoint,
+            entryArgs,
+            true
+        );
+
+        for (const stmt of flow) {
+            console.log(`Exec ${stmt.pp()} in ${state.dump()}`);
+        }
+
+        if (state.failure) {
+            throw state.failure;
+        }
+
+        terminate();
+    }
+
+    terminate(helpMessage);
+})().catch((e) => {
+    error(e.message);
 });

@@ -12,11 +12,9 @@ import { Typing } from "../passes";
 import { eq, fmt, PPIsh } from "../utils";
 import { InterpError, InterpInternalError, poison, PrimitiveValue, State } from "./state";
 
-const two = BigInt(2);
-
 export function getTypeRange(bits: number, signed: boolean): [bigint, bigint, bigint] {
-    const total = two ** BigInt(bits);
-    const half = two ** BigInt(bits - 1);
+    const total = 2n ** BigInt(bits);
+    const half = 2n ** BigInt(bits - 1);
 
     if (signed) {
         const signedLow = -half;

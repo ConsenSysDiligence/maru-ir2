@@ -1,5 +1,5 @@
+import { Program } from "../interp";
 import {
-    Definition,
     StructDefinition,
     IntType,
     BoolType,
@@ -48,13 +48,14 @@ import {
     StructLiteral,
     NeverType
 } from "../ir";
-import { BasicBlock, CFG, Edge } from "../ir/cfg";
+import { BasicBlock, CFG } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
 
-export function parseProgram(str: string): Definition[] {
+// @ts-ignore
+export function parseSource(source: string, options: ParseOptions) {
     try {
         // @ts-ignore
-        return parse(str, { startRule: "Program" } as ParseOptions);
+        return parse(source, options);
     } catch (e) {
         // @ts-ignore
         if (e instanceof PeggySyntaxError) {
@@ -63,6 +64,14 @@ export function parseProgram(str: string): Definition[] {
 
         throw e;
     }
+}
+
+export function parseProgram(source: string): Program {
+    return parseSource(source, { startRule: "Program" });
+}
+
+export function parseStatement(source: string): Statement {
+    return parseSource(source, { startRule: "Statement" });
 }
 
 function buildBinaryExpression(
@@ -94,20 +103,19 @@ export function buildCFG(
     rawStmts: Array<Statement | [string, Statement]>,
     rawBodyLoc: PegsRange
 ): CFG {
-    // 1. Build basic blocks
-    const nodes: BasicBlock[] = [];
-    const edges: Edge[] = [];
-    let entry: BasicBlock | undefined;
-    const exits: BasicBlock[] = [];
     const bodyLoc = Src.fromPegsRange(rawBodyLoc);
+
+    let entry: BasicBlock | undefined;
 
     // For empty functions build a CFG with a single empty BB
     if (rawStmts.length === 0) {
-        entry = new BasicBlock("entry");
-        entry.statements.push(new Return(bodyLoc, []));
+        entry = new BasicBlock("entry", [new Return(bodyLoc, [])]);
 
-        return new CFG([entry], [], entry, [entry]);
+        return new CFG([entry], entry, [entry]);
     }
+
+    const nodes: BasicBlock[] = [];
+    const exits: BasicBlock[] = [];
 
     let curStmts: Statement[] = [];
     let curLabel: string | undefined;
@@ -118,15 +126,13 @@ export function buildCFG(
     if (firstStmt instanceof Statement) {
         throw new MIRSyntaxError(
             firstStmt.src,
-            `Expected first statement in function to be labeled.`
+            "Expected first statement in function to be labeled."
         );
     }
 
-    const bbMap = new Map<string, BasicBlock>(nodes.map((n) => [n.label, n]));
+    const bbMap = new Map(nodes.map((n) => [n.label, n]));
     const addBB = () => {
-        const newBB = new BasicBlock(curLabel as string);
-
-        newBB.statements = curStmts;
+        const newBB = new BasicBlock(curLabel as string, curStmts);
 
         if (bbMap.has(curLabel as string)) {
             throw new MIRSyntaxError(curStmts[0].src, `Duplicate basic block label ${curLabel}`)
@@ -220,8 +226,8 @@ export function buildCFG(
     }
 
     if (entry === undefined) {
-        throw new Error(`Missing entry block`);
+        throw new Error("Missing entry block");
     }
 
-    return new CFG(nodes, edges, entry, exits);
+    return new CFG(nodes, entry, exits);
 }

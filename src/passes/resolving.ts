@@ -1,9 +1,8 @@
-import { EXCEPTION_MEM } from "../interp";
+import { EXCEPTION_MEM, Program } from "../interp";
 import {
     ArrayType,
     BaseSrc,
     BoolType,
-    Definition,
     FunctionCall,
     FunctionDefinition,
     GlobalVariable,
@@ -21,7 +20,7 @@ import {
     UserDefinedType,
     VariableDeclaration
 } from "../ir";
-import { walk, MIRTypeError, pp } from "../utils";
+import { MIRTypeError, pp, walk } from "../utils";
 import { concretizeType, makeSubst } from "./poly";
 
 export type Def =
@@ -206,7 +205,7 @@ export class Resolving {
     public readonly global: Scope;
     private readonly scopeMap: Map<StructDefinition | FunctionDefinition, Scope>;
 
-    constructor(public readonly defs: Definition[]) {
+    constructor(public readonly program: Program) {
         this._idDecls = new Map();
         this._typeDecls = new Map();
         this.global = new Scope();
@@ -237,7 +236,7 @@ export class Resolving {
     }
 
     private runAnalysis(): void {
-        for (const def of this.defs) {
+        for (const def of this.program) {
             if (
                 def instanceof StructDefinition ||
                 def instanceof FunctionDefinition ||
@@ -250,7 +249,7 @@ export class Resolving {
         }
 
         // Build resolution maps
-        for (const def of this.defs) {
+        for (const def of this.program) {
             let defScope: Scope;
 
             if (def instanceof FunctionDefinition) {
@@ -268,19 +267,23 @@ export class Resolving {
             this.resolveOneDef(def, defScope);
         }
 
-        // Check that
-        /// 1. expressions identifiers map to locals/args/globals
-        /// 2. MemVars map to MemVarDecls
-        /// 3. User defined types map to sturcts or type vars
-        for (const def of this.defs) {
+        /**
+         * Check that
+         * 1. expressions identifiers map to locals/args/globals
+         * 2. MemVars map to MemVarDecls
+         * 3. User defined types map to sturcts or type vars
+         */
+        for (const def of this.program) {
             this.checkIdentifiers(def as FunctionDefinition | StructDefinition | GlobalVariable);
         }
 
-        /// Check that
-        /// 1. types of parameters, returns, global var initializers and field types are all primitive
-        /// 2. Pointers only point to complex types
-        /// 3. Complex types only contain primitive types
-        for (const def of this.defs) {
+        /**
+         * Check that
+         * 1. types of parameters, returns, global var initializers and field types are all primitive
+         * 2. Pointers only point to complex types
+         * 3. Complex types only contain primitive types
+         */
+        for (const def of this.program) {
             if (
                 def instanceof FunctionDefinition ||
                 def instanceof StructDefinition ||
@@ -293,7 +296,7 @@ export class Resolving {
         }
 
         // Finally check that all terminator functions return never
-        for (const def of this.defs) {
+        for (const def of this.program) {
             if (!(def instanceof FunctionDefinition && def.body !== undefined)) {
                 continue;
             }
@@ -320,10 +323,11 @@ export class Resolving {
     }
 
     /**
-     * Return true IFF `t` is a primitive type. Note we need resolving, to distinguish type vars from structures, as they
-     * both look like a UserDefinedType.
+     * Return true IFF `t` is a primitive type.
+     * Note we need resolving, to distinguish type vars from structures,
+     * as they both look like a UserDefinedType.
      */
-    public isPrimitive(t: Type): boolean {
+    isPrimitive(t: Type): boolean {
         if (t instanceof IntType || t instanceof BoolType || t instanceof PointerType) {
             return true;
         }
@@ -342,7 +346,8 @@ export class Resolving {
     }
 
     /**
-     * Check whether a type makes sense. Specifically we can only have pointers to and arrays of a primitive type.
+     * Check whether a type makes sense.
+     * Specifically we can only have pointers to and arrays of a primitive type.
      */
     private checkType(t: Type): void {
         if (t instanceof PointerType && this.isPrimitive(t.toType)) {
@@ -409,16 +414,22 @@ export class Resolving {
     }
 
     private checkTypeStructures(def: StructDefinition | FunctionDefinition | GlobalVariable) {
-        // 2. Check all types make sense given the resolution. (With resolution we can distinguish TVars from Structs)
+        /**
+         * 2. Check all types make sense given the resolution.
+         *    With resolution we can distinguish TVars from Structs.
+         */
         walk(def, (nd) => {
             if (nd instanceof Type) {
                 this.checkType(nd);
             }
         });
 
-        // 3. For structs check all fields are primitive
-        //    For functions check that all params/locals/returns are primitive
-        //    For global variable declaration check that their type is primitive, and any pointers in it are in exception memory
+        /**
+         * 3. For structs check all fields are primitive
+         *    For functions check that all params/locals/returns are primitive
+         *    For global variable declaration check that their type is primitive,
+         *    and any pointers in it are in exception memory.
+         */
         if (def instanceof StructDefinition) {
             for (const [name, fieldT] of def.fields) {
                 if (!this.isPrimitive(fieldT)) {
@@ -526,6 +537,7 @@ export class Resolving {
                         } should refer to variable or function, not ${pp(decl)}`
                     );
                 }
+
                 return;
             }
 

@@ -10,14 +10,14 @@ describe("Parser/printer roundtrip test", () => {
         it(file, () => {
             const contents = fse.readFileSync(file, { encoding: "utf-8" });
 
-            const defs = parseProgram(contents);
+            const program = parseProgram(contents);
 
-            const newContents = defs.map((d) => d.pp()).join("\n");
+            const newContents = program.map((def) => def.pp()).join("\n");
 
             //console.error(newContents);
-            const newDefs = parseProgram(newContents);
+            const newProgram = parseProgram(newContents);
 
-            const newContents2 = newDefs.map((d) => d.pp()).join("\n");
+            const newContents2 = newProgram.map((def) => def.pp()).join("\n");
 
             expect(newContents).toEqual(newContents2);
         });
