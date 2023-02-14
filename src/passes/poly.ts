@@ -158,7 +158,10 @@ export function concretizeType(t: Type, subst: Substitution, scope: Scope): Type
         const concreteMemArgs = t.memArgs.map(concretizeMemDesc);
         const concreteTypeArgs = t.typeArgs.map((tArg) => concretizeType(tArg, subst, scope));
 
-        return new UserDefinedType(t.src, t.name, concreteMemArgs, concreteTypeArgs);
+        const res = new UserDefinedType(t.src, t.name, concreteMemArgs, concreteTypeArgs);
+
+        res.md = new Map(t.md);
+        return res;
     }
 
     if (t instanceof PointerType) {
