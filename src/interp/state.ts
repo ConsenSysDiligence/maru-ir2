@@ -111,9 +111,11 @@ export class Frame extends BaseFrame {
 
     dump(indent: string): string {
         const storeStrs = [];
+
         for (const [name, val] of this.store) {
             storeStrs.push(`${name}: ${pp(val)}`);
         }
+
         return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
 
@@ -138,9 +140,11 @@ export class BuiltinFrame extends BaseFrame {
 
     dump(indent: string): string {
         const storeStrs = [];
+
         for (const [name, val] of this.store) {
             storeStrs.push(`${name}: ${pp(val)}`);
         }
+
         return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
 }
@@ -160,10 +164,10 @@ export class State {
     memories: Memories;
     builtins: Map<string, BuiltinFun>;
     externalReturns: any[] | undefined;
-    private failure: InterpError | undefined;
+    failure: InterpError | undefined;
     rootMemArgs: MemConstant[];
     globals: Store;
-    public rootIsTransaction: boolean;
+    rootIsTransaction: boolean;
     maxMemPtr: Map<string, number>;
 
     /**
@@ -172,9 +176,7 @@ export class State {
     memoriesStack: Memories[];
 
     constructor(
-        program: Definition[],
-        entryFun: FunctionDefinition,
-        entryFunArgs: PrimitiveValue[],
+        program: Program,
         entryMemArgs: MemConstant[],
         isTransaction: boolean,
         builtins: Map<string, BuiltinFun>
@@ -186,6 +188,7 @@ export class State {
         for (const memName of this.getInitialMemories(program)) {
             this.memories.set(memName, new Map());
         }
+
         this.builtins = builtins;
         this.memoriesStack = [];
         this.failure = undefined;
@@ -318,7 +321,7 @@ export class State {
 
     dump(): string {
         const mems = [];
-        const indent = "    ";
+        const indent = " ".repeat(4);
 
         for (const [memName, memory] of this.memories) {
             const memContents = [];
@@ -331,6 +334,7 @@ export class State {
         }
 
         const stackStrs = this.stack.map((frame) => frame.dump(indent));
+
         stackStrs.reverse();
 
         return `Stack:\n${stackStrs.join("\n")}\nMemories:\n${mems.join("\n")}`;
@@ -341,6 +345,7 @@ export class State {
 
         if (curMax === undefined) {
             const mem = this.memories.get(memory) as Memory;
+
             curMax = mem.size === 0 ? 0 : Math.max(...mem.keys()) + 1;
         }
 
@@ -352,6 +357,7 @@ export class State {
     public define(val: ComplexValue, memory: string): PointerVal {
         const mem = this.memories.get(memory) as Memory;
         const ptr = this.getNewPtr(memory);
+
         mem.set(ptr, val);
 
         return [memory, ptr];

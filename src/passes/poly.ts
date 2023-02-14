@@ -215,7 +215,7 @@ export function isConcrete(t: Type, scope: Scope): boolean {
             }
         }
 
-        return false;
+        return true;
     }
 
     throw new Error(`NYI type ${t.pp()}`);

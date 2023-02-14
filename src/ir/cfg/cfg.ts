@@ -1,15 +1,12 @@
 import { PPAble } from "../../utils";
 import { BasicBlock } from "./basic_block";
-import { Edge } from "./edge";
 
 export class CFG implements PPAble {
-    edges: Edge[];
     nodes: Map<string, BasicBlock>;
     entry: BasicBlock;
     exits: BasicBlock[];
 
-    constructor(nodes: BasicBlock[], edges: Edge[], entry: BasicBlock, exits: BasicBlock[]) {
-        this.edges = edges;
+    constructor(nodes: BasicBlock[], entry: BasicBlock, exits: BasicBlock[]) {
         this.nodes = new Map();
         this.entry = entry;
         this.exits = exits;
@@ -21,6 +18,7 @@ export class CFG implements PPAble {
 
     pp(): string {
         const nodes = [...this.nodes.values()];
+
         return `{\n${nodes.map((bb) => bb.pp()).join("\n")}\n}`;
     }
 }

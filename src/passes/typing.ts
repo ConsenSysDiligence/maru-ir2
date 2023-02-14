@@ -1,20 +1,29 @@
 import assert from "assert";
+import { Program } from "../interp";
 import {
+    Abort,
+    AllocArray,
+    AllocStruct,
+    ArrayLiteral,
     ArrayType,
+    Assert,
     Assignment,
     BinaryOperation,
     BooleanLiteral,
     BoolType,
     Branch,
-    Definition,
+    Cast,
     Expression,
     FunctionCall,
     FunctionDefinition,
+    GlobalVariable,
+    GlobalVarLiteral,
     Identifier,
     IntType,
     Jump,
     LoadField,
     LoadIndex,
+    NeverType,
     noSrc,
     NumberLiteral,
     PointerType,
@@ -23,21 +32,12 @@ import {
     StoreField,
     StoreIndex,
     StructDefinition,
-    Abort,
+    StructLiteral,
     TransactionCall,
     Type,
-    UnaryOperation,
-    UserDefinedType,
-    AllocArray,
-    AllocStruct,
-    Assert,
-    Cast,
-    GlobalVariable,
-    GlobalVarLiteral,
-    ArrayLiteral,
-    StructLiteral,
     TypeVariableDeclaration,
-    NeverType
+    UnaryOperation,
+    UserDefinedType
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
 import { concretizeType, makeSubst } from "./poly";
@@ -54,17 +54,18 @@ export class Typing {
     typeCache: Map<Expression, Type>;
     curScope!: Scope;
 
-    constructor(public readonly defs: Definition[], private readonly resolve: Resolving) {
+    constructor(public readonly program: Program, private readonly resolve: Resolving) {
         this.typeCache = new Map();
+
         this.runAnalysis();
     }
 
-    public typeOf(e: Expression): Type | undefined {
+    typeOf(e: Expression): Type | undefined {
         return this.typeCache.get(e);
     }
 
     private runAnalysis(): void {
-        for (const def of this.defs) {
+        for (const def of this.program) {
             if (def instanceof FunctionDefinition && def.body !== undefined) {
                 this.curScope = this.resolve.getScope(def);
                 for (const bb of def.body.nodes.values()) {
@@ -512,78 +513,65 @@ export class Typing {
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
         if (stmt instanceof Assignment) {
-            this.tcAssignment(stmt);
-            return;
+            return this.tcAssignment(stmt);
         }
 
         if (stmt instanceof Branch) {
-            this.tcBranch(stmt);
-            return;
+            return this.tcBranch(stmt);
         }
 
         if (stmt instanceof Jump) {
             return;
         }
 
-        if (stmt instanceof LoadField) {
-            this.tcLoadField(stmt);
+        if (stmt instanceof Abort) {
             return;
+        }
+
+        if (stmt instanceof LoadField) {
+            return this.tcLoadField(stmt);
         }
 
         if (stmt instanceof LoadIndex) {
-            this.tcLoadIndex(stmt);
-            return;
+            return this.tcLoadIndex(stmt);
         }
 
         if (stmt instanceof StoreField) {
-            this.tcStoreField(stmt);
-            return;
+            return this.tcStoreField(stmt);
         }
 
         if (stmt instanceof StoreIndex) {
-            this.tcStoreIndex(stmt);
-            return;
+            return this.tcStoreIndex(stmt);
         }
 
         if (stmt instanceof Return) {
-            this.tcReturn(stmt, fun);
-            return;
+            return this.tcReturn(stmt, fun);
         }
 
         if (stmt instanceof FunctionCall) {
-            this.tcFunctionCall(stmt);
-            return;
+            return this.tcFunctionCall(stmt);
         }
 
         if (stmt instanceof TransactionCall) {
-            this.tcTransactionCall(stmt);
-            return;
-        }
-
-        if (stmt instanceof Abort) {
-            /// Nothing to do.
-            return;
+            return this.tcTransactionCall(stmt);
         }
 
         if (stmt instanceof AllocArray) {
-            this.tcAllocArray(stmt);
-            return;
+            return this.tcAllocArray(stmt);
         }
 
         if (stmt instanceof AllocStruct) {
-            this.tcAllocStruct(stmt);
-            return;
+            return this.tcAllocStruct(stmt);
         }
 
         if (stmt instanceof Assert) {
-            this.tcAssert(stmt);
-            return;
+            return this.tcAssert(stmt);
         }
 
         throw new Error(`NYI statement ${stmt.pp()}`);
     }
 
-    public tcInitLiteral(lit: GlobalVarLiteral, expectedType: Type): void {
+    tcInitLiteral(lit: GlobalVarLiteral, expectedType: Type): void {
         if (lit instanceof BooleanLiteral && eq(expectedType, boolT)) {
             return;
         }
@@ -643,6 +631,7 @@ export class Typing {
             for (const [field, lit] of actualFields) {
                 const fieldT = formalFields.get(field) as Type;
                 const concreteFieldT = concretizeType(fieldT, subst, this.resolve.getScope(def));
+
                 this.tcInitLiteral(lit, concreteFieldT);
             }
 
@@ -656,8 +645,8 @@ export class Typing {
     }
 
     /**
-     * Compute the type of an expression. Actual implementation in
-     * `tcExpressionImpl`. Caches the results in `typeCache`.
+     * Compute the type of an expression. Actual implementation in `tcExpressionImpl`.
+     * Caches the results in `typeCache`.
      */
     private typeOfExpression(expr: Expression): Type {
         let res = this.typeCache.get(expr);
@@ -669,6 +658,7 @@ export class Typing {
         res = this.typeOfExpressionImpl(expr);
 
         this.typeCache.set(expr, res);
+
         return res;
     }
 
@@ -730,9 +720,9 @@ export class Typing {
         const lhsT = this.typeOfExpression(expr.leftExpr);
         const rhsT = this.typeOfExpression(expr.rightExpr);
 
-        /// Power and bitshifts are the only binary operators
-        /// where we don't insist that the left and right sub-expressions
-        /// are of the same type.
+        // Power and bitshifts are the only binary operators
+        // where we don't insist that the left and right sub-expressions
+        // are of the same type.
         if (["**", ">>", "<<"].includes(expr.op)) {
             if (!(lhsT instanceof IntType && rhsT instanceof IntType)) {
                 throw new MIRTypeError(

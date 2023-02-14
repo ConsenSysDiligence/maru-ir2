@@ -19,19 +19,19 @@ describe("Typing positive tests", () => {
     for (const file of files) {
         it(file, () => {
             const contents = fse.readFileSync(file, { encoding: "utf-8" });
-            const defs = parseProgram(contents);
-            const resolving = new Resolving(defs);
-            const typing = new Typing(defs, resolving);
+            const program = parseProgram(contents);
+            const resolving = new Resolving(program);
+            const typing = new Typing(program, resolving);
 
             const funNames = new Set<string>(
-                defs
-                    .filter((x) => x instanceof FunctionDefinition)
-                    .map((x) => (x as FunctionDefinition).name)
+                program
+                    .filter((def): def is FunctionDefinition => def instanceof FunctionDefinition)
+                    .map((def) => def.name)
             );
 
             const memVarNames = new Set<string>();
 
-            for (const def of defs) {
+            for (const def of program) {
                 walk(def, (n) => {
                     if (n instanceof MemVariableDeclaration) {
                         memVarNames.add(n.name);
@@ -39,7 +39,7 @@ describe("Typing positive tests", () => {
                 });
             }
 
-            for (const def of defs) {
+            for (const def of program) {
                 if (!(def instanceof FunctionDefinition && def.body)) {
                     continue;
                 }
@@ -76,10 +76,10 @@ describe("Typing negative tests", () => {
     for (const file of files) {
         it(file, () => {
             const contents = fse.readFileSync(file, { encoding: "utf-8" });
-            const defs = parseProgram(contents);
-            const resolving = new Resolving(defs);
+            const program = parseProgram(contents);
+            const resolving = new Resolving(program);
 
-            expect(() => new Typing(defs, resolving)).toThrow(MIRTypeError);
+            expect(() => new Typing(program, resolving)).toThrow(MIRTypeError);
         });
     }
 });

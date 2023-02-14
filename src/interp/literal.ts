@@ -38,7 +38,8 @@ export class LiteralEvaluator {
     }
 
     /**
-     * Evaluate a literal in the current state. Note that if the literal is an array or struct,
+     * Evaluate a literal in the current state.
+     * Note that if the literal is an array or struct,
      * this will define that array/struct in the corresponding memory.
      *
      * We assume that the literals have been type checked at this point
@@ -59,6 +60,7 @@ export class LiteralEvaluator {
 
             if (toT instanceof ArrayType && lit instanceof ArrayLiteral) {
                 const arrayVal = lit.values.map((v) => this.evalLiteral(v, toT.baseType));
+
                 return this.state.define(arrayVal, expectedT.region.name);
             }
 
@@ -66,7 +68,13 @@ export class LiteralEvaluator {
                 const def = this.resolving.getTypeDecl(toT);
                 const structVal = new Map<string, PrimitiveValue>();
 
-                this.assert(def instanceof StructDefinition, lit, ``);
+                this.assert(
+                    def instanceof StructDefinition,
+                    lit,
+                    `Expected struct definition, got {0}`,
+                    def
+                );
+
                 const litMap = new Map(lit.fields);
                 const subst = makeSubst(toT, this.resolving.global);
 

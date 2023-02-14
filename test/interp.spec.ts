@@ -1,14 +1,17 @@
 import expect from "expect";
 import fse from "fs-extra";
 import {
+    BuiltinFun,
     FunctionDefinition,
-    initAndCall,
+    InterpInternalError,
+    LiteralEvaluator,
     Memory,
     parseProgram,
     poison,
-    Program,
     Resolving,
+    runProgram,
     State,
+    Statement,
     StatementExecutor,
     Typing
 } from "../src";
@@ -16,23 +19,42 @@ import { searchRecursive } from "./utils";
 
 function runTest(
     file: string,
-    rootTrans: boolean
-): [Program, Resolving, Typing, State, StatementExecutor] {
+    rootTrans: boolean,
+    builtins = new Map<string, BuiltinFun>()
+): State {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
-    const defs = parseProgram(contents);
-    const entryPoint = defs.filter((x) => x instanceof FunctionDefinition && x.name === "main");
+    const program = parseProgram(contents);
+    const entryPoint = program.find(
+        (def): def is FunctionDefinition => def instanceof FunctionDefinition && def.name === "main"
+    );
 
     // Tests need to have a main() entry function
-    expect(entryPoint.length).toEqual(1);
-
-    const main = entryPoint[0] as FunctionDefinition;
+    if (entryPoint === undefined) {
+        throw new Error('Unable to find entry point function "main"');
+    }
 
     // main() must not have any parameters
-    expect(main.parameters.length).toEqual(0);
+    if (entryPoint.parameters.length > 0) {
+        throw new Error('Entry point function "main" should not have any defined parameters');
+    }
 
-    const [resolving, typing, state, stmtExec] = initAndCall(defs, main, [], new Map(), rootTrans);
+    const resolving = new Resolving(program);
+    const typing = new Typing(program, resolving);
+    const state = new State(program, [], rootTrans, builtins);
 
-    return [defs, resolving, typing, state, stmtExec];
+    const literalEvaluator = new LiteralEvaluator(resolving, state);
+    const stmtExecutor = new StatementExecutor(resolving, typing, state);
+
+    const flow = runProgram(literalEvaluator, stmtExecutor, program, state, entryPoint, [], true);
+
+    let next: IteratorResult<Statement>;
+
+    while ((next = flow.next()) && !next.done) {
+        // const stmt = next.value;
+        // console.error(`Exec ${stmt.pp()} in ${state.dump()}`);
+    }
+
+    return state;
 }
 
 describe("Interpreter tests", () => {
@@ -40,7 +62,8 @@ describe("Interpreter tests", () => {
 
     for (const file of files) {
         it(file, () => {
-            const [, , , state] = runTest(file, false);
+            const state = runTest(file, false);
+
             expect(state.externalReturns).toBeDefined();
             expect(state.failed).toEqual(false);
         });
@@ -54,7 +77,7 @@ describe("Failing interpreter tests", () => {
 
     for (const file of files) {
         it(file, () => {
-            const [, , , state] = runTest(file, false);
+            const state = runTest(file, false);
 
             expect(state.externalReturns).not.toBeDefined();
             expect(state.failed).toEqual(true);
@@ -64,7 +87,8 @@ describe("Failing interpreter tests", () => {
 
 describe("Abort on root call", () => {
     it("Normal call", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/root_abort.maruir", false);
+        const state = runTest("test/samples/valid/interp/root_abort.maruir", false);
+
         expect(state.externalReturns).toEqual([poison]);
         expect(state.failed).toEqual(false);
         expect(state.memories.has("memory")).toBeTruthy();
@@ -79,7 +103,8 @@ describe("Abort on root call", () => {
     });
 
     it("Transaction call", () => {
-        const [, , , state] = runTest("test/samples/valid/interp/root_abort.maruir", true);
+        const state = runTest("test/samples/valid/interp/root_abort.maruir", true);
+
         expect(state.externalReturns).toEqual([poison, true]);
         expect(state.failed).toEqual(false);
         expect(state.memories.has("memory")).toBeTruthy();
@@ -90,5 +115,35 @@ describe("Abort on root call", () => {
 
         expect(exc.size).toEqual(0);
         expect(mem.size).toEqual(0);
+    });
+});
+
+describe("Builtins", () => {
+    it("Supplied custom builtin", () => {
+        const builtins = new Map<string, BuiltinFun>([
+            [
+                "customBuiltin",
+                (s, f) => {
+                    const v = f.args[0][1];
+
+                    return [false, [v]];
+                }
+            ]
+        ]);
+
+        const state = runTest("test/samples/valid/builtin.maruir", false, builtins);
+
+        expect(state.externalReturns).toEqual([]);
+        expect(state.failed).toEqual(false);
+
+        const exc = state.memories.get("exception") as Memory;
+
+        expect(exc.size).toEqual(0);
+    });
+
+    it("Missing custom builtin", () => {
+        expect(() => runTest("test/samples/valid/builtin.maruir", false)).toThrow(
+            InterpInternalError
+        );
     });
 });
