@@ -11,7 +11,6 @@ import {
     Resolving,
     runProgram,
     State,
-    Statement,
     StatementExecutor,
     Typing
 } from "../src";
@@ -47,12 +46,14 @@ function runTest(
 
     const flow = runProgram(literalEvaluator, stmtExecutor, program, state, entryPoint, [], true);
 
-    let next: IteratorResult<Statement>;
+    for (let step = flow.next(); !step.done; step = flow.next());
 
-    while ((next = flow.next()) && !next.done) {
-        // const stmt = next.value;
-        // console.error(`Exec ${stmt.pp()} in ${state.dump()}`);
-    }
+    // for (let step = flow.next(); !step.done; step = flow.next()) {
+    //     const stmt = step.value;
+
+    //     console.error(stmt.pp());
+    //     console.error(JSON.stringify(state.dump(), undefined, 4));
+    // }
 
     return state;
 }

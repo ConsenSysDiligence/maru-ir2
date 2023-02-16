@@ -79,8 +79,20 @@ export abstract class BaseFrame implements PPAble {
         ];
     }
 
+    dump(): any {
+        const res = {
+            frame: this.pp(),
+            stores: {} as { [name: string]: string }
+        };
+
+        for (const [name, val] of this.store) {
+            res.stores[name] = pp(val);
+        }
+
+        return res;
+    }
+
     abstract pp(): string;
-    abstract dump(indent: string): string;
 }
 
 export class Frame extends BaseFrame {
@@ -109,16 +121,6 @@ export class Frame extends BaseFrame {
         ].pp()}`;
     }
 
-    dump(indent: string): string {
-        const storeStrs = [];
-
-        for (const [name, val] of this.store) {
-            storeStrs.push(`${name}: ${pp(val)}`);
-        }
-
-        return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
-    }
-
     get curStmt(): Statement {
         return this.curBB.statements[this.curBBInd];
     }
@@ -136,16 +138,6 @@ export class BuiltinFrame extends BaseFrame {
 
     pp(): string {
         return `${this.fun.name}:<builtin>`;
-    }
-
-    dump(indent: string): string {
-        const storeStrs = [];
-
-        for (const [name, val] of this.store) {
-            storeStrs.push(`${name}: ${pp(val)}`);
-        }
-
-        return `${indent}${this.pp()} <${storeStrs.join(", ")}>`;
     }
 }
 
@@ -319,25 +311,27 @@ export class State {
         return res;
     }
 
-    dump(): string {
-        const mems = [];
-        const indent = " ".repeat(4);
+    dump(): any {
+        const res = {
+            memories: {} as any,
+            stack: [] as any[]
+        };
 
-        for (const [memName, memory] of this.memories) {
-            const memContents = [];
+        for (const [name, memory] of this.memories) {
+            const contents: { [name: string]: string } = {};
 
             for (const [ptr, val] of memory) {
-                memContents.push(`${ptr}: ${pp(val)}`);
+                contents[ptr] = pp(val);
             }
 
-            mems.push(`${indent}${memName}: [${memContents.join("; ")}]`);
+            res.memories[name] = contents;
         }
 
-        const stackStrs = this.stack.map((frame) => frame.dump(indent));
+        res.stack = this.stack.map((frame) => frame.dump());
 
-        stackStrs.reverse();
+        res.stack.reverse();
 
-        return `Stack:\n${stackStrs.join("\n")}\nMemories:\n${mems.join("\n")}`;
+        return res;
     }
 
     private getNewPtr(memory: string): number {
@@ -354,12 +348,28 @@ export class State {
         return curMax;
     }
 
-    public define(val: ComplexValue, memory: string): PointerVal {
+    define(val: ComplexValue, memory: string): PointerVal {
         const mem = this.memories.get(memory) as Memory;
         const ptr = this.getNewPtr(memory);
 
         mem.set(ptr, val);
 
         return [memory, ptr];
+    }
+
+    deref(ptr: PointerVal): ComplexValue {
+        const mem = this.memories.get(ptr[0]);
+
+        if (mem === undefined) {
+            throw new Error(`Memory ${ptr[0]} not found`);
+        }
+
+        const val = mem.get(ptr[1]);
+
+        if (val === undefined) {
+            throw new Error(`Pointer ${ptr[1]} in ${ptr[0]} is undefined`);
+        }
+
+        return val;
     }
 }
