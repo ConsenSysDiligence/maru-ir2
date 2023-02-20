@@ -59,6 +59,18 @@ export class ExprEvaluator {
             return this.clampIntToType(-subValue, e);
         }
 
+        if (e.op === "~") {
+            this.assert(
+                typeof subValue === "bigint",
+                e,
+                `Unary operation {0} expects bigint not {1}`,
+                e,
+                subValue
+            );
+
+            return this.clampIntToType(~subValue, e);
+        }
+
         this.internalError(e, `NYI unary operation ${e.pp()}`);
     }
 

@@ -48,9 +48,7 @@ function runTest(
 
     for (let step = flow.next(); !step.done; step = flow.next());
 
-    // for (let step = flow.next(); !step.done; step = flow.next()) {
-    //     const stmt = step.value;
-
+    // for (const stmt of flow) {
     //     console.error(stmt.pp());
     //     console.error(JSON.stringify(state.dump(), undefined, 4));
     // }

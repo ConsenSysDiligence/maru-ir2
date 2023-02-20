@@ -171,9 +171,9 @@ PointerOrArrayType
             (acc: Type, el: any) => {
                 if (el[1] === "*") {
                     return new PointerType(Src.fromPegsRange(location()), acc, el[3]);
-                } else {
-                    return new ArrayType(Src.fromPegsRange(location()), acc);
                 }
+
+                return new ArrayType(Src.fromPegsRange(location()), acc);
             },
             head
         )
@@ -352,7 +352,9 @@ Literal
     / BooleanLiteral
 
 Cast
-    = type: IntType __ LPAREN __ expr: Expression __ RPAREN { return new Cast(Src.fromPegsRange(location()), type, expr)}
+    = type: IntType __ LPAREN __ expr: Expression __ RPAREN {
+        return new Cast(Src.fromPegsRange(location()), type, expr);
+    }
 
 PrimitiveExpression
     = Literal
@@ -362,8 +364,8 @@ PrimitiveExpression
 
 UnaryExpression =
     (
-        operator: UnaryOperator __ subexp: UnaryExpression {
-            return new UnaryOperation(Src.fromPegsRange(location()), operator, subexp);
+        operator: UnaryOperator __ expr: UnaryExpression {
+            return new UnaryOperation(Src.fromPegsRange(location()), operator, expr);
         }
     )
     / PrimitiveExpression
@@ -371,6 +373,7 @@ UnaryExpression =
 UnaryOperator =
     "-"
     / "!"
+    / "~"
 
 PowerExpression =
     head: UnaryExpression
