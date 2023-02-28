@@ -1,100 +1,375 @@
-Exec ctr := 0_i32; in Stack:
-    gauss:entry:0 ctr := 0_i32; <n: 5, ctr: !POISON!, sum: !POISON!>
-Memories:
-    exception: []
-Exec sum := 0_i32; in Stack:
-    gauss:entry:1 sum := 0_i32; <n: 5, ctr: 0, sum: !POISON!>
-Memories:
-    exception: []
-Exec jump header; in Stack:
-    gauss:entry:2 jump header; <n: 5, ctr: 0, sum: 0>
-Memories:
-    exception: []
-Exec branch (ctr < n) body exit; in Stack:
-    gauss:header:0 branch (ctr < n) body exit; <n: 5, ctr: 0, sum: 0>
-Memories:
-    exception: []
-Exec ctr := (ctr + 1_i32); in Stack:
-    gauss:body:0 ctr := (ctr + 1_i32); <n: 5, ctr: 0, sum: 0>
-Memories:
-    exception: []
-Exec sum := (sum + ctr); in Stack:
-    gauss:body:1 sum := (sum + ctr); <n: 5, ctr: 1, sum: 0>
-Memories:
-    exception: []
-Exec jump header; in Stack:
-    gauss:body:2 jump header; <n: 5, ctr: 1, sum: 1>
-Memories:
-    exception: []
-Exec branch (ctr < n) body exit; in Stack:
-    gauss:header:0 branch (ctr < n) body exit; <n: 5, ctr: 1, sum: 1>
-Memories:
-    exception: []
-Exec ctr := (ctr + 1_i32); in Stack:
-    gauss:body:0 ctr := (ctr + 1_i32); <n: 5, ctr: 1, sum: 1>
-Memories:
-    exception: []
-Exec sum := (sum + ctr); in Stack:
-    gauss:body:1 sum := (sum + ctr); <n: 5, ctr: 2, sum: 1>
-Memories:
-    exception: []
-Exec jump header; in Stack:
-    gauss:body:2 jump header; <n: 5, ctr: 2, sum: 3>
-Memories:
-    exception: []
-Exec branch (ctr < n) body exit; in Stack:
-    gauss:header:0 branch (ctr < n) body exit; <n: 5, ctr: 2, sum: 3>
-Memories:
-    exception: []
-Exec ctr := (ctr + 1_i32); in Stack:
-    gauss:body:0 ctr := (ctr + 1_i32); <n: 5, ctr: 2, sum: 3>
-Memories:
-    exception: []
-Exec sum := (sum + ctr); in Stack:
-    gauss:body:1 sum := (sum + ctr); <n: 5, ctr: 3, sum: 3>
-Memories:
-    exception: []
-Exec jump header; in Stack:
-    gauss:body:2 jump header; <n: 5, ctr: 3, sum: 6>
-Memories:
-    exception: []
-Exec branch (ctr < n) body exit; in Stack:
-    gauss:header:0 branch (ctr < n) body exit; <n: 5, ctr: 3, sum: 6>
-Memories:
-    exception: []
-Exec ctr := (ctr + 1_i32); in Stack:
-    gauss:body:0 ctr := (ctr + 1_i32); <n: 5, ctr: 3, sum: 6>
-Memories:
-    exception: []
-Exec sum := (sum + ctr); in Stack:
-    gauss:body:1 sum := (sum + ctr); <n: 5, ctr: 4, sum: 6>
-Memories:
-    exception: []
-Exec jump header; in Stack:
-    gauss:body:2 jump header; <n: 5, ctr: 4, sum: 10>
-Memories:
-    exception: []
-Exec branch (ctr < n) body exit; in Stack:
-    gauss:header:0 branch (ctr < n) body exit; <n: 5, ctr: 4, sum: 10>
-Memories:
-    exception: []
-Exec ctr := (ctr + 1_i32); in Stack:
-    gauss:body:0 ctr := (ctr + 1_i32); <n: 5, ctr: 4, sum: 10>
-Memories:
-    exception: []
-Exec sum := (sum + ctr); in Stack:
-    gauss:body:1 sum := (sum + ctr); <n: 5, ctr: 5, sum: 10>
-Memories:
-    exception: []
-Exec jump header; in Stack:
-    gauss:body:2 jump header; <n: 5, ctr: 5, sum: 15>
-Memories:
-    exception: []
-Exec branch (ctr < n) body exit; in Stack:
-    gauss:header:0 branch (ctr < n) body exit; <n: 5, ctr: 5, sum: 15>
-Memories:
-    exception: []
-Exec return sum; in Stack:
-    gauss:exit:0 return sum; <n: 5, ctr: 5, sum: 15>
-Memories:
-    exception: []
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:entry:0 ctr := 0_i32;",
+            "stores": {
+                "n": "5",
+                "ctr": "!POISON!",
+                "sum": "!POISON!"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:entry:1 sum := 0_i32;",
+            "stores": {
+                "n": "5",
+                "ctr": "0",
+                "sum": "!POISON!"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:entry:2 jump header;",
+            "stores": {
+                "n": "5",
+                "ctr": "0",
+                "sum": "0"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:header:0 branch (ctr < n) body exit;",
+            "stores": {
+                "n": "5",
+                "ctr": "0",
+                "sum": "0"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:0 ctr := (ctr + 1_i32);",
+            "stores": {
+                "n": "5",
+                "ctr": "0",
+                "sum": "0"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:1 sum := (sum + ctr);",
+            "stores": {
+                "n": "5",
+                "ctr": "1",
+                "sum": "0"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:2 jump header;",
+            "stores": {
+                "n": "5",
+                "ctr": "1",
+                "sum": "1"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:header:0 branch (ctr < n) body exit;",
+            "stores": {
+                "n": "5",
+                "ctr": "1",
+                "sum": "1"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:0 ctr := (ctr + 1_i32);",
+            "stores": {
+                "n": "5",
+                "ctr": "1",
+                "sum": "1"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:1 sum := (sum + ctr);",
+            "stores": {
+                "n": "5",
+                "ctr": "2",
+                "sum": "1"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:2 jump header;",
+            "stores": {
+                "n": "5",
+                "ctr": "2",
+                "sum": "3"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:header:0 branch (ctr < n) body exit;",
+            "stores": {
+                "n": "5",
+                "ctr": "2",
+                "sum": "3"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:0 ctr := (ctr + 1_i32);",
+            "stores": {
+                "n": "5",
+                "ctr": "2",
+                "sum": "3"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:1 sum := (sum + ctr);",
+            "stores": {
+                "n": "5",
+                "ctr": "3",
+                "sum": "3"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:2 jump header;",
+            "stores": {
+                "n": "5",
+                "ctr": "3",
+                "sum": "6"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:header:0 branch (ctr < n) body exit;",
+            "stores": {
+                "n": "5",
+                "ctr": "3",
+                "sum": "6"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:0 ctr := (ctr + 1_i32);",
+            "stores": {
+                "n": "5",
+                "ctr": "3",
+                "sum": "6"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:1 sum := (sum + ctr);",
+            "stores": {
+                "n": "5",
+                "ctr": "4",
+                "sum": "6"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:2 jump header;",
+            "stores": {
+                "n": "5",
+                "ctr": "4",
+                "sum": "10"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:header:0 branch (ctr < n) body exit;",
+            "stores": {
+                "n": "5",
+                "ctr": "4",
+                "sum": "10"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:0 ctr := (ctr + 1_i32);",
+            "stores": {
+                "n": "5",
+                "ctr": "4",
+                "sum": "10"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:1 sum := (sum + ctr);",
+            "stores": {
+                "n": "5",
+                "ctr": "5",
+                "sum": "10"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:body:2 jump header;",
+            "stores": {
+                "n": "5",
+                "ctr": "5",
+                "sum": "15"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:header:0 branch (ctr < n) body exit;",
+            "stores": {
+                "n": "5",
+                "ctr": "5",
+                "sum": "15"
+            }
+        }
+    ]
+}
+{
+    "memories": {
+        "exception": {}
+    },
+    "stack": [
+        {
+            "frame": "gauss:exit:0 return sum;",
+            "stores": {
+                "n": "5",
+                "ctr": "5",
+                "sum": "15"
+            }
+        }
+    ]
+}

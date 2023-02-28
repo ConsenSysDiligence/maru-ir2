@@ -688,11 +688,13 @@ export class Typing {
     private typeOfUnaryOperation(expr: UnaryOperation): Type {
         const innerT = this.typeOfExpression(expr.subExpr);
 
-        if (expr.op === "-") {
+        if (expr.op === "-" || expr.op === "~") {
             if (!(innerT instanceof IntType)) {
                 throw new MIRTypeError(
                     expr.src,
-                    `Unary - expects an int type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
+                    `Unary ${
+                        expr.op
+                    } expects an int type, not ${expr.subExpr.pp()} of type ${innerT.pp()}`
                 );
             }
 

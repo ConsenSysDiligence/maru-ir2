@@ -2,7 +2,7 @@ import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Expression } from "./expression";
 
-export type UnaryOperator = "-" | "!";
+export type UnaryOperator = "-" | "!" | "~";
 
 export class UnaryOperation extends Expression {
     constructor(

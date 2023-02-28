@@ -33,7 +33,7 @@ import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { concretizeType, Resolving, Typing } from "../passes";
 import { fill, fmt, pp, PPIsh, zip } from "../utils";
-import { ExprEvaluator, fits } from "./expression";
+import { ExprEvaluator } from "./expression";
 import { LiteralEvaluator } from "./literal";
 import {
     BuiltinFrame,
@@ -48,6 +48,7 @@ import {
     Program,
     State
 } from "./state";
+import { fits, toJsVal } from "./utils";
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;
@@ -220,6 +221,7 @@ export class StatementExecutor {
         this.assert(lhsType !== undefined, `Missing type for {0}`, lhs, lhs);
 
         const funScope = this.resolving.global.scopeOf(this.state.curMachFrame.fun);
+
         lhsType = concretizeType(lhsType, this.state.curMachFrame.substituion, funScope);
 
         if (val === poison && !ignorePoison) {
@@ -238,18 +240,12 @@ export class StatementExecutor {
         this.state.curMachFrame.store.set(lhs.name, val);
     }
 
-    public deref(val: PointerVal, e?: Expression): ComplexValue {
-        const mem = this.state.memories.get(val[0]);
-
-        this.assert(mem !== undefined, `Memory {0} not found.`, e, val[0]);
-
-        const loadedVal = mem.get(val[1]);
-
-        if (loadedVal === undefined) {
-            this.error(`Pointer ${val[1]} in ${val[0]} is undefined.`, e);
+    deref(val: PointerVal, expr?: Expression): ComplexValue {
+        try {
+            return this.state.deref(val);
+        } catch (e: any) {
+            this.error(e.message, expr);
         }
-
-        return loadedVal;
     }
 
     private evalAndDeref(e: Expression): ComplexValue {
@@ -360,59 +356,6 @@ export class StatementExecutor {
         this.state.curMachFrame.curBBInd++;
     }
 
-    /// Helper to extract an interpreter value into
-    /// a normal JS value. Supports maps and arrays.
-    jsEncode(v: PrimitiveValue): any {
-        if (v instanceof Array) {
-            const complexVal = this.deref(v);
-
-            if (complexVal instanceof Array) {
-                return complexVal.map(this.jsEncode);
-            }
-
-            const res: any = {};
-
-            for (const [field, val] of complexVal) {
-                res[field] = this.jsEncode(val);
-            }
-
-            return res;
-        }
-
-        return v;
-    }
-
-    /// Helper to convert a normal JS value into an interpreter value.
-    /// If the JS value is complex, then it is encoded in the provided
-    /// `memory`
-    jsDecode(jsV: any, memory: string): PrimitiveValue {
-        if (typeof jsV === "number") {
-            return BigInt(jsV);
-        }
-
-        if (typeof jsV === "bigint" || typeof jsV === "boolean") {
-            return jsV;
-        }
-
-        if (jsV instanceof Array) {
-            const arr = jsV.map((el) => this.jsDecode(el, memory));
-
-            return this.state.define(arr, memory);
-        }
-
-        if (jsV instanceof Object) {
-            const struct = new Map();
-
-            for (const field in jsV) {
-                struct.set(field, this.jsDecode(jsV[field], memory));
-            }
-
-            return this.state.define(struct, memory);
-        }
-
-        throw new Error(`Cannot encode ${pp(jsV)} into interpreter`);
-    }
-
     execTransactionCall(s: TransactionCall): void {
         this.execCallImpl(s);
     }
@@ -448,7 +391,7 @@ export class StatementExecutor {
             this.restoreMemsOnReturnFromTransaction(aborted, stmt);
         }
 
-        this.state.externalReturns = vals.map(this.jsEncode);
+        this.state.externalReturns = vals.map((v) => toJsVal(v, this.state));
     }
 
     private returnValsToFrame(vals: PrimitiveValue[], aborted: boolean, frame: Frame) {
