@@ -11,72 +11,7 @@ import {
 import { Typing } from "../passes";
 import { eq, fmt, PPIsh } from "../utils";
 import { InterpError, InterpInternalError, poison, PrimitiveValue, State } from "./state";
-
-export function getTypeRange(bits: number, signed: boolean): [bigint, bigint, bigint] {
-    const total = 2n ** BigInt(bits);
-    const half = 2n ** BigInt(bits - 1);
-
-    if (signed) {
-        const signedLow = -half;
-        const signedHigh = half - 1n;
-
-        return [signedLow, signedHigh, total];
-    }
-
-    const unsignedLow = 0n;
-    const unsignedHigh = total - 1n;
-
-    return [unsignedLow, unsignedHigh, total];
-}
-
-export function fits(val: bigint, type: IntType): boolean {
-    const [low, high] = getTypeRange(type.nbits, type.signed);
-
-    return low <= val && val <= high;
-}
-
-/**
- * Returns big integer that is the result of overflow/underflow handling
- * of input `value` in range of specified `type`.
- */
-export function adjustIntToTypeSize(type: IntType, value: bigint): bigint {
-    const bits = type.nbits;
-
-    /**
-     * Skip truncation for number literal type, as it do not have corresponding value range.
-     */
-    if (bits === undefined) {
-        return value;
-    }
-
-    const [low, high, total] = getTypeRange(bits, type.signed);
-
-    /**
-     * Skip if value fits to a type range
-     */
-    if (value >= low && value <= high) {
-        return value;
-    }
-
-    let result = value % total;
-
-    if (type.signed) {
-        if (result < low) {
-            const remainder = result % low;
-
-            result = high + remainder + 1n;
-        } else if (result > high) {
-            const remainder = result % high;
-            const quotient = result / high;
-
-            result = quotient >= 1 ? result - total : low + (remainder - 1n);
-        }
-    } else if (result < low) {
-        result = total + result;
-    }
-
-    return result;
-}
+import { adjustIntToTypeSize } from "./utils";
 
 export class ExprEvaluator {
     constructor(private readonly typing: Typing, private readonly state: State) {}
@@ -122,6 +57,18 @@ export class ExprEvaluator {
             );
 
             return this.clampIntToType(-subValue, e);
+        }
+
+        if (e.op === "~") {
+            this.assert(
+                typeof subValue === "bigint",
+                e,
+                `Unary operation {0} expects bigint not {1}`,
+                e,
+                subValue
+            );
+
+            return this.clampIntToType(~subValue, e);
         }
 
         this.internalError(e, `NYI unary operation ${e.pp()}`);

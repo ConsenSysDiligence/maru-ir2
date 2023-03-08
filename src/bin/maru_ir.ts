@@ -186,8 +186,8 @@ function error(message: string): never {
             true
         );
 
-        for (const stmt of flow) {
-            console.log(`Exec ${stmt.pp()} in ${state.dump()}`);
+        for (let step = flow.next(); !step.done; step = flow.next()) {
+            console.log(JSON.stringify(state.dump(), undefined, 4));
         }
 
         if (state.failure) {
