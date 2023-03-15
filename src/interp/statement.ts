@@ -189,6 +189,11 @@ export class StatementExecutor {
 
             const [aborted, returns] = builtin(this.state, newFrame);
 
+            if (aborted) {
+                this.propagateAbort(s);
+                return;
+            }
+
             this.state.stack.pop();
 
             this.returnValsToFrame(returns, aborted, this.state.curMachFrame);
@@ -449,8 +454,7 @@ export class StatementExecutor {
         return fill(nRets, poison);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    execAbort(s: Abort): void {
+    protected propagateAbort(s: Statement): void {
         let nRets = this.state.curMachFrame.fun.returns.length;
 
         while (this.state.stack.length > 1) {
@@ -475,6 +479,10 @@ export class StatementExecutor {
         this.state.stack.pop();
 
         this.returnValsToExternalCtx(this.makePoisonArr(nRets), true, s);
+    }
+
+    execAbort(s: Abort): void {
+        this.propagateAbort(s);
     }
 
     private resolveMemDesc(m: MemDesc): MemConstant {

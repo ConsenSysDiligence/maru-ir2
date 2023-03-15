@@ -14,7 +14,11 @@ export class NumberLiteral extends Expression {
     }
 
     pp(): string {
-        return `${this.value.toString(this.radix)}_${this.type.pp()}`;
+        let strVal = this.value.toString(this.radix);
+        if (this.radix === 16) {
+            strVal = strVal[0] === "-" ? "-0x" + strVal.slice(1) : "0x" + strVal;
+        }
+        return `${strVal}_${this.type.pp()}`;
     }
 
     getStructId(): any {

@@ -57,7 +57,7 @@ function makeTypeSubst(
     if (formals.length !== actuals.length) {
         throw new MIRTypeError(
             arg.src,
-            `${argDesc} expects ${formals.length} memory parameters, instead ${actuals.length} given.`
+            `${argDesc} expects ${formals.length} type parameters, instead ${actuals.length} given.`
         );
     }
 
