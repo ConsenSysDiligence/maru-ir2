@@ -1,11 +1,13 @@
 import {
     Abort,
     AllocArray,
+    AllocMap,
     AllocStruct,
     Assert,
     Assignment,
     BoolType,
     Branch,
+    Contains,
     Expression,
     FunctionCall,
     FunctionDefinition,
@@ -32,7 +34,7 @@ import {
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { concretizeType, Resolving, Typing } from "../passes";
-import { fill, fmt, pp, PPIsh, zip } from "../utils";
+import { fill, fmt, pp, ppComplexValue, PPIsh, zip } from "../utils";
 import { ExprEvaluator } from "./expression";
 import { LiteralEvaluator } from "./literal";
 import {
@@ -50,6 +52,14 @@ import {
     StructValue
 } from "./state";
 import { fits, toJsVal } from "./utils";
+
+export function primitiveValueToKey(v: PrimitiveValue): any {
+    if (v instanceof Array) {
+        return `${v[0]}_${v[1]}`;
+    }
+
+    return v;
+}
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;
@@ -265,7 +275,7 @@ export class StatementExecutor {
     execLoadField(s: LoadField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        if (struct instanceof Array) {
+        if (struct instanceof Array || struct instanceof Map) {
             this.assert(
                 false,
                 `Expected struct for {0} instead of {1}`,
@@ -304,8 +314,23 @@ export class StatementExecutor {
             }
 
             val = array[Number(index)];
+        } else if (array instanceof Map) {
+            const key = primitiveValueToKey(index);
+
+            if (!array.has(key)) {
+                this.error(`Key ${index} not found in map.`, s);
+            }
+
+            val = array.get(key) as PrimitiveValue;
         } else {
-            this.assert(false, `NYI loadIndex {0} from {1}`, s.indexExpr, s.baseExpr, index);
+            this.assert(
+                false,
+                `Unexpected base value {0} in load index {1} from {2} `,
+                s,
+                ppComplexValue(array),
+                s.indexExpr,
+                s.baseExpr
+            );
         }
 
         this.assignTo(val, s.lhs, s);
@@ -316,7 +341,7 @@ export class StatementExecutor {
     execStoreField(s: StoreField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        if (struct instanceof Array) {
+        if (struct instanceof Array || struct instanceof Map) {
             this.assert(
                 false,
                 `Expected struct for {0} instead of {1}`,
@@ -336,6 +361,7 @@ export class StatementExecutor {
     execStoreIndex(s: StoreIndex): void {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
+        const rVal = this.evaluator.evalExpression(s.rhs);
 
         if (array instanceof Array) {
             this.assert(
@@ -349,11 +375,20 @@ export class StatementExecutor {
                 this.error(`Index ${index} OoB.`, s);
             }
 
-            const rVal = this.evaluator.evalExpression(s.rhs);
-
             array[Number(index)] = rVal;
+        } else if (array instanceof Map) {
+            const key = primitiveValueToKey(index);
+
+            array.set(key, rVal);
         } else {
-            this.assert(false, `NYI store index in {0} instead of {1}`, s.baseExpr, s.baseExpr);
+            this.assert(
+                false,
+                `Unexpected base value {0} in store index {1} in {2} `,
+                s,
+                ppComplexValue(array),
+                s.indexExpr,
+                s.baseExpr
+            );
         }
 
         this.state.curMachFrame.curBBInd++;
@@ -601,6 +636,36 @@ export class StatementExecutor {
         this.state.curMachFrame.curBBInd++;
     }
 
+    execAllocMap(s: AllocMap): void {
+        const map = new Map<PrimitiveValue, PrimitiveValue>();
+        const mem = this.resolveMemDesc(s.mem);
+        const ptr = this.state.define(map, mem.name);
+
+        this.assignTo(ptr, s.lhs, s);
+
+        this.state.curMachFrame.curBBInd++;
+    }
+
+    execContains(s: Contains): void {
+        const map = this.evalAndDeref(s.baseExpr);
+        const key = this.evaluator.evalExpression(s.keyExpr);
+
+        if (!(map instanceof Map)) {
+            this.assert(
+                false,
+                `Contains expects a map pointer as base, not {0}`,
+                s,
+                ppComplexValue(map)
+            );
+        }
+
+        const res = map.has(primitiveValueToKey(key));
+
+        this.assignTo(res, s.lhs, s);
+
+        this.state.curMachFrame.curBBInd++;
+    }
+
     execStatement(s: Statement): void {
         // Once in the failed state, we perpetually stay there.
         if (this.state.failed) {
@@ -662,6 +727,14 @@ export class StatementExecutor {
 
             if (s instanceof Assert) {
                 return this.execAssert(s);
+            }
+
+            if (s instanceof AllocMap) {
+                return this.execAllocMap(s);
+            }
+
+            if (s instanceof Contains) {
+                return this.execContains(s);
             }
 
             this.internalError(`Unknown statement ${pp(s)}`, s);

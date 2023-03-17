@@ -35,7 +35,8 @@ export type PointerVal = [string, number];
 export type PrimitiveValue = bigint | boolean | PointerVal | PoisonValue;
 
 export type StructValue = { [field: string]: PrimitiveValue };
-export type ComplexValue = PrimitiveValue[] | StructValue;
+export type MapValue = Map<PrimitiveValue, PrimitiveValue>;
+export type ComplexValue = PrimitiveValue[] | StructValue | MapValue;
 
 export type Store = Map<string, PrimitiveValue>;
 
@@ -279,6 +280,16 @@ export class State {
     copyComplexVal(v: ComplexValue): ComplexValue {
         if (v instanceof Array) {
             return v.map(this.copyPrimitiveVal);
+        }
+
+        if (v instanceof Map) {
+            const newEntries: Array<[PrimitiveValue, PrimitiveValue]> = [];
+
+            v.forEach((val, key) =>
+                newEntries.push([this.copyPrimitiveVal(key), this.copyPrimitiveVal(val)])
+            );
+
+            return new Map(newEntries);
         }
 
         const res: StructValue = {};

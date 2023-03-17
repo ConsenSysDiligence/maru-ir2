@@ -23,7 +23,7 @@ export function isPPAble(value: any): value is PPAble {
 }
 
 export function ppComplexValue(value: ComplexValue): string {
-    if (value instanceof Array) {
+    if (value instanceof Array || value instanceof Map) {
         return pp(value);
     }
 
