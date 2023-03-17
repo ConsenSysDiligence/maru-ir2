@@ -325,7 +325,7 @@ Assert
 
 Contains
     = lhs: IdentifierExp __ ":=" __ mapExpr: Expression __ CONTAINS __ keyExpr: Expression __ SEMICOLON {
-        return new HasKey(Src.fromPegsRange(location()), lhs, mapExpr, keyExpr);
+        return new Contains(Src.fromPegsRange(location()), lhs, mapExpr, keyExpr);
     }
 
 /// Expressions

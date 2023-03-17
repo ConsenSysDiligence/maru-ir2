@@ -19,7 +19,7 @@ import {
     FunctionDefinition,
     GlobalVariable,
     GlobalVarLiteral,
-    HasKey,
+    Contains,
     Identifier,
     IntType,
     Jump,
@@ -530,7 +530,7 @@ export class Typing {
     /**
      * Type check a HasKey statement
      */
-    private tcHasKey(stmt: HasKey): void {
+    private tcHasKey(stmt: Contains): void {
         const lhs = stmt.lhs;
         const lhsT = this.typeOfExpression(lhs);
         const map = stmt.baseExpr;
@@ -623,7 +623,7 @@ export class Typing {
             return this.tcAllocMap(stmt);
         }
 
-        if (stmt instanceof HasKey) {
+        if (stmt instanceof Contains) {
             return this.tcHasKey(stmt);
         }
 

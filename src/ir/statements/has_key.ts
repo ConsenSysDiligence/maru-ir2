@@ -3,7 +3,7 @@ import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Statement } from "./statement";
 
-export class HasKey extends Statement {
+export class Contains extends Statement {
     constructor(
         src: BaseSrc,
         public readonly lhs: Identifier,

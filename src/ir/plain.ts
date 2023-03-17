@@ -17,7 +17,7 @@ import {
     FunctionDefinition,
     GlobalVariable,
     GlobalVarLiteral,
-    HasKey,
+    Contains,
     Identifier,
     IntType,
     Jump,
@@ -372,7 +372,7 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         };
     }
 
-    if (node instanceof HasKey) {
+    if (node instanceof Contains) {
         return {
             ...header(node),
 
@@ -691,8 +691,8 @@ export function plainToNode(plain: PlainRepresentation): Node {
         );
     }
 
-    if (plain.nodeType === HasKey.name) {
-        return new HasKey(
+    if (plain.nodeType === Contains.name) {
+        return new Contains(
             plainToSrc(plain.src),
             plainToNode(plain.lhs) as Identifier,
             plainToNode(plain.baseExpr),
