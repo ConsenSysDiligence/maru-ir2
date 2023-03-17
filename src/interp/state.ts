@@ -37,12 +37,22 @@ export type PrimitiveValue = bigint | boolean | PointerVal | PoisonValue;
 export class StructValue implements PPAble {
     private vals: { [field: string]: PrimitiveValue } = {};
 
+    constructor(arg?: { [field: string]: PrimitiveValue }) {
+        if (arg !== undefined) {
+            this.vals = new Object(Object(arg).entries()) as { [field: string]: PrimitiveValue };
+        }
+    }
+
     get(field: string): PrimitiveValue | undefined {
         return this.vals[field];
     }
 
     set(field: string, val: PrimitiveValue): void {
         this.vals[field] = val;
+    }
+
+    has(field: string): boolean {
+        return field in this.vals;
     }
 
     fields(): string[] {
