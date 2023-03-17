@@ -66,7 +66,7 @@ export class LiteralEvaluator {
 
             if (toT instanceof UserDefinedType && lit instanceof StructLiteral) {
                 const def = this.resolving.getTypeDecl(toT);
-                const structVal: StructValue = {};
+                const structVal = new StructValue();
 
                 this.assert(
                     def instanceof StructDefinition,
@@ -81,9 +81,12 @@ export class LiteralEvaluator {
                 for (const [name, fieldT] of def.fields) {
                     const fieldLit = litMap.get(name) as GlobalVarLiteral;
 
-                    structVal[name] = this.evalLiteral(
-                        fieldLit,
-                        concretizeType(fieldT, subst, this.resolving.getScope(def))
+                    structVal.set(
+                        name,
+                        this.evalLiteral(
+                            fieldLit,
+                            concretizeType(fieldT, subst, this.resolving.getScope(def))
+                        )
                     );
                 }
 

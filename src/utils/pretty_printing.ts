@@ -1,4 +1,3 @@
-import { ComplexValue } from "../interp";
 import { Scope, Substitution } from "../passes";
 
 export interface PPAble {
@@ -20,16 +19,6 @@ export type PPIsh =
 
 export function isPPAble(value: any): value is PPAble {
     return value ? typeof value.pp === "function" : false;
-}
-
-export function ppComplexValue(value: ComplexValue): string {
-    if (value instanceof Array || value instanceof Map) {
-        return pp(value);
-    }
-
-    return `{${Object.entries(value)
-        .map(([field, v]) => `${field}: ${pp(v)}`)
-        .join(", ")}}`;
 }
 
 export function pp(value: PPIsh): string {

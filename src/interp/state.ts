@@ -9,7 +9,7 @@ import {
 } from "../ir";
 import { BasicBlock } from "../ir/cfg";
 import { Substitution } from "../passes";
-import { pp, PPAble, ppComplexValue, walk, zip } from "../utils";
+import { pp, PPAble, walk, zip } from "../utils";
 
 export class InterpError extends Error {
     constructor(public readonly src: BaseSrc, msg: string, state: State) {
@@ -34,7 +34,36 @@ export const poison = new PoisonValue();
 export type PointerVal = [string, number];
 export type PrimitiveValue = bigint | boolean | PointerVal | PoisonValue;
 
-export type StructValue = { [field: string]: PrimitiveValue };
+export class StructValue implements PPAble {
+    private vals: { [field: string]: PrimitiveValue } = {};
+
+    get(field: string): PrimitiveValue | undefined {
+        return this.vals[field];
+    }
+
+    set(field: string, val: PrimitiveValue): void {
+        this.vals[field] = val;
+    }
+
+    fields(): string[] {
+        return Object.keys(this.vals);
+    }
+
+    values(): PrimitiveValue[] {
+        return Object.values(this.vals);
+    }
+
+    entries(): Array<[string, PrimitiveValue]> {
+        return Object.entries(this.vals);
+    }
+
+    pp(): string {
+        return `{${this.entries()
+            .map(([field, v]) => `${field}: ${pp(v)}`)
+            .join(", ")}}`;
+    }
+}
+
 export type MapValue = Map<PrimitiveValue, PrimitiveValue>;
 export type ComplexValue = PrimitiveValue[] | StructValue | MapValue;
 
@@ -292,10 +321,10 @@ export class State {
             return new Map(newEntries);
         }
 
-        const res: StructValue = {};
+        const res: StructValue = new StructValue();
 
-        for (const [fieldName] of Object.getOwnPropertyNames(v)) {
-            res[fieldName] = this.copyPrimitiveVal(v[fieldName]);
+        for (const [fieldName, fieldVal] of v.entries()) {
+            res.set(fieldName, this.copyPrimitiveVal(fieldVal));
         }
 
         return res;
@@ -339,7 +368,7 @@ export class State {
             const contents: { [name: string]: string } = {};
 
             for (const [ptr, val] of memory) {
-                contents[ptr] = ppComplexValue(val);
+                contents[ptr] = pp(val);
             }
 
             res.memories[name] = contents;

@@ -34,7 +34,7 @@ import {
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
 import { concretizeType, Resolving, Typing } from "../passes";
-import { fill, fmt, pp, ppComplexValue, PPIsh, zip } from "../utils";
+import { fill, fmt, pp, PPIsh, zip } from "../utils";
 import { ExprEvaluator } from "./expression";
 import { LiteralEvaluator } from "./literal";
 import {
@@ -275,17 +275,15 @@ export class StatementExecutor {
     execLoadField(s: LoadField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        if (struct instanceof Array || struct instanceof Map) {
-            this.assert(
-                false,
-                `Expected struct for {0} instead of {1}`,
-                s.baseExpr,
-                s.baseExpr,
-                struct
-            );
-        }
+        this.assert(
+            struct instanceof StructValue,
+            `Expected struct for {0} instead of {1}`,
+            s.baseExpr,
+            s.baseExpr,
+            struct
+        );
 
-        const val = struct[s.member];
+        const val = struct.get(s.member);
 
         this.assert(val !== undefined, `Struct missing field {0}`, s, s.member);
 
@@ -299,6 +297,15 @@ export class StatementExecutor {
         const index = this.evaluator.evalExpression(s.indexExpr);
 
         let val: PrimitiveValue;
+
+        this.assert(
+            array instanceof Array || array instanceof Map,
+            `Unexpected base value {0} in load index {1} from {2} `,
+            s,
+            array,
+            s.indexExpr,
+            s.baseExpr
+        );
 
         if (array instanceof Array) {
             this.assert(
@@ -314,7 +321,7 @@ export class StatementExecutor {
             }
 
             val = array[Number(index)];
-        } else if (array instanceof Map) {
+        } else {
             const key = primitiveValueToKey(index);
 
             if (!array.has(key)) {
@@ -322,15 +329,6 @@ export class StatementExecutor {
             }
 
             val = array.get(key) as PrimitiveValue;
-        } else {
-            this.assert(
-                false,
-                `Unexpected base value {0} in load index {1} from {2} `,
-                s,
-                ppComplexValue(array),
-                s.indexExpr,
-                s.baseExpr
-            );
         }
 
         this.assignTo(val, s.lhs, s);
@@ -341,19 +339,17 @@ export class StatementExecutor {
     execStoreField(s: StoreField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        if (struct instanceof Array || struct instanceof Map) {
-            this.assert(
-                false,
-                `Expected struct for {0} instead of {1}`,
-                s.baseExpr,
-                s.baseExpr,
-                struct
-            );
-        }
+        this.assert(
+            struct instanceof StructValue,
+            `Expected struct for {0} instead of {1}`,
+            s.baseExpr,
+            s.baseExpr,
+            struct
+        );
 
         const rVal = this.evaluator.evalExpression(s.rhs);
 
-        struct[s.member] = rVal;
+        struct.set(s.member, rVal);
 
         this.state.curMachFrame.curBBInd++;
     }
@@ -362,6 +358,15 @@ export class StatementExecutor {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
         const rVal = this.evaluator.evalExpression(s.rhs);
+
+        this.assert(
+            array instanceof Array || array instanceof Map,
+            `Unexpected base value {0} in store index {1} in {2} `,
+            s,
+            array,
+            s.indexExpr,
+            s.baseExpr
+        );
 
         if (array instanceof Array) {
             this.assert(
@@ -376,19 +381,10 @@ export class StatementExecutor {
             }
 
             array[Number(index)] = rVal;
-        } else if (array instanceof Map) {
+        } else {
             const key = primitiveValueToKey(index);
 
             array.set(key, rVal);
-        } else {
-            this.assert(
-                false,
-                `Unexpected base value {0} in store index {1} in {2} `,
-                s,
-                ppComplexValue(array),
-                s.indexExpr,
-                s.baseExpr
-            );
         }
 
         this.state.curMachFrame.curBBInd++;
@@ -605,10 +601,10 @@ export class StatementExecutor {
             decl
         );
 
-        const struct: StructValue = {};
+        const struct = new StructValue();
 
         for (const [fieldName] of decl.fields) {
-            struct[fieldName] = poison;
+            struct.set(fieldName, poison);
         }
 
         const mem = this.resolveMemDesc(s.mem);
@@ -650,14 +646,7 @@ export class StatementExecutor {
         const map = this.evalAndDeref(s.baseExpr);
         const key = this.evaluator.evalExpression(s.keyExpr);
 
-        if (!(map instanceof Map)) {
-            this.assert(
-                false,
-                `Contains expects a map pointer as base, not {0}`,
-                s,
-                ppComplexValue(map)
-            );
-        }
+        this.assert(map instanceof Map, `Contains expects a map pointer as base, not {0}`, s, map);
 
         const res = map.has(primitiveValueToKey(key));
 

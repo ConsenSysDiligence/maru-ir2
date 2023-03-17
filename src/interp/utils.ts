@@ -112,10 +112,10 @@ export function fromJsVal(v: any, memory: string, s: State): PrimitiveValue {
     }
 
     if (v instanceof Object) {
-        const struct: StructValue = {};
+        const struct = new StructValue();
 
         for (const field in v) {
-            struct[field] = fromJsVal(v[field], memory, s);
+            struct.set(field, fromJsVal(v[field], memory, s));
         }
 
         return s.define(struct, memory);
