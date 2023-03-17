@@ -9,7 +9,7 @@ import {
 } from "../ir";
 import { BasicBlock } from "../ir/cfg";
 import { Substitution } from "../passes";
-import { pp, PPAble, walk, zip } from "../utils";
+import { pp, PPAble, ppComplexValue, walk, zip } from "../utils";
 
 export class InterpError extends Error {
     constructor(public readonly src: BaseSrc, msg: string, state: State) {
@@ -34,7 +34,8 @@ export const poison = new PoisonValue();
 export type PointerVal = [string, number];
 export type PrimitiveValue = bigint | boolean | PointerVal | PoisonValue;
 
-export type ComplexValue = PrimitiveValue[] | Map<string, PrimitiveValue>;
+export type StructValue = { [field: string]: PrimitiveValue };
+export type ComplexValue = PrimitiveValue[] | StructValue;
 
 export type Store = Map<string, PrimitiveValue>;
 
@@ -280,7 +281,13 @@ export class State {
             return v.map(this.copyPrimitiveVal);
         }
 
-        return new Map([...v.entries()].map((p) => [p[0], this.copyPrimitiveVal(p[1])]));
+        const res: StructValue = {};
+
+        for (const [fieldName] of Object.getOwnPropertyNames(v)) {
+            res[fieldName] = this.copyPrimitiveVal(v[fieldName]);
+        }
+
+        return res;
     }
 
     saveMemories(): void {
@@ -321,7 +328,7 @@ export class State {
             const contents: { [name: string]: string } = {};
 
             for (const [ptr, val] of memory) {
-                contents[ptr] = pp(val);
+                contents[ptr] = ppComplexValue(val);
             }
 
             res.memories[name] = contents;

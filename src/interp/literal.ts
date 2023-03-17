@@ -15,7 +15,7 @@ import {
 } from "../ir";
 import { concretizeType, makeSubst, Resolving } from "../passes";
 import { PPIsh, fmt } from "../utils";
-import { State, InterpInternalError, PrimitiveValue } from "./state";
+import { State, InterpInternalError, PrimitiveValue, StructValue } from "./state";
 
 export class LiteralEvaluator {
     constructor(private readonly resolving: Resolving, private readonly state: State) {}
@@ -66,7 +66,7 @@ export class LiteralEvaluator {
 
             if (toT instanceof UserDefinedType && lit instanceof StructLiteral) {
                 const def = this.resolving.getTypeDecl(toT);
-                const structVal = new Map<string, PrimitiveValue>();
+                const structVal: StructValue = {};
 
                 this.assert(
                     def instanceof StructDefinition,
@@ -81,12 +81,9 @@ export class LiteralEvaluator {
                 for (const [name, fieldT] of def.fields) {
                     const fieldLit = litMap.get(name) as GlobalVarLiteral;
 
-                    structVal.set(
-                        name,
-                        this.evalLiteral(
-                            fieldLit,
-                            concretizeType(fieldT, subst, this.resolving.getScope(def))
-                        )
+                    structVal[name] = this.evalLiteral(
+                        fieldLit,
+                        concretizeType(fieldT, subst, this.resolving.getScope(def))
                     );
                 }
 

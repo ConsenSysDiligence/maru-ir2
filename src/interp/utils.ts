@@ -1,6 +1,6 @@
 import { IntType } from "../ir";
 import { pp } from "../utils";
-import { PrimitiveValue, State } from "./state";
+import { PrimitiveValue, State, StructValue } from "./state";
 
 export function getTypeRange(bits: number, signed: boolean): [bigint, bigint, bigint] {
     const total = 2n ** BigInt(bits);
@@ -82,7 +82,7 @@ export function toJsVal(v: PrimitiveValue, s: State): any {
 
         const res: any = {};
 
-        for (const [field, val] of complexVal) {
+        for (const [field, val] of Object.entries(complexVal)) {
             res[field] = toJsVal(val, s);
         }
 
@@ -112,10 +112,10 @@ export function fromJsVal(v: any, memory: string, s: State): PrimitiveValue {
     }
 
     if (v instanceof Object) {
-        const struct = new Map();
+        const struct: StructValue = {};
 
         for (const field in v) {
-            struct.set(field, fromJsVal(v[field], memory, s));
+            struct[field] = fromJsVal(v[field], memory, s);
         }
 
         return s.define(struct, memory);

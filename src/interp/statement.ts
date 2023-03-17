@@ -46,7 +46,8 @@ import {
     poison,
     PrimitiveValue,
     Program,
-    State
+    State,
+    StructValue
 } from "./state";
 import { fits, toJsVal } from "./utils";
 
@@ -264,15 +265,17 @@ export class StatementExecutor {
     execLoadField(s: LoadField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        this.assert(
-            struct instanceof Map,
-            `Expected struct for {0} instead of {1}`,
-            s.baseExpr,
-            s.baseExpr,
-            struct
-        );
+        if (struct instanceof Array) {
+            this.assert(
+                false,
+                `Expected struct for {0} instead of {1}`,
+                s.baseExpr,
+                s.baseExpr,
+                struct
+            );
+        }
 
-        const val = struct.get(s.member);
+        const val = struct[s.member];
 
         this.assert(val !== undefined, `Struct missing field {0}`, s, s.member);
 
@@ -285,27 +288,25 @@ export class StatementExecutor {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
 
-        this.assert(
-            array instanceof Array,
-            `Expected struct for {0} instead of {1}`,
-            s.baseExpr,
-            s.baseExpr,
-            array
-        );
+        let val: PrimitiveValue;
 
-        this.assert(
-            typeof index === "bigint",
-            `Expected index {0} to be a number not {1}`,
-            s.indexExpr,
-            s.baseExpr,
-            index
-        );
+        if (array instanceof Array) {
+            this.assert(
+                typeof index === "bigint",
+                `Expected index {0} to be a number not {1}`,
+                s.indexExpr,
+                s.baseExpr,
+                index
+            );
 
-        if (index >= BigInt(array.length) || index < 0n) {
-            this.error(`Index ${index} OoB.`, s);
+            if (index >= BigInt(array.length) || index < 0n) {
+                this.error(`Index ${index} OoB.`, s);
+            }
+
+            val = array[Number(index)];
+        } else {
+            this.assert(false, `NYI loadIndex {0} from {1}`, s.indexExpr, s.baseExpr, index);
         }
-
-        const val = array[Number(index)];
 
         this.assignTo(val, s.lhs, s);
 
@@ -315,17 +316,19 @@ export class StatementExecutor {
     execStoreField(s: StoreField): void {
         const struct = this.evalAndDeref(s.baseExpr);
 
-        this.assert(
-            struct instanceof Map,
-            `Expected struct for {0} instead of {1}`,
-            s.baseExpr,
-            s.baseExpr,
-            struct
-        );
+        if (struct instanceof Array) {
+            this.assert(
+                false,
+                `Expected struct for {0} instead of {1}`,
+                s.baseExpr,
+                s.baseExpr,
+                struct
+            );
+        }
 
         const rVal = this.evaluator.evalExpression(s.rhs);
 
-        struct.set(s.member, rVal);
+        struct[s.member] = rVal;
 
         this.state.curMachFrame.curBBInd++;
     }
@@ -334,29 +337,24 @@ export class StatementExecutor {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
 
-        this.assert(
-            array instanceof Array,
-            `Expected struct for {0} instead of {1}`,
-            s.baseExpr,
-            s.baseExpr,
-            array
-        );
+        if (array instanceof Array) {
+            this.assert(
+                typeof index === "bigint",
+                `Expected index {0} to be a number not {1}`,
+                s.indexExpr,
+                s.baseExpr
+            );
 
-        this.assert(
-            typeof index === "bigint",
-            `Expected index {0} to be a number not {1}`,
-            s.indexExpr,
-            s.baseExpr,
-            index
-        );
+            if (index >= BigInt(array.length) || index < 0n) {
+                this.error(`Index ${index} OoB.`, s);
+            }
 
-        if (index >= BigInt(array.length) || index < 0n) {
-            this.error(`Index ${index} OoB.`, s);
+            const rVal = this.evaluator.evalExpression(s.rhs);
+
+            array[Number(index)] = rVal;
+        } else {
+            this.assert(false, `NYI store index in {0} instead of {1}`, s.baseExpr, s.baseExpr);
         }
-
-        const rVal = this.evaluator.evalExpression(s.rhs);
-
-        array[Number(index)] = rVal;
 
         this.state.curMachFrame.curBBInd++;
     }
@@ -572,10 +570,10 @@ export class StatementExecutor {
             decl
         );
 
-        const struct = new Map<string, PrimitiveValue>();
+        const struct: StructValue = {};
 
         for (const [fieldName] of decl.fields) {
-            struct.set(fieldName, poison);
+            struct[fieldName] = poison;
         }
 
         const mem = this.resolveMemDesc(s.mem);
