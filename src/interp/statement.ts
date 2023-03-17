@@ -1,11 +1,13 @@
 import {
     Abort,
     AllocArray,
+    AllocMap,
     AllocStruct,
     Assert,
     Assignment,
     BoolType,
     Branch,
+    Contains,
     Expression,
     FunctionCall,
     FunctionDefinition,
@@ -46,9 +48,18 @@ import {
     poison,
     PrimitiveValue,
     Program,
-    State
+    State,
+    StructValue
 } from "./state";
 import { fits, toJsVal } from "./utils";
+
+export function primitiveValueToKey(v: PrimitiveValue): any {
+    if (v instanceof Array) {
+        return `${v[0]}_${v[1]}`;
+    }
+
+    return v;
+}
 
 export class StatementExecutor {
     evaluator: ExprEvaluator;
@@ -265,7 +276,7 @@ export class StatementExecutor {
         const struct = this.evalAndDeref(s.baseExpr);
 
         this.assert(
-            struct instanceof Map,
+            struct instanceof StructValue,
             `Expected struct for {0} instead of {1}`,
             s.baseExpr,
             s.baseExpr,
@@ -285,27 +296,40 @@ export class StatementExecutor {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
 
-        this.assert(
-            array instanceof Array,
-            `Expected struct for {0} instead of {1}`,
-            s.baseExpr,
-            s.baseExpr,
-            array
-        );
+        let val: PrimitiveValue;
 
         this.assert(
-            typeof index === "bigint",
-            `Expected index {0} to be a number not {1}`,
+            array instanceof Array || array instanceof Map,
+            `Unexpected base value {0} in load index {1} from {2} `,
+            s,
+            array,
             s.indexExpr,
-            s.baseExpr,
-            index
+            s.baseExpr
         );
 
-        if (index >= BigInt(array.length) || index < 0n) {
-            this.error(`Index ${index} OoB.`, s);
-        }
+        if (array instanceof Array) {
+            this.assert(
+                typeof index === "bigint",
+                `Expected index {0} to be a number not {1}`,
+                s.indexExpr,
+                s.baseExpr,
+                index
+            );
 
-        const val = array[Number(index)];
+            if (index >= BigInt(array.length) || index < 0n) {
+                this.error(`Index ${index} OoB.`, s);
+            }
+
+            val = array[Number(index)];
+        } else {
+            const key = primitiveValueToKey(index);
+
+            if (!array.has(key)) {
+                this.error(`Key ${index} not found in map.`, s);
+            }
+
+            val = array.get(key) as PrimitiveValue;
+        }
 
         this.assignTo(val, s.lhs, s);
 
@@ -316,7 +340,7 @@ export class StatementExecutor {
         const struct = this.evalAndDeref(s.baseExpr);
 
         this.assert(
-            struct instanceof Map,
+            struct instanceof StructValue,
             `Expected struct for {0} instead of {1}`,
             s.baseExpr,
             s.baseExpr,
@@ -333,30 +357,35 @@ export class StatementExecutor {
     execStoreIndex(s: StoreIndex): void {
         const array = this.evalAndDeref(s.baseExpr);
         const index = this.evaluator.evalExpression(s.indexExpr);
-
-        this.assert(
-            array instanceof Array,
-            `Expected struct for {0} instead of {1}`,
-            s.baseExpr,
-            s.baseExpr,
-            array
-        );
-
-        this.assert(
-            typeof index === "bigint",
-            `Expected index {0} to be a number not {1}`,
-            s.indexExpr,
-            s.baseExpr,
-            index
-        );
-
-        if (index >= BigInt(array.length) || index < 0n) {
-            this.error(`Index ${index} OoB.`, s);
-        }
-
         const rVal = this.evaluator.evalExpression(s.rhs);
 
-        array[Number(index)] = rVal;
+        this.assert(
+            array instanceof Array || array instanceof Map,
+            `Unexpected base value {0} in store index {1} in {2} `,
+            s,
+            array,
+            s.indexExpr,
+            s.baseExpr
+        );
+
+        if (array instanceof Array) {
+            this.assert(
+                typeof index === "bigint",
+                `Expected index {0} to be a number not {1}`,
+                s.indexExpr,
+                s.baseExpr
+            );
+
+            if (index >= BigInt(array.length) || index < 0n) {
+                this.error(`Index ${index} OoB.`, s);
+            }
+
+            array[Number(index)] = rVal;
+        } else {
+            const key = primitiveValueToKey(index);
+
+            array.set(key, rVal);
+        }
 
         this.state.curMachFrame.curBBInd++;
     }
@@ -572,7 +601,7 @@ export class StatementExecutor {
             decl
         );
 
-        const struct = new Map<string, PrimitiveValue>();
+        const struct = new StructValue();
 
         for (const [fieldName] of decl.fields) {
             struct.set(fieldName, poison);
@@ -599,6 +628,29 @@ export class StatementExecutor {
         if (!condVal) {
             this.error(`Assertion ${s.pp()} failed`, s);
         }
+
+        this.state.curMachFrame.curBBInd++;
+    }
+
+    execAllocMap(s: AllocMap): void {
+        const map = new Map<PrimitiveValue, PrimitiveValue>();
+        const mem = this.resolveMemDesc(s.mem);
+        const ptr = this.state.define(map, mem.name);
+
+        this.assignTo(ptr, s.lhs, s);
+
+        this.state.curMachFrame.curBBInd++;
+    }
+
+    execContains(s: Contains): void {
+        const map = this.evalAndDeref(s.baseExpr);
+        const key = this.evaluator.evalExpression(s.keyExpr);
+
+        this.assert(map instanceof Map, `Contains expects a map pointer as base, not {0}`, s, map);
+
+        const res = map.has(primitiveValueToKey(key));
+
+        this.assignTo(res, s.lhs, s);
 
         this.state.curMachFrame.curBBInd++;
     }
@@ -664,6 +716,14 @@ export class StatementExecutor {
 
             if (s instanceof Assert) {
                 return this.execAssert(s);
+            }
+
+            if (s instanceof AllocMap) {
+                return this.execAllocMap(s);
+            }
+
+            if (s instanceof Contains) {
+                return this.execContains(s);
             }
 
             this.internalError(`Unknown statement ${pp(s)}`, s);

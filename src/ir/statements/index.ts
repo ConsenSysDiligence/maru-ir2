@@ -14,3 +14,5 @@ export * from "./abort";
 export * from "./alloc_arr";
 export * from "./alloc_struct";
 export * from "./assert";
+export * from "./alloc_map";
+export * from "./has_key";

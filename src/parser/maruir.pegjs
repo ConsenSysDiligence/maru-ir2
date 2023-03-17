@@ -155,12 +155,18 @@ UserDefinedType
         return new UserDefinedType(Src.fromPegsRange(location()), name, memArgs, typeArgs);
     }
 
+MapType
+    = MAP __ LPAREN __ keyT: Type __ COMMA __ valT: Type __ RPAREN {
+        return new MapType(Src.fromPegsRange(location()), keyT, valT);
+    }
+
 PrimitiveType
     = IntType
     / BOOL { return new BoolType(Src.fromPegsRange(location())); }
     / NEVER { return new NeverType(Src.fromPegsRange(location())); }
     / UserDefinedType
     / LPAREN innerT: Type RPAREN { return innerT; }
+    / MapType
 
 IntType
     = sign:("u" / "i") nbits:([0-9]+ {return Number(text())})  { return new IntType(Src.fromPegsRange(location()), nbits, sign == "i"); }
@@ -200,6 +206,7 @@ Statement
     / Abort 
     / Alloc
     / Assert
+    / Contains
 
 Assignment
     = lhs: Identifier __ ":=" __ rhs: Expression __ SEMICOLON {
@@ -294,7 +301,7 @@ Abort
         return new Abort(Src.fromPegsRange(location()));
     }
 
-Alloc = AllocArr / AllocStruct
+Alloc = AllocArr / AllocStruct / AllocMap
 
 AllocStruct
     = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: UserDefinedType __ IN __ mem: MemDesc __ SEMICOLON {
@@ -306,9 +313,19 @@ AllocArr
         return new AllocArray(Src.fromPegsRange(location()), lhs, typeT, size, mem)
     }
 
+AllocMap
+    = lhs: IdentifierExp __ ":=" __ ALLOC __ typeT: MapType __ IN __ mem: MemDesc __ SEMICOLON {
+        return new AllocMap(Src.fromPegsRange(location()), lhs, typeT, mem)
+    }
+
 Assert
     = ASSERT __ condition: Expression __ SEMICOLON {
         return new Assert(Src.fromPegsRange(location()), condition);
+    }
+
+Contains
+    = lhs: IdentifierExp __ ":=" __ mapExpr: Expression __ CONTAINS __ keyExpr: Expression __ SEMICOLON {
+        return new Contains(Src.fromPegsRange(location()), lhs, mapExpr, keyExpr);
     }
 
 /// Expressions
@@ -506,6 +523,8 @@ ALLOC="alloc"
 ASSERT="assert"
 VAR="var"
 NEVER="never"
+MAP="map"
+CONTAINS="contains"
 
 Keyword
     = STRUCT
@@ -526,6 +545,7 @@ Keyword
     / ALLOC
     / ASSERT
     / VAR
+    / MAP
 
 Identifier =
     !((Keyword ![a-zA-Z0-9_]) / IntType) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }

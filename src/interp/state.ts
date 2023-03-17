@@ -34,7 +34,48 @@ export const poison = new PoisonValue();
 export type PointerVal = [string, number];
 export type PrimitiveValue = bigint | boolean | PointerVal | PoisonValue;
 
-export type ComplexValue = PrimitiveValue[] | Map<string, PrimitiveValue>;
+export class StructValue implements PPAble {
+    private vals: { [field: string]: PrimitiveValue } = {};
+
+    constructor(arg?: { [field: string]: PrimitiveValue }) {
+        if (arg !== undefined) {
+            this.vals = new Object(Object(arg).entries()) as { [field: string]: PrimitiveValue };
+        }
+    }
+
+    get(field: string): PrimitiveValue | undefined {
+        return this.vals[field];
+    }
+
+    set(field: string, val: PrimitiveValue): void {
+        this.vals[field] = val;
+    }
+
+    has(field: string): boolean {
+        return field in this.vals;
+    }
+
+    fields(): string[] {
+        return Object.keys(this.vals);
+    }
+
+    values(): PrimitiveValue[] {
+        return Object.values(this.vals);
+    }
+
+    entries(): Array<[string, PrimitiveValue]> {
+        return Object.entries(this.vals);
+    }
+
+    pp(): string {
+        return `{${this.entries()
+            .map(([field, v]) => `${field}: ${pp(v)}`)
+            .join(", ")}}`;
+    }
+}
+
+export type MapValue = Map<PrimitiveValue, PrimitiveValue>;
+export type ComplexValue = PrimitiveValue[] | StructValue | MapValue;
 
 export type Store = Map<string, PrimitiveValue>;
 
@@ -280,7 +321,23 @@ export class State {
             return v.map(this.copyPrimitiveVal);
         }
 
-        return new Map([...v.entries()].map((p) => [p[0], this.copyPrimitiveVal(p[1])]));
+        if (v instanceof Map) {
+            const newEntries: Array<[PrimitiveValue, PrimitiveValue]> = [];
+
+            v.forEach((val, key) =>
+                newEntries.push([this.copyPrimitiveVal(key), this.copyPrimitiveVal(val)])
+            );
+
+            return new Map(newEntries);
+        }
+
+        const res: StructValue = new StructValue();
+
+        for (const [fieldName, fieldVal] of v.entries()) {
+            res.set(fieldName, this.copyPrimitiveVal(fieldVal));
+        }
+
+        return res;
     }
 
     saveMemories(): void {

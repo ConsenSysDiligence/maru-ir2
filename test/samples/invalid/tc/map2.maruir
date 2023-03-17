@@ -1,0 +1,7 @@
+fun testPrimitiveMap()
+locals m: u256[] *#memory;
+{
+    entry:
+        m := alloc map(u256, u256) in #memory;
+        return;
+}

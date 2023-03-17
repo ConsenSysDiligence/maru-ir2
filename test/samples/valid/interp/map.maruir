@@ -1,0 +1,67 @@
+fun testPrimitiveMap()
+locals m: map(u256, u256) *#memory,
+       b: bool,
+       t: u256;
+{
+    entry:
+        m := alloc map(u256, u256) in #memory;
+        b := m contains 0_u256;
+        assert !b;
+
+        store 42_u256 in m[1_u256];
+        b := m contains 1_u256;
+        assert b;
+        b := m contains 0_u256;
+        assert !b;
+
+        load m[1_u256] in t;
+        assert t == 42_u256;
+
+        store 43_u256 in m[1_u256];
+
+        load m[1_u256] in t;
+        assert t == 43_u256;
+        return;
+}
+
+fun testComplexMap()
+locals
+    k1: u8[] *#s,
+    k2: u8[] *#s,
+    v1: u8[] *#m,
+    v2: u8[] *#m,
+    vt: u8[] *#m,
+    m: map(u8[] *#s, u8[] *#m) *#n,
+    b: bool;
+{
+    entry:
+        m := alloc map(u8[] *#s, u8[] *#m) in #n;
+        k1 := alloc u8[0_u256] in #s;
+        k2 := alloc u8[0_u256] in #s;
+        v1 := alloc u8[0_u256] in #m;
+        v2 := alloc u8[0_u256] in #m;
+
+        b := m contains k1;
+        assert !b;
+        b := m contains k2;
+        assert !b;
+
+        store v1 in m[k1];
+        store v2 in m[k2];
+
+        load m[k1] in vt;
+        assert vt == v1;
+
+        load m[k2] in vt;
+        assert vt == v2;
+        return;
+}
+
+
+
+fun main() {
+    entry:
+        call testPrimitiveMap();
+        call testComplexMap();
+        return;
+}
