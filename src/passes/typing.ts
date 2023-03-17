@@ -135,30 +135,36 @@ export class Typing {
         const baseT = this.typeOfExpression(baseExpr);
         const indexT = this.typeOfExpression(indexExpr);
 
-        if (baseT instanceof PointerType && baseT.toType instanceof ArrayType) {
-            if (!(indexT instanceof IntType)) {
-                throw new MIRTypeError(
-                    indexExpr.src,
-                    `Indexing expect a numeric index, not ${indexExpr.pp()} of type ${indexT.pp()}`
-                );
+        if (baseT instanceof PointerType) {
+            const toT = baseT.toType;
+
+            if (toT instanceof ArrayType) {
+                if (!(indexT instanceof IntType)) {
+                    throw new MIRTypeError(
+                        indexExpr.src,
+                        `Indexing expect a numeric index, not ${indexExpr.pp()} of type ${indexT.pp()}`
+                    );
+                }
+
+                return toT.baseType;
             }
 
-            return baseT.toType.baseType;
-        } else if (baseT instanceof PointerType && baseT.toType instanceof MapType) {
-            if (!eq(indexT, baseT.toType.keyType)) {
-                throw new MIRTypeError(
-                    indexExpr.src,
-                    `Key type ${indexT.pp()} of key ${indexExpr.pp()} doesn't match map key type ${baseT.toType.keyType.pp()}`
-                );
-            }
+            if (toT instanceof MapType) {
+                if (!eq(indexT, toT.keyType)) {
+                    throw new MIRTypeError(
+                        indexExpr.src,
+                        `Key type ${indexT.pp()} of key ${indexExpr.pp()} doesn't match map key type ${toT.keyType.pp()}`
+                    );
+                }
 
-            return baseT.toType.valueType;
-        } else {
-            throw new MIRTypeError(
-                baseExpr.src,
-                `Indexing expect a pointer to array or map as base, not ${baseExpr.pp()} of type ${baseT.pp()}`
-            );
+                return toT.valueType;
+            }
         }
+
+        throw new MIRTypeError(
+            baseExpr.src,
+            `Indexing expect a pointer to array or map as base, not ${baseExpr.pp()} of type ${baseT.pp()}`
+        );
     }
 
     /**
