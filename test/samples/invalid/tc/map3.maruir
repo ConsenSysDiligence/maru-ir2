@@ -1,0 +1,11 @@
+fun testPrimitiveMap()
+locals m: map(u256, u256) *#memory,
+       a: u256[] *#memory,
+       b: bool;
+{
+    entry:
+        m := alloc map(u256, u256) in #memory;
+        b := a contains 0_u256;
+        assert !b;
+        return;
+}

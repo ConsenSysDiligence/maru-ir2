@@ -3,6 +3,7 @@ import { Program } from "../interp";
 import {
     Abort,
     AllocArray,
+    AllocMap,
     AllocStruct,
     ArrayLiteral,
     ArrayType,
@@ -18,11 +19,13 @@ import {
     FunctionDefinition,
     GlobalVariable,
     GlobalVarLiteral,
+    HasKey,
     Identifier,
     IntType,
     Jump,
     LoadField,
     LoadIndex,
+    MapType,
     NeverType,
     noSrc,
     NumberLiteral,
@@ -509,6 +512,54 @@ export class Typing {
     }
 
     /**
+     * Type check allocating a map.
+     */
+    private tcAllocMap(stmt: AllocMap): void {
+        const lhs = stmt.lhs;
+        const lhsT = this.typeOfExpression(lhs);
+        const rhsT = new PointerType(noSrc, stmt.type, stmt.mem);
+
+        if (!eq(lhsT, rhsT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Lhs ${lhs.pp()} type (${lhsT?.pp()}) doesn't match new map type ${rhsT.pp()}`
+            );
+        }
+    }
+
+    /**
+     * Type check a HasKey statement
+     */
+    private tcHasKey(stmt: HasKey): void {
+        const lhs = stmt.lhs;
+        const lhsT = this.typeOfExpression(lhs);
+        const map = stmt.baseExpr;
+        const mapT = this.typeOfExpression(map);
+        const key = stmt.keyExpr;
+        const keyT = this.typeOfExpression(key);
+
+        if (!(mapT instanceof PointerType && mapT.toType instanceof MapType)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Base ${map.pp()} must be a poitner to a map, not ${mapT.pp()}`
+            );
+        }
+
+        const expectedKeyT = mapT.toType.keyType;
+
+        if (!eq(expectedKeyT, keyT)) {
+            throw new MIRTypeError(
+                stmt.src,
+                `Key ${key.pp()} type (${keyT.pp()}) doesn't match map key type ${expectedKeyT.pp()}`
+            );
+        }
+
+        if (!(lhsT instanceof BoolType)) {
+            throw new MIRTypeError(stmt.src, `Lhs ${lhs.pp()} should be bool, not ${lhsT.pp()}`);
+        }
+    }
+
+    /**
      * Type check a statement inside of a function
      */
     private tcStatement(stmt: Statement, fun: FunctionDefinition): void {
@@ -566,6 +617,14 @@ export class Typing {
 
         if (stmt instanceof Assert) {
             return this.tcAssert(stmt);
+        }
+
+        if (stmt instanceof AllocMap) {
+            return this.tcAllocMap(stmt);
+        }
+
+        if (stmt instanceof HasKey) {
+            return this.tcHasKey(stmt);
         }
 
         throw new Error(`NYI statement ${stmt.pp()}`);

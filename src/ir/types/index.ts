@@ -5,3 +5,4 @@ export * from "./bool";
 export * from "./pointer";
 export * from "./array";
 export * from "./never";
+export * from "./map";

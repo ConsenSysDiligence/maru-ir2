@@ -1,6 +1,7 @@
 import {
     Abort,
     AllocArray,
+    AllocMap,
     AllocStruct,
     ArrayLiteral,
     ArrayType,
@@ -16,11 +17,13 @@ import {
     FunctionDefinition,
     GlobalVariable,
     GlobalVarLiteral,
+    HasKey,
     Identifier,
     IntType,
     Jump,
     LoadField,
     LoadIndex,
+    MapType,
     MemConstant,
     MemDesc,
     MemIdentifier,
@@ -359,6 +362,26 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         };
     }
 
+    if (node instanceof AllocMap) {
+        return {
+            ...header(node),
+
+            lhs: nodeToPlain(node.lhs),
+            type: nodeToPlain(node.type),
+            mem: nodeToPlain(node.mem)
+        };
+    }
+
+    if (node instanceof HasKey) {
+        return {
+            ...header(node),
+
+            lhs: nodeToPlain(node.lhs),
+            baseExpr: nodeToPlain(node.baseExpr),
+            keyExpr: nodeToPlain(node.keyExpr)
+        };
+    }
+
     if (node instanceof IntType) {
         return {
             ...header(node),
@@ -381,6 +404,15 @@ export function nodeToPlain(node: Node): PlainRepresentation {
             ...header(node),
 
             baseType: nodeToPlain(node.baseType)
+        };
+    }
+
+    if (node instanceof MapType) {
+        return {
+            ...header(node),
+
+            keyType: nodeToPlain(node.keyType),
+            valueType: nodeToPlain(node.valueType)
         };
     }
 
@@ -650,6 +682,24 @@ export function plainToNode(plain: PlainRepresentation): Node {
         );
     }
 
+    if (plain.nodeType === AllocMap.name) {
+        return new AllocMap(
+            plainToSrc(plain.src),
+            plainToNode(plain.lhs) as Identifier,
+            plainToNode(plain.type) as MapType,
+            plainToNode(plain.mem) as MemConstant
+        );
+    }
+
+    if (plain.nodeType === HasKey.name) {
+        return new HasKey(
+            plainToSrc(plain.src),
+            plainToNode(plain.lhs) as Identifier,
+            plainToNode(plain.baseExpr),
+            plainToNode(plain.keyExpr)
+        );
+    }
+
     if (plain.nodeType === IntType.name) {
         return new IntType(plainToSrc(plain.src), plain.nbits, plain.signed);
     }
@@ -680,6 +730,14 @@ export function plainToNode(plain: PlainRepresentation): Node {
             plain.name,
             plain.memArgs.map(plainToNode),
             plain.typeArgs.map(plainToNode)
+        );
+    }
+
+    if (plain.nodeType === MapType.name) {
+        return new MapType(
+            plainToSrc(plain.src),
+            plainToNode(plain.keyType),
+            plainToNode(plain.valueType)
         );
     }
 

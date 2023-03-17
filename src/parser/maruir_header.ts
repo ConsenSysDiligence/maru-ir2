@@ -46,7 +46,10 @@ import {
     GlobalVariable,
     ArrayLiteral,
     StructLiteral,
-    NeverType
+    NeverType,
+    MapType,
+    AllocMap,
+    HasKey
 } from "../ir";
 import { BasicBlock, CFG } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
