@@ -45,7 +45,8 @@ import {
     TypeVariableDeclaration,
     UnaryOperation,
     UserDefinedType,
-    VariableDeclaration
+    VariableDeclaration,
+    MapLiteral
 } from "../";
 import { getOrErr, MIRError } from "../utils";
 import { BasicBlock, CFG } from "./cfg";
@@ -484,6 +485,14 @@ export function nodeToPlain(node: Node): PlainRepresentation {
         };
     }
 
+    if (node instanceof MapLiteral) {
+        return {
+            ...header(node),
+
+            values: node.values.map(([k, v]) => [nodeToPlain(k), nodeToPlain(v)])
+        };
+    }
+
     if (node instanceof StructLiteral) {
         return {
             ...header(node),
@@ -763,6 +772,13 @@ export function plainToNode(plain: PlainRepresentation): Node {
 
     if (plain.nodeType === ArrayLiteral.name) {
         return new ArrayLiteral(plainToSrc(plain.src), plain.values.map(plainToNode));
+    }
+
+    if (plain.nodeType === MapLiteral.name) {
+        return new MapLiteral(
+            plainToSrc(plain.src),
+            plain.values.map(([k, v]: [any, any]) => [plainToNode(k), plainToNode(v)])
+        );
     }
 
     if (plain.nodeType === StructLiteral.name) {

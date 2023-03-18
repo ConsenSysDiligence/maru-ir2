@@ -1,9 +1,15 @@
 import { BooleanLiteral, NumberLiteral } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
+import { MapLiteral } from "./map_literal";
 import { StructLiteral } from "./struct_literal";
 
-export type GlobalVarLiteral = NumberLiteral | BooleanLiteral | ArrayLiteral | StructLiteral;
+export type GlobalVarLiteral =
+    | NumberLiteral
+    | BooleanLiteral
+    | ArrayLiteral
+    | StructLiteral
+    | MapLiteral;
 
 export class ArrayLiteral extends Node {
     constructor(src: BaseSrc, public readonly values: GlobalVarLiteral[]) {

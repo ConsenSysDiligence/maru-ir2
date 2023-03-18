@@ -5,6 +5,8 @@ import {
     BoolType,
     GlobalVarLiteral,
     IntType,
+    MapLiteral,
+    MapType,
     MemConstant,
     NumberLiteral,
     PointerType,
@@ -62,6 +64,15 @@ export class LiteralEvaluator {
                 const arrayVal = lit.values.map((v) => this.evalLiteral(v, toT.baseType));
 
                 return this.state.define(arrayVal, expectedT.region.name);
+            }
+
+            if (toT instanceof MapType && lit instanceof MapLiteral) {
+                const kvs: Array<[PrimitiveValue, PrimitiveValue]> = lit.values.map(([k, v]) => [
+                    this.evalLiteral(k, toT.keyType),
+                    this.evalLiteral(v, toT.valueType)
+                ]);
+
+                return this.state.define(new Map(kvs), expectedT.region.name);
             }
 
             if (toT instanceof UserDefinedType && lit instanceof StructLiteral) {

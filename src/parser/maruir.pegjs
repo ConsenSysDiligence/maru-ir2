@@ -24,6 +24,7 @@ GlobalVarLiteral
     / BooleanLiteral
     / ArrayLiteral
     / StructLiteral
+    / MapLiteral
 
 LiteralList
     = head: GlobalVarLiteral tail: (__ COMMA __ decl: GlobalVarLiteral { return decl; })* {
@@ -33,6 +34,19 @@ LiteralList
 ArrayLiteral
     = LBRACKET __ literals: LiteralList ?__ RBRACKET {
         return new ArrayLiteral(Src.fromPegsRange(location()), literals !== null ? literals : []);
+    }
+
+KeyValue
+    = key: GlobalVarLiteral __ COLON __ value: GlobalVarLiteral { return [key, value]; }
+
+KeyValueList
+    = head: KeyValue tail: (__ COMMA __ kv: KeyValue { return kv; })* {
+        return [head, ...tail];
+    }
+
+MapLiteral
+    = LCBRACE __ kvs: KeyValueList? __ RCBRACE {
+        return new MapLiteral(Src.fromPegsRange(location()), kvs !== null ? kvs : []);
     }
 
 FieldLiteral

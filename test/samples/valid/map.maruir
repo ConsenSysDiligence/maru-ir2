@@ -1,3 +1,6 @@
+var m1: map(u8, u8[]* #memory) *#memory = { 0_u8: [1_u8, 2_u8], 1_u8: [3_u8, 4_u8] }
+var m2: map(u8, u8[]* #memory) *#memory = { }
+
 fun testPrimitiveMap()
 locals m: map(u256, u256) *#memory,
        b: bool;
