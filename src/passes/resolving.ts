@@ -1,4 +1,4 @@
-import { EXCEPTION_MEM, Program } from "../interp";
+import { Program } from "../interp";
 import {
     ArrayType,
     BaseSrc,
@@ -8,7 +8,6 @@ import {
     GlobalVariable,
     Identifier,
     IntType,
-    MemConstant,
     MemDesc,
     MemIdentifier,
     MemVariableDeclaration,
@@ -479,22 +478,6 @@ export class Resolving {
                     } of non-primitive type ${def.type.pp()}`
                 );
             }
-
-            this.walkType(
-                def.type,
-                (t) => {
-                    if (
-                        t instanceof PointerType &&
-                        !(t.region instanceof MemConstant && t.region.name === EXCEPTION_MEM)
-                    ) {
-                        throw new MIRTypeError(
-                            def.type.src,
-                            `Cannot have global variables that potentially points to memories other than ${EXCEPTION_MEM}`
-                        );
-                    }
-                },
-                this.global
-            );
         }
     }
 

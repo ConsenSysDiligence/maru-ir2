@@ -49,7 +49,8 @@ import {
     NeverType,
     MapType,
     AllocMap,
-    Contains
+    Contains,
+    MapLiteral
 } from "../ir";
 import { BasicBlock, CFG } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";

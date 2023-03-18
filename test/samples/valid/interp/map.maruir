@@ -1,3 +1,16 @@
+var globM: map(u8, u8) *#memory = { 0_u8: 42_u8 }
+
+fun testGlobalMap() 
+locals t: u8, b: bool;
+{
+    entry:
+        load globM[0_u8] in t;
+        assert t == 42_u8;
+        b := globM contains 1_u8;
+        assert !b;
+        return;
+}
+
 fun testPrimitiveMap()
 locals m: map(u256, u256) *#memory,
        b: bool,
@@ -63,5 +76,6 @@ fun main() {
     entry:
         call testPrimitiveMap();
         call testComplexMap();
+        call testGlobalMap();
         return;
 }

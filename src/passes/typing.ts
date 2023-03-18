@@ -40,7 +40,8 @@ import {
     Type,
     TypeVariableDeclaration,
     UnaryOperation,
-    UserDefinedType
+    UserDefinedType,
+    MapLiteral
 } from "../ir";
 import { eq, MIRTypeError } from "../utils";
 import { concretizeType, makeSubst } from "./poly";
@@ -707,6 +708,22 @@ export class Typing {
                 const concreteFieldT = concretizeType(fieldT, subst, this.resolve.getScope(def));
 
                 this.tcInitLiteral(lit, concreteFieldT);
+            }
+
+            return;
+        }
+
+        if (
+            lit instanceof MapLiteral &&
+            expectedType instanceof PointerType &&
+            expectedType.toType instanceof MapType
+        ) {
+            const keyT = expectedType.toType.keyType;
+            const valueT = expectedType.toType.valueType;
+
+            for (const [keyLit, valueLit] of lit.values) {
+                this.tcInitLiteral(keyLit, keyT);
+                this.tcInitLiteral(valueLit, valueT);
             }
 
             return;

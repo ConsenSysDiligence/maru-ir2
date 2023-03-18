@@ -2,7 +2,7 @@
 import fse from "fs-extra";
 import minimist from "minimist";
 import {
-    ArrayLiteral,
+    MapLiteral,
     BooleanLiteral,
     Definition,
     fnToDot,
@@ -165,7 +165,7 @@ function error(message: string): never {
             if (
                 arg instanceof NumberLiteral ||
                 arg instanceof BooleanLiteral ||
-                arg instanceof ArrayLiteral ||
+                arg instanceof MapLiteral ||
                 arg instanceof StructLiteral
             ) {
                 return literalEvaluator.evalLiteral(arg, expectedT);
