@@ -1,6 +1,6 @@
 {
     "name": "@consensys/maru-ir2",
-    "version": "0.7.3",
+    "version": "0.7.4",
     "description": "Maru-IR 2: The core implementation of the Maru-IR. It is a small language with regioned memory, explicit load and store, and memory safety (typed load/store, no arithmetic). Includes an interpreter for testing.",
     "keywords": [],
     "files": [
