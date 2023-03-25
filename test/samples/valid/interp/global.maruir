@@ -12,6 +12,12 @@ var c: Foo<#exception> * #exception = {
 	b: [42_u8, 43_u8, 44_u8]
 }
 
+fun foo() {
+	entry:
+		a := 2_u256;
+		return;
+}
+
 fun main()
 locals x: u256,
 	   y: u256[] * #exception,
@@ -23,5 +29,9 @@ locals x: u256,
 		y := b;
 		z := c;
 		load z.b in w;
+
+		assert a == 1_u256;
+		call foo();
+		assert a == 2_u256;
 		return;
 }

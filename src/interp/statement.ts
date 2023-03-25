@@ -29,7 +29,8 @@ import {
     StoreIndex,
     StructDefinition,
     TransactionCall,
-    Type
+    Type,
+    VariableDeclaration
 } from "../ir";
 import { CFG } from "../ir/cfg";
 import { Node } from "../ir/node";
@@ -49,6 +50,7 @@ import {
     PrimitiveValue,
     Program,
     State,
+    Store,
     StructValue
 } from "./state";
 import { fits, toJsVal } from "./utils";
@@ -253,7 +255,21 @@ export class StatementExecutor {
             lhsType
         );
 
-        this.state.curMachFrame.store.set(lhs.name, val);
+        let store: Store;
+
+        const decl = funScope.get(lhs.name);
+
+        if (decl instanceof GlobalVariable) {
+            store = this.state.globals;
+        } else if (decl instanceof VariableDeclaration) {
+            store = this.state.curMachFrame.store;
+        } else {
+            throw new Error(
+                `NYI assigning to var ${lhs.pp()} with decl ${pp(decl)} in statement ${inStmt.pp()}`
+            );
+        }
+
+        store.set(lhs.name, val);
     }
 
     deref(val: PointerVal, expr?: Expression): ComplexValue {

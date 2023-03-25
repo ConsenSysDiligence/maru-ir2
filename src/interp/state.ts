@@ -39,7 +39,9 @@ export class StructValue implements PPAble {
 
     constructor(arg?: { [field: string]: PrimitiveValue }) {
         if (arg !== undefined) {
-            this.vals = new Object(Object(arg).entries()) as { [field: string]: PrimitiveValue };
+            this.vals = Object.fromEntries(Object.entries(arg)) as {
+                [field: string]: PrimitiveValue;
+            };
         }
     }
 
