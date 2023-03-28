@@ -206,7 +206,7 @@ export class State {
     maxMemPtr: Map<string, number>;
 
     /**
-     * Stack of memory copies created for each transaction call.
+     * Stack of memory copies created for each transaction call.pp(copy);
      */
     memoriesStack: Memories[];
 
@@ -349,7 +349,7 @@ export class State {
             const newStore = new Map();
 
             for (const [ptr, complexVal] of store) {
-                store.set(ptr, this.copyComplexVal(complexVal));
+                newStore.set(ptr, this.copyComplexVal(complexVal));
             }
 
             copy.set(label, newStore);
