@@ -4,7 +4,10 @@ import { BaseSrc } from "../source";
 import { TerminatorStmt } from "./terminator";
 
 export class Return extends TerminatorStmt {
-    constructor(src: BaseSrc, public readonly values: Expression[]) {
+    constructor(
+        src: BaseSrc,
+        public readonly values: Expression[]
+    ) {
         super(src);
     }
 

@@ -8,7 +8,10 @@ export type PegsLoc = { offset: number; line: number; column: number };
 export type PegsRange = { start: PegsLoc; end: PegsLoc };
 
 export class Src extends BaseSrc {
-    constructor(public readonly start: PegsLoc, public readonly end: PegsLoc) {
+    constructor(
+        public readonly start: PegsLoc,
+        public readonly end: PegsLoc
+    ) {
         super();
     }
 

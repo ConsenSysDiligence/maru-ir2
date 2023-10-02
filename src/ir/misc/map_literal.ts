@@ -3,7 +3,10 @@ import { BaseSrc } from "../source";
 import { GlobalVarLiteral } from "./array_literal";
 
 export class MapLiteral extends Node {
-    constructor(src: BaseSrc, public readonly values: Array<[GlobalVarLiteral, GlobalVarLiteral]>) {
+    constructor(
+        src: BaseSrc,
+        public readonly values: Array<[GlobalVarLiteral, GlobalVarLiteral]>
+    ) {
         super(src);
     }
 

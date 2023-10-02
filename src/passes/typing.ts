@@ -58,7 +58,10 @@ export class Typing {
     typeCache: Map<Expression, Type>;
     curScope!: Scope;
 
-    constructor(public readonly program: Program, private readonly resolve: Resolving) {
+    constructor(
+        public readonly program: Program,
+        private readonly resolve: Resolving
+    ) {
         this.typeCache = new Map();
 
         this.runAnalysis();

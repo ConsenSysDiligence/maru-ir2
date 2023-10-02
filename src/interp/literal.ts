@@ -20,7 +20,10 @@ import { PPIsh, fmt } from "../utils";
 import { State, InterpInternalError, PrimitiveValue, StructValue } from "./state";
 
 export class LiteralEvaluator {
-    constructor(private readonly resolving: Resolving, private readonly state: State) {}
+    constructor(
+        private readonly resolving: Resolving,
+        private readonly state: State
+    ) {}
 
     private internalError(e: GlobalVarLiteral, msg: string): never {
         throw new InterpInternalError(e.src, msg, this.state);

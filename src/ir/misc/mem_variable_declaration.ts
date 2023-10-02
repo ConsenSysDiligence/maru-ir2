@@ -2,7 +2,10 @@ import { Node } from "../node";
 import { BaseSrc } from "../source";
 
 export class MemVariableDeclaration extends Node {
-    constructor(src: BaseSrc, public readonly name: string) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string
+    ) {
         super(src);
     }
 
