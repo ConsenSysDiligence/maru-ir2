@@ -3,7 +3,10 @@ import { Node } from "../node";
 import { BaseSrc } from "../source";
 
 export class Identifier extends Expression {
-    constructor(src: BaseSrc, public readonly name: string) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string
+    ) {
         super(src);
     }
 

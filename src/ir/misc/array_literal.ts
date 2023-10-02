@@ -12,7 +12,10 @@ export type GlobalVarLiteral =
     | MapLiteral;
 
 export class ArrayLiteral extends Node {
-    constructor(src: BaseSrc, public readonly values: GlobalVarLiteral[]) {
+    constructor(
+        src: BaseSrc,
+        public readonly values: GlobalVarLiteral[]
+    ) {
         super(src);
     }
 

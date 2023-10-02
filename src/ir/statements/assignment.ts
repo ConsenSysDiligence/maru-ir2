@@ -4,7 +4,11 @@ import { BaseSrc } from "../source";
 import { Statement } from "./statement";
 
 export class Assignment extends Statement {
-    constructor(src: BaseSrc, public readonly lhs: Identifier, public readonly rhs: Expression) {
+    constructor(
+        src: BaseSrc,
+        public readonly lhs: Identifier,
+        public readonly rhs: Expression
+    ) {
         super(src);
     }
 

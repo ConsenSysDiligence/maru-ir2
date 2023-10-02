@@ -3,7 +3,11 @@ import { BaseSrc } from "../source";
 import { Type } from "../types";
 
 export class VariableDeclaration extends Node {
-    constructor(src: BaseSrc, public readonly name: string, public readonly type: Type) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string,
+        public readonly type: Type
+    ) {
         super(src);
     }
 

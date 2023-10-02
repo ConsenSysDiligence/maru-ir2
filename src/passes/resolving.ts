@@ -452,7 +452,7 @@ export class Resolving {
                 if (!this.isPrimitive(local.type)) {
                     throw new MIRTypeError(
                         def.src,
-                        `Cannot have non-primitive local ${def.name} in function ${def.name}`
+                        `Cannot have non-primitive local ${local.name} in function ${def.name}`
                     );
                 }
             }

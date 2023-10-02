@@ -3,7 +3,11 @@ import { BaseSrc } from "../source";
 import { Type } from "./type";
 
 export class MapType extends Type {
-    constructor(src: BaseSrc, public readonly keyType: Type, public readonly valueType: Type) {
+    constructor(
+        src: BaseSrc,
+        public readonly keyType: Type,
+        public readonly valueType: Type
+    ) {
         super(src);
     }
 

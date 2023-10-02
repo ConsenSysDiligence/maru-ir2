@@ -60,7 +60,10 @@ export type PlainRepresentationHeader = {
 export type PlainRepresentation = PlainRepresentationHeader & { [key: string]: any };
 
 export class MIRPlainRepresentationError extends MIRError {
-    constructor(msg: string, public readonly node?: Node) {
+    constructor(
+        msg: string,
+        public readonly node?: Node
+    ) {
         super(msg);
     }
 }

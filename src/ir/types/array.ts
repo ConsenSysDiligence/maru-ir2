@@ -3,7 +3,10 @@ import { BaseSrc } from "../source";
 import { Type } from "./type";
 
 export class ArrayType extends Type {
-    constructor(src: BaseSrc, public readonly baseType: Type) {
+    constructor(
+        src: BaseSrc,
+        public readonly baseType: Type
+    ) {
         super(src);
     }
 

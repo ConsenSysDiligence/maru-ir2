@@ -4,7 +4,10 @@ import { BaseSrc } from "../source";
 import { Statement } from "./statement";
 
 export class Assert extends Statement {
-    constructor(src: BaseSrc, public readonly condition: Expression) {
+    constructor(
+        src: BaseSrc,
+        public readonly condition: Expression
+    ) {
         super(src);
     }
 

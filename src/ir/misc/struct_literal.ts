@@ -3,7 +3,10 @@ import { BaseSrc } from "../source";
 import { GlobalVarLiteral } from "./array_literal";
 
 export class StructLiteral extends Node {
-    constructor(src: BaseSrc, public readonly fields: Array<[string, GlobalVarLiteral]>) {
+    constructor(
+        src: BaseSrc,
+        public readonly fields: Array<[string, GlobalVarLiteral]>
+    ) {
         super(src);
     }
 
