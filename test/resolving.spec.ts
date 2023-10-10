@@ -11,7 +11,7 @@ import {
 } from "../src";
 import { searchRecursive } from "./utils";
 
-describe("Resolving test", () => {
+describe("Resolving positive tests", () => {
     const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
     for (const file of files) {

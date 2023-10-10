@@ -1,29 +1,9 @@
 import expect from "expect";
 import fse from "fs-extra";
-import { Abort, BaseSrc, Node, nodeToPlain, noSrc, parseProgram, plainToNode } from "../src";
-import { searchRecursive } from "./utils";
+import { Abort, nodeToPlain, noSrc, parseProgram, plainToNode } from "../src";
+import { CustomNode, CustomSrc, searchRecursive } from "./utils";
 
-class CustomSrc extends BaseSrc {
-    pp(): string {
-        return "<custom>";
-    }
-}
-
-class CustomNode extends Node {
-    children(): Iterable<Node> {
-        return [];
-    }
-
-    pp(): string {
-        return "<custom>";
-    }
-
-    getStructId(): any {
-        return [];
-    }
-}
-
-describe("nodeToPlain/plainToNode coversion tests", () => {
+describe("nodeToPlain()/plainToNode() tests", () => {
     describe("Roundtrip", () => {
         const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
@@ -39,6 +19,7 @@ describe("nodeToPlain/plainToNode coversion tests", () => {
                     const originalDef = originalProgram[i];
                     const importedDef = importedProgram[i];
 
+                    expect(importedDef !== originalDef).toBeTruthy();
                     expect(importedDef.pp()).toEqual(originalDef.pp());
                 }
             });
