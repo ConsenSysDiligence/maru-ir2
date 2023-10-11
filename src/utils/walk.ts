@@ -12,7 +12,7 @@ export function walk(node: Node, cb: (n: Node) => any): void {
 }
 
 /**
- * Iteratively traverse through node and its chilren (using a generator).
+ * Iteratively traverse through node and its children (using a generator).
  */
 export function* traverse(node: Node): Generator<Node> {
     yield node;
