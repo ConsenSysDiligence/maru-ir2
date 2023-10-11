@@ -1,6 +1,6 @@
 import expect from "expect";
 import fse from "fs-extra";
-import { Abort, nodeToPlain, noSrc, parseProgram, plainToNode } from "../src";
+import { Abort, nodeToPlain, noSrc, parseProgram, plainToNode, traverse } from "../src";
 import { CustomNode, CustomSrc, searchRecursive } from "./utils";
 
 describe("nodeToPlain()/plainToNode() tests", () => {
@@ -8,19 +8,24 @@ describe("nodeToPlain()/plainToNode() tests", () => {
         const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
         for (const file of files) {
-            it(file, () => {
-                const contents = fse.readFileSync(file, { encoding: "utf-8" });
+            it(file, async () => {
+                const contents = await fse.readFile(file, { encoding: "utf-8" });
 
                 const originalProgram = parseProgram(contents);
                 const plainProgram = originalProgram.map(nodeToPlain);
                 const importedProgram = plainProgram.map(plainToNode);
 
-                for (let i = 0; i < originalProgram.length; i++) {
-                    const originalDef = originalProgram[i];
-                    const importedDef = importedProgram[i];
+                const originalNodes = originalProgram.map((def) => [...traverse(def)]).flat();
+                const importedNodes = importedProgram.map((def) => [...traverse(def)]).flat();
 
-                    expect(importedDef !== originalDef).toBeTruthy();
-                    expect(importedDef.pp()).toEqual(originalDef.pp());
+                expect(originalNodes.length).toEqual(importedNodes.length);
+
+                for (let i = 0; i < originalNodes.length; i++) {
+                    const originalNode = originalNodes[i];
+                    const copiedNode = importedNodes[i];
+
+                    expect(copiedNode !== originalNode).toBeTruthy();
+                    expect(copiedNode.pp()).toEqual(originalNode.pp());
                 }
             });
         }
