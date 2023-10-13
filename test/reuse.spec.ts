@@ -9,7 +9,7 @@ import {
     Identifier,
     IntType,
     NumberLiteral,
-    checkNodeReuse,
+    findMultiParentNodes,
     noSrc,
     parseProgram
 } from "../src";
@@ -24,14 +24,14 @@ describe("checkNodeReuse() tests", () => {
                 const contents = await fse.readFile(file, { encoding: "utf-8" });
 
                 const program = parseProgram(contents);
-                const reuses = checkNodeReuse(program);
+                const multiParentNodes = findMultiParentNodes(program);
 
-                expect(reuses.size).toEqual(0);
+                expect(multiParentNodes.size).toEqual(0);
             });
         }
     });
 
-    it("Negative test", () => {
+    it("Positive test", () => {
         const literal = new NumberLiteral(noSrc, 1n, 10, new IntType(noSrc, 8, false));
 
         const opA = new BinaryOperation(noSrc, literal, "==", literal);
@@ -66,10 +66,10 @@ describe("checkNodeReuse() tests", () => {
             new CFG([entryB], entryB, [entryB])
         );
 
-        const reuses = checkNodeReuse([fnA, fnB]);
+        const multiParentNodes = findMultiParentNodes([fnA, fnB]);
 
-        expect(reuses.size).toEqual(1);
-        expect(reuses.has(literal)).toBeTruthy();
-        expect(reuses.get(literal)).toEqual([opA, opA, opB, opB]);
+        expect(multiParentNodes.size).toEqual(1);
+        expect(multiParentNodes.has(literal)).toBeTruthy();
+        expect(multiParentNodes.get(literal)).toEqual([opA, opA, opB, opB]);
     });
 });
