@@ -3,7 +3,7 @@ import fse from "fs-extra";
 import { BasicBlock, CFG, copy, parseProgram, traverse } from "../src";
 import { searchRecursive } from "./utils";
 
-describe("copy()/copySrc()/copyCfg()/copyNode() tests", () => {
+describe("copy() tests", () => {
     describe("Samples", () => {
         const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
