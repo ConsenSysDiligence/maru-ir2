@@ -22,4 +22,8 @@ export class MapType extends Type {
     children(): Iterable<Node> {
         return [this.keyType, this.valueType];
     }
+
+    copy(): MapType {
+        return new MapType(this.src, this.keyType.copy(), this.valueType.copy());
+    }
 }

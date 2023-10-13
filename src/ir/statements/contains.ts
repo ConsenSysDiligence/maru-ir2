@@ -24,4 +24,8 @@ export class Contains extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.baseExpr, this.keyExpr];
     }
+
+    copy(): Contains {
+        return new Contains(this.src, this.lhs.copy(), this.baseExpr.copy(), this.keyExpr.copy());
+    }
 }

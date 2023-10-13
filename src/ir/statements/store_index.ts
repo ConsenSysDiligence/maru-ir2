@@ -24,4 +24,13 @@ export class StoreIndex extends Statement {
     children(): Iterable<Node> {
         return [this.baseExpr, this.indexExpr, this.rhs];
     }
+
+    copy(): StoreIndex {
+        return new StoreIndex(
+            this.src,
+            this.baseExpr.copy(),
+            this.indexExpr.copy(),
+            this.rhs.copy()
+        );
+    }
 }

@@ -1,4 +1,5 @@
 import { ppPolyArgs } from "../../utils";
+import { copy } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
@@ -33,5 +34,16 @@ export class TransactionCall extends Statement {
 
     children(): Iterable<Node> {
         return [...this.lhss, ...this.memArgs, ...this.typeArgs, this.callee, ...this.args];
+    }
+
+    copy(): TransactionCall {
+        return new TransactionCall(
+            this.src,
+            this.lhss.map(copy),
+            this.callee.copy(),
+            this.memArgs.map(copy),
+            this.typeArgs.map(copy),
+            this.args.map(copy)
+        );
     }
 }

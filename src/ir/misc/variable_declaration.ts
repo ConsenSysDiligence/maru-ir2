@@ -22,4 +22,8 @@ export class VariableDeclaration extends Node {
     children(): Iterable<Node> {
         return [this.type];
     }
+
+    copy(): VariableDeclaration {
+        return new VariableDeclaration(this.src, this.name, this.type.copy());
+    }
 }

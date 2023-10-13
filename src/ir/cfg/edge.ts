@@ -3,15 +3,11 @@ import { Expression } from "../expressions";
 import { BasicBlock } from "./basic_block";
 
 export class Edge implements PPAble {
-    from: BasicBlock;
-    to: BasicBlock;
-    predicate?: Expression;
-
-    constructor(from: BasicBlock, to: BasicBlock, predicate?: Expression) {
-        this.from = from;
-        this.to = to;
-        this.predicate = predicate;
-    }
+    constructor(
+        public from: BasicBlock,
+        public to: BasicBlock,
+        public predicate?: Expression
+    ) {}
 
     pp(): string {
         const cond = this.predicate === undefined ? "true" : this.predicate.pp();

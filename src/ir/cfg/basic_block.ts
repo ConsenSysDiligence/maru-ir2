@@ -4,18 +4,13 @@ import { Statement } from "../statements";
 import { Edge } from "./edge";
 
 export class BasicBlock implements PPAble {
-    label: string;
-    statements: Statement[];
-    incoming: Edge[];
-    outgoing: Edge[];
+    incoming: Edge[] = [];
+    outgoing: Edge[] = [];
 
-    constructor(label: string, statements: Statement[] = []) {
-        this.label = label;
-        this.statements = statements;
-
-        this.incoming = [];
-        this.outgoing = [];
-    }
+    constructor(
+        public label: string,
+        public statements: Statement[] = []
+    ) {}
 
     addOutgoing(to: BasicBlock, predicate?: Expression): Edge {
         if (this.hasOutgoing(to)) {

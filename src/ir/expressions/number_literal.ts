@@ -15,9 +15,11 @@ export class NumberLiteral extends Expression {
 
     pp(): string {
         let strVal = this.value.toString(this.radix);
+
         if (this.radix === 16) {
             strVal = strVal[0] === "-" ? "-0x" + strVal.slice(1) : "0x" + strVal;
         }
+
         return `${strVal}_${this.type.pp()}`;
     }
 
@@ -27,5 +29,9 @@ export class NumberLiteral extends Expression {
 
     children(): Iterable<Node> {
         return [];
+    }
+
+    copy(): NumberLiteral {
+        return new NumberLiteral(this.src, this.value, this.radix, this.type.copy());
     }
 }

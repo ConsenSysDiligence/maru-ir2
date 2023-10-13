@@ -24,4 +24,8 @@ export class UnaryOperation extends Expression {
     children(): Iterable<Node> {
         return [this.subExpr];
     }
+
+    copy(): UnaryOperation {
+        return new UnaryOperation(this.src, this.op, this.subExpr.copy());
+    }
 }

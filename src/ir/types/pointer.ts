@@ -23,4 +23,8 @@ export class PointerType extends Type {
     children(): Iterable<Node> {
         return [this.toType, this.region];
     }
+
+    copy(): PointerType {
+        return new PointerType(this.src, this.toType.copy(), this.region.copy());
+    }
 }

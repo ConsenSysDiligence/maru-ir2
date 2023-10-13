@@ -23,4 +23,8 @@ export class Cast extends Expression {
     children(): Iterable<Node> {
         return [this.toType, this.subExpr];
     }
+
+    copy(): Cast {
+        return new Cast(this.src, this.toType.copy(), this.subExpr.copy());
+    }
 }

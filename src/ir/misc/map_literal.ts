@@ -20,9 +20,18 @@ export class MapLiteral extends Node {
 
     children(): Iterable<Node> {
         const res: Node[] = [];
+
         for (const [k, v] of this.values) {
             res.push(k, v);
         }
+
         return res;
+    }
+
+    copy(): MapLiteral {
+        return new MapLiteral(
+            this.src,
+            this.values.map(([k, v]) => [k.copy(), v.copy()])
+        );
     }
 }

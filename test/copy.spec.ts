@@ -1,7 +1,7 @@
 import expect from "expect";
 import fse from "fs-extra";
-import { Abort, BasicBlock, CFG, copy, noSrc, parseProgram, traverse } from "../src";
-import { CustomNode, CustomSrc, searchRecursive } from "./utils";
+import { BasicBlock, CFG, copy, parseProgram, traverse } from "../src";
+import { searchRecursive } from "./utils";
 
 describe("copy()/copySrc()/copyCfg()/copyNode() tests", () => {
     describe("Samples", () => {
@@ -30,10 +30,6 @@ describe("copy()/copySrc()/copyCfg()/copyNode() tests", () => {
         }
     });
 
-    it("copy() on NoSrc", () => {
-        expect(copy(noSrc) === noSrc).toBeTruthy();
-    });
-
     it("copy() on CFG", () => {
         const entry = new BasicBlock("test");
         const originalCfg = new CFG([entry], entry, []);
@@ -41,20 +37,5 @@ describe("copy()/copySrc()/copyCfg()/copyNode() tests", () => {
 
         expect(originalCfg !== copiedCfg).toBeTruthy();
         expect(copiedCfg.pp()).toEqual(originalCfg.pp());
-    });
-
-    it("Error is thrown on unsupported node", () => {
-        const node = new CustomNode(noSrc);
-
-        expect(() => copy(node)).toThrow(`Unable to copy node "${node.constructor.name}"`);
-    });
-
-    it("Error is thrown on unsupported source location", () => {
-        const src = new CustomSrc();
-        const node = new Abort(src);
-
-        expect(() => copy(node)).toThrow(
-            `Unable to copy source location "${src.constructor.name}"`
-        );
     });
 });

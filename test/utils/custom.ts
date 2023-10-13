@@ -18,4 +18,8 @@ export class CustomNode extends Node {
     getStructId(): any {
         return [];
     }
+
+    copy(): CustomNode {
+        return new CustomNode(this.src);
+    }
 }

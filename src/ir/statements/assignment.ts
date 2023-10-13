@@ -23,4 +23,8 @@ export class Assignment extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.rhs];
     }
+
+    copy(): Assignment {
+        return new Assignment(this.src, this.lhs.copy(), this.rhs.copy());
+    }
 }

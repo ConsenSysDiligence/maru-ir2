@@ -24,4 +24,13 @@ export class LoadIndex extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.baseExpr, this.indexExpr];
     }
+
+    copy(): LoadIndex {
+        return new LoadIndex(
+            this.src,
+            this.lhs.copy(),
+            this.baseExpr.copy(),
+            this.indexExpr.copy()
+        );
+    }
 }

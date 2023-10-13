@@ -21,4 +21,8 @@ export class Jump extends TerminatorStmt {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): Jump {
+        return new Jump(this.src, this.label);
+    }
 }

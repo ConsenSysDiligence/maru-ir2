@@ -18,4 +18,8 @@ export class Abort extends TerminatorStmt {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): Abort {
+        return new Abort(this.src);
+    }
 }

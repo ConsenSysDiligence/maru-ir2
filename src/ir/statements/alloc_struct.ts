@@ -26,4 +26,8 @@ export class AllocStruct extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.type, this.mem];
     }
+
+    copy(): AllocStruct {
+        return new AllocStruct(this.src, this.lhs.copy(), this.type.copy(), this.mem.copy());
+    }
 }

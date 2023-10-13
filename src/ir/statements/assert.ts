@@ -22,4 +22,8 @@ export class Assert extends Statement {
     children(): Iterable<Node> {
         return [this.condition];
     }
+
+    copy(): Assert {
+        return new Assert(this.src, this.condition.copy());
+    }
 }

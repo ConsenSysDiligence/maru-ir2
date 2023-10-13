@@ -27,4 +27,14 @@ export class AllocArray extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.type, this.size, this.mem];
     }
+
+    copy(): AllocArray {
+        return new AllocArray(
+            this.src,
+            this.lhs.copy(),
+            this.type.copy(),
+            this.size.copy(),
+            this.mem.copy()
+        );
+    }
 }

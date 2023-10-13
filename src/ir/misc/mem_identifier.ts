@@ -20,4 +20,8 @@ export class MemIdentifier extends Node {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): MemIdentifier {
+        return new MemIdentifier(this.src, this.name);
+    }
 }

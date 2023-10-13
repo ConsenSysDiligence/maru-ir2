@@ -21,4 +21,8 @@ export class BooleanLiteral extends Expression {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): BooleanLiteral {
+        return new BooleanLiteral(this.src, this.value);
+    }
 }

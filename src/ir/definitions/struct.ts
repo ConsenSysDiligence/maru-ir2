@@ -1,4 +1,5 @@
 import { ppPolyParams } from "../../utils";
+import { copy } from "../copy";
 import { MemVariableDeclaration, TypeVariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -6,17 +7,12 @@ import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class StructDefinition extends Definition {
-    public readonly memoryParameters: MemVariableDeclaration[];
-    public readonly typeParameters: TypeVariableDeclaration[];
-    public readonly name: string;
-    public readonly fields: Array<[string, Type]>;
-
     constructor(
         src: BaseSrc,
-        memoryParameters: MemVariableDeclaration[],
-        typeParameters: TypeVariableDeclaration[],
-        name: string,
-        fields: Array<[string, Type]>
+        public readonly memoryParameters: MemVariableDeclaration[],
+        public readonly typeParameters: TypeVariableDeclaration[],
+        public readonly name: string,
+        public readonly fields: Array<[string, Type]>
     ) {
         super(src);
         this.memoryParameters = memoryParameters;
@@ -38,6 +34,16 @@ export class StructDefinition extends Definition {
 
     children(): Iterable<Node> {
         return [...this.fields.map((p) => p[1]), ...this.memoryParameters, ...this.typeParameters];
+    }
+
+    copy(): StructDefinition {
+        return new StructDefinition(
+            this.src,
+            this.memoryParameters.map(copy),
+            this.typeParameters.map(copy),
+            this.name,
+            this.fields.map(([k, v]) => [k, v.copy()])
+        );
     }
 
     getFieldType(name: string): Type | undefined {

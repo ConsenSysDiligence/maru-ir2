@@ -20,4 +20,8 @@ export class TypeVariableDeclaration extends Node {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): TypeVariableDeclaration {
+        return new TypeVariableDeclaration(this.src, this.name);
+    }
 }

@@ -50,8 +50,7 @@ import {
     MapType,
     AllocMap,
     Contains,
-    MapLiteral,
-    copyNode
+    MapLiteral
 } from "../ir";
 import { BasicBlock, CFG } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
@@ -207,10 +206,10 @@ export function buildCFG(
             const trueBB = getBB(lastStmt.trueLabel, lastStmt.src);
             const falseBB = getBB(lastStmt.falseLabel, lastStmt.src);
 
-            bb.addOutgoing(trueBB, copyNode(lastStmt.condition));
+            bb.addOutgoing(trueBB, lastStmt.condition.copy());
             bb.addOutgoing(
                 falseBB,
-                new UnaryOperation(lastStmt.condition.src, "!", copyNode(lastStmt.condition))
+                new UnaryOperation(lastStmt.condition.src, "!", lastStmt.condition.copy())
             );
 
             continue;

@@ -44,4 +44,8 @@ export class BinaryOperation extends Expression {
     children(): Iterable<Node> {
         return [this.leftExpr, this.rightExpr];
     }
+
+    copy(): BinaryOperation {
+        return new BinaryOperation(this.src, this.leftExpr.copy(), this.op, this.rightExpr.copy());
+    }
 }
