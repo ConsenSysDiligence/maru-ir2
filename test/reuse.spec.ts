@@ -15,7 +15,7 @@ import {
 } from "../src";
 import { searchRecursive } from "./utils";
 
-describe("checkNodeReuse() tests", () => {
+describe("findMultiParentNodes() tests", () => {
     describe("Samples", () => {
         const files = searchRecursive("test/samples/valid", (name) => name.endsWith(".maruir"));
 
