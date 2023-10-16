@@ -26,4 +26,8 @@ export class AllocMap extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.type, this.mem];
     }
+
+    copy(): AllocMap {
+        return new AllocMap(this.src, this.lhs.copy(), this.type.copy(), this.mem.copy());
+    }
 }

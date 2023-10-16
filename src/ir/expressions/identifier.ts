@@ -21,4 +21,8 @@ export class Identifier extends Expression {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): Identifier {
+        return new Identifier(this.src, this.name);
+    }
 }

@@ -281,7 +281,7 @@
         }
     },
     {
-        "id": 33,
+        "id": 41,
         "nodeType": "FunctionDefinition",
         "src": {
             "start": {
@@ -590,7 +590,7 @@
                     "from": "entry",
                     "to": "negative",
                     "predicate": {
-                        "id": 22,
+                        "id": 34,
                         "nodeType": "BinaryOperation",
                         "src": {
                             "start": {
@@ -606,7 +606,7 @@
                         },
                         "op": "<",
                         "leftExpr": {
-                            "id": 19,
+                            "id": 31,
                             "nodeType": "Identifier",
                             "src": {
                                 "start": {
@@ -623,7 +623,7 @@
                             "name": "a"
                         },
                         "rightExpr": {
-                            "id": 21,
+                            "id": 33,
                             "nodeType": "NumberLiteral",
                             "src": {
                                 "start": {
@@ -640,7 +640,7 @@
                             "value": "0",
                             "radix": 10,
                             "type": {
-                                "id": 20,
+                                "id": 32,
                                 "nodeType": "IntType",
                                 "src": {
                                     "start": {
@@ -664,7 +664,7 @@
                     "from": "entry",
                     "to": "non_negative",
                     "predicate": {
-                        "id": 31,
+                        "id": 39,
                         "nodeType": "UnaryOperation",
                         "src": {
                             "start": {
@@ -680,7 +680,7 @@
                         },
                         "op": "!",
                         "subExpr": {
-                            "id": 22,
+                            "id": 38,
                             "nodeType": "BinaryOperation",
                             "src": {
                                 "start": {
@@ -696,7 +696,7 @@
                             },
                             "op": "<",
                             "leftExpr": {
-                                "id": 19,
+                                "id": 35,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -713,7 +713,7 @@
                                 "name": "a"
                             },
                             "rightExpr": {
-                                "id": 21,
+                                "id": 37,
                                 "nodeType": "NumberLiteral",
                                 "src": {
                                     "start": {
@@ -730,7 +730,7 @@
                                 "value": "0",
                                 "radix": 10,
                                 "type": {
-                                    "id": 20,
+                                    "id": 36,
                                     "nodeType": "IntType",
                                     "src": {
                                         "start": {
@@ -755,7 +755,7 @@
                     "from": "negative",
                     "to": "non_negative",
                     "predicate": {
-                        "id": 32,
+                        "id": 40,
                         "nodeType": "BooleanLiteral",
                         "value": true
                     }
@@ -764,7 +764,7 @@
         }
     },
     {
-        "id": 71,
+        "id": 85,
         "nodeType": "FunctionDefinition",
         "src": {
             "start": {
@@ -783,7 +783,7 @@
         "typeParameters": [],
         "parameters": [
             {
-                "id": 35,
+                "id": 43,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -799,7 +799,7 @@
                 },
                 "name": "n",
                 "type": {
-                    "id": 34,
+                    "id": 42,
                     "nodeType": "IntType",
                     "src": {
                         "start": {
@@ -820,7 +820,7 @@
         ],
         "locals": [
             {
-                "id": 38,
+                "id": 46,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -836,7 +836,7 @@
                 },
                 "name": "ctr",
                 "type": {
-                    "id": 37,
+                    "id": 45,
                     "nodeType": "IntType",
                     "src": {
                         "start": {
@@ -855,7 +855,7 @@
                 }
             },
             {
-                "id": 40,
+                "id": 48,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -871,7 +871,7 @@
                 },
                 "name": "sum",
                 "type": {
-                    "id": 39,
+                    "id": 47,
                     "nodeType": "IntType",
                     "src": {
                         "start": {
@@ -892,7 +892,7 @@
         ],
         "returns": [
             {
-                "id": 36,
+                "id": 44,
                 "nodeType": "IntType",
                 "src": {
                     "start": {
@@ -920,7 +920,7 @@
                     "label": "entry",
                     "statements": [
                         {
-                            "id": 44,
+                            "id": 52,
                             "nodeType": "Assignment",
                             "src": {
                                 "start": {
@@ -935,7 +935,7 @@
                                 }
                             },
                             "lhs": {
-                                "id": 43,
+                                "id": 51,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -952,7 +952,7 @@
                                 "name": "ctr"
                             },
                             "rhs": {
-                                "id": 42,
+                                "id": 50,
                                 "nodeType": "NumberLiteral",
                                 "src": {
                                     "start": {
@@ -969,7 +969,7 @@
                                 "value": "0",
                                 "radix": 10,
                                 "type": {
-                                    "id": 41,
+                                    "id": 49,
                                     "nodeType": "IntType",
                                     "src": {
                                         "start": {
@@ -989,7 +989,7 @@
                             }
                         },
                         {
-                            "id": 48,
+                            "id": 56,
                             "nodeType": "Assignment",
                             "src": {
                                 "start": {
@@ -1004,7 +1004,7 @@
                                 }
                             },
                             "lhs": {
-                                "id": 47,
+                                "id": 55,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1021,7 +1021,7 @@
                                 "name": "sum"
                             },
                             "rhs": {
-                                "id": 46,
+                                "id": 54,
                                 "nodeType": "NumberLiteral",
                                 "src": {
                                     "start": {
@@ -1038,7 +1038,7 @@
                                 "value": "0",
                                 "radix": 10,
                                 "type": {
-                                    "id": 45,
+                                    "id": 53,
                                     "nodeType": "IntType",
                                     "src": {
                                         "start": {
@@ -1058,7 +1058,7 @@
                             }
                         },
                         {
-                            "id": 49,
+                            "id": 57,
                             "nodeType": "Jump",
                             "src": {
                                 "start": {
@@ -1080,7 +1080,7 @@
                     "label": "header",
                     "statements": [
                         {
-                            "id": 53,
+                            "id": 61,
                             "nodeType": "Branch",
                             "src": {
                                 "start": {
@@ -1095,7 +1095,7 @@
                                 }
                             },
                             "condition": {
-                                "id": 52,
+                                "id": 60,
                                 "nodeType": "BinaryOperation",
                                 "src": {
                                     "start": {
@@ -1111,7 +1111,7 @@
                                 },
                                 "op": "<",
                                 "leftExpr": {
-                                    "id": 50,
+                                    "id": 58,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1128,7 +1128,7 @@
                                     "name": "ctr"
                                 },
                                 "rightExpr": {
-                                    "id": 51,
+                                    "id": 59,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1154,7 +1154,7 @@
                     "label": "body",
                     "statements": [
                         {
-                            "id": 59,
+                            "id": 67,
                             "nodeType": "Assignment",
                             "src": {
                                 "start": {
@@ -1169,7 +1169,7 @@
                                 }
                             },
                             "lhs": {
-                                "id": 58,
+                                "id": 66,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1186,7 +1186,7 @@
                                 "name": "ctr"
                             },
                             "rhs": {
-                                "id": 57,
+                                "id": 65,
                                 "nodeType": "BinaryOperation",
                                 "src": {
                                     "start": {
@@ -1202,7 +1202,7 @@
                                 },
                                 "op": "+",
                                 "leftExpr": {
-                                    "id": 54,
+                                    "id": 62,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1219,7 +1219,7 @@
                                     "name": "ctr"
                                 },
                                 "rightExpr": {
-                                    "id": 56,
+                                    "id": 64,
                                     "nodeType": "NumberLiteral",
                                     "src": {
                                         "start": {
@@ -1236,7 +1236,7 @@
                                     "value": "1",
                                     "radix": 10,
                                     "type": {
-                                        "id": 55,
+                                        "id": 63,
                                         "nodeType": "IntType",
                                         "src": {
                                             "start": {
@@ -1257,7 +1257,7 @@
                             }
                         },
                         {
-                            "id": 64,
+                            "id": 72,
                             "nodeType": "Assignment",
                             "src": {
                                 "start": {
@@ -1272,7 +1272,7 @@
                                 }
                             },
                             "lhs": {
-                                "id": 63,
+                                "id": 71,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1289,7 +1289,7 @@
                                 "name": "sum"
                             },
                             "rhs": {
-                                "id": 62,
+                                "id": 70,
                                 "nodeType": "BinaryOperation",
                                 "src": {
                                     "start": {
@@ -1305,7 +1305,7 @@
                                 },
                                 "op": "+",
                                 "leftExpr": {
-                                    "id": 60,
+                                    "id": 68,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1322,7 +1322,7 @@
                                     "name": "sum"
                                 },
                                 "rightExpr": {
-                                    "id": 61,
+                                    "id": 69,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1341,7 +1341,7 @@
                             }
                         },
                         {
-                            "id": 65,
+                            "id": 73,
                             "nodeType": "Jump",
                             "src": {
                                 "start": {
@@ -1363,7 +1363,7 @@
                     "label": "exit",
                     "statements": [
                         {
-                            "id": 67,
+                            "id": 75,
                             "nodeType": "Return",
                             "src": {
                                 "start": {
@@ -1379,7 +1379,7 @@
                             },
                             "values": [
                                 {
-                                    "id": 66,
+                                    "id": 74,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1405,7 +1405,7 @@
                     "from": "entry",
                     "to": "header",
                     "predicate": {
-                        "id": 68,
+                        "id": 76,
                         "nodeType": "BooleanLiteral",
                         "value": true
                     }
@@ -1414,7 +1414,7 @@
                     "from": "header",
                     "to": "body",
                     "predicate": {
-                        "id": 52,
+                        "id": 79,
                         "nodeType": "BinaryOperation",
                         "src": {
                             "start": {
@@ -1430,7 +1430,7 @@
                         },
                         "op": "<",
                         "leftExpr": {
-                            "id": 50,
+                            "id": 77,
                             "nodeType": "Identifier",
                             "src": {
                                 "start": {
@@ -1447,7 +1447,7 @@
                             "name": "ctr"
                         },
                         "rightExpr": {
-                            "id": 51,
+                            "id": 78,
                             "nodeType": "Identifier",
                             "src": {
                                 "start": {
@@ -1469,7 +1469,7 @@
                     "from": "header",
                     "to": "exit",
                     "predicate": {
-                        "id": 69,
+                        "id": 83,
                         "nodeType": "UnaryOperation",
                         "src": {
                             "start": {
@@ -1485,7 +1485,7 @@
                         },
                         "op": "!",
                         "subExpr": {
-                            "id": 52,
+                            "id": 82,
                             "nodeType": "BinaryOperation",
                             "src": {
                                 "start": {
@@ -1501,7 +1501,7 @@
                             },
                             "op": "<",
                             "leftExpr": {
-                                "id": 50,
+                                "id": 80,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1518,7 +1518,7 @@
                                 "name": "ctr"
                             },
                             "rightExpr": {
-                                "id": 51,
+                                "id": 81,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1541,7 +1541,7 @@
                     "from": "body",
                     "to": "header",
                     "predicate": {
-                        "id": 70,
+                        "id": 84,
                         "nodeType": "BooleanLiteral",
                         "value": true
                     }
@@ -1550,7 +1550,7 @@
         }
     },
     {
-        "id": 73,
+        "id": 87,
         "nodeType": "FunctionDefinition",
         "src": {
             "start": {
@@ -1580,7 +1580,7 @@
                     "label": "entry",
                     "statements": [
                         {
-                            "id": 72,
+                            "id": 86,
                             "nodeType": "Return",
                             "src": {
                                 "start": {
@@ -1603,7 +1603,7 @@
         }
     },
     {
-        "id": 107,
+        "id": 121,
         "nodeType": "FunctionDefinition",
         "src": {
             "start": {
@@ -1623,7 +1623,7 @@
         "parameters": [],
         "locals": [
             {
-                "id": 75,
+                "id": 89,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -1639,7 +1639,7 @@
                 },
                 "name": "a",
                 "type": {
-                    "id": 74,
+                    "id": 88,
                     "nodeType": "IntType",
                     "src": {
                         "start": {
@@ -1658,7 +1658,7 @@
                 }
             },
             {
-                "id": 77,
+                "id": 91,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -1674,7 +1674,7 @@
                 },
                 "name": "b",
                 "type": {
-                    "id": 76,
+                    "id": 90,
                     "nodeType": "IntType",
                     "src": {
                         "start": {
@@ -1693,7 +1693,7 @@
                 }
             },
             {
-                "id": 79,
+                "id": 93,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -1709,7 +1709,7 @@
                 },
                 "name": "c",
                 "type": {
-                    "id": 78,
+                    "id": 92,
                     "nodeType": "IntType",
                     "src": {
                         "start": {
@@ -1728,7 +1728,7 @@
                 }
             },
             {
-                "id": 81,
+                "id": 95,
                 "nodeType": "VariableDeclaration",
                 "src": {
                     "start": {
@@ -1744,7 +1744,7 @@
                 },
                 "name": "failed",
                 "type": {
-                    "id": 80,
+                    "id": 94,
                     "nodeType": "BoolType",
                     "src": {
                         "start": {
@@ -1772,7 +1772,7 @@
                     "label": "entry",
                     "statements": [
                         {
-                            "id": 89,
+                            "id": 103,
                             "nodeType": "TransactionCall",
                             "src": {
                                 "start": {
@@ -1788,7 +1788,7 @@
                             },
                             "lhss": [
                                 {
-                                    "id": 82,
+                                    "id": 96,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1805,7 +1805,7 @@
                                     "name": "a"
                                 },
                                 {
-                                    "id": 83,
+                                    "id": 97,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1823,7 +1823,7 @@
                                 }
                             ],
                             "callee": {
-                                "id": 84,
+                                "id": 98,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1843,7 +1843,7 @@
                             "typeArgs": [],
                             "args": [
                                 {
-                                    "id": 86,
+                                    "id": 100,
                                     "nodeType": "NumberLiteral",
                                     "src": {
                                         "start": {
@@ -1860,7 +1860,7 @@
                                     "value": "1",
                                     "radix": 10,
                                     "type": {
-                                        "id": 85,
+                                        "id": 99,
                                         "nodeType": "IntType",
                                         "src": {
                                             "start": {
@@ -1879,7 +1879,7 @@
                                     }
                                 },
                                 {
-                                    "id": 88,
+                                    "id": 102,
                                     "nodeType": "NumberLiteral",
                                     "src": {
                                         "start": {
@@ -1896,7 +1896,7 @@
                                     "value": "2",
                                     "radix": 10,
                                     "type": {
-                                        "id": 87,
+                                        "id": 101,
                                         "nodeType": "IntType",
                                         "src": {
                                             "start": {
@@ -1917,7 +1917,7 @@
                             ]
                         },
                         {
-                            "id": 96,
+                            "id": 110,
                             "nodeType": "TransactionCall",
                             "src": {
                                 "start": {
@@ -1933,7 +1933,7 @@
                             },
                             "lhss": [
                                 {
-                                    "id": 90,
+                                    "id": 104,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1950,7 +1950,7 @@
                                     "name": "b"
                                 },
                                 {
-                                    "id": 91,
+                                    "id": 105,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -1968,7 +1968,7 @@
                                 }
                             ],
                             "callee": {
-                                "id": 92,
+                                "id": 106,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -1988,7 +1988,7 @@
                             "typeArgs": [],
                             "args": [
                                 {
-                                    "id": 95,
+                                    "id": 109,
                                     "nodeType": "UnaryOperation",
                                     "src": {
                                         "start": {
@@ -2004,7 +2004,7 @@
                                     },
                                     "op": "-",
                                     "subExpr": {
-                                        "id": 94,
+                                        "id": 108,
                                         "nodeType": "NumberLiteral",
                                         "src": {
                                             "start": {
@@ -2021,7 +2021,7 @@
                                         "value": "10",
                                         "radix": 10,
                                         "type": {
-                                            "id": 93,
+                                            "id": 107,
                                             "nodeType": "IntType",
                                             "src": {
                                                 "start": {
@@ -2043,7 +2043,7 @@
                             ]
                         },
                         {
-                            "id": 102,
+                            "id": 116,
                             "nodeType": "TransactionCall",
                             "src": {
                                 "start": {
@@ -2059,7 +2059,7 @@
                             },
                             "lhss": [
                                 {
-                                    "id": 97,
+                                    "id": 111,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -2076,7 +2076,7 @@
                                     "name": "c"
                                 },
                                 {
-                                    "id": 98,
+                                    "id": 112,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -2094,7 +2094,7 @@
                                 }
                             ],
                             "callee": {
-                                "id": 99,
+                                "id": 113,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -2114,7 +2114,7 @@
                             "typeArgs": [],
                             "args": [
                                 {
-                                    "id": 101,
+                                    "id": 115,
                                     "nodeType": "NumberLiteral",
                                     "src": {
                                         "start": {
@@ -2131,7 +2131,7 @@
                                     "value": "100",
                                     "radix": 10,
                                     "type": {
-                                        "id": 100,
+                                        "id": 114,
                                         "nodeType": "IntType",
                                         "src": {
                                             "start": {
@@ -2152,7 +2152,7 @@
                             ]
                         },
                         {
-                            "id": 105,
+                            "id": 119,
                             "nodeType": "TransactionCall",
                             "src": {
                                 "start": {
@@ -2168,7 +2168,7 @@
                             },
                             "lhss": [
                                 {
-                                    "id": 103,
+                                    "id": 117,
                                     "nodeType": "Identifier",
                                     "src": {
                                         "start": {
@@ -2186,7 +2186,7 @@
                                 }
                             ],
                             "callee": {
-                                "id": 104,
+                                "id": 118,
                                 "nodeType": "Identifier",
                                 "src": {
                                     "start": {
@@ -2207,7 +2207,7 @@
                             "args": []
                         },
                         {
-                            "id": 106,
+                            "id": 120,
                             "nodeType": "Return",
                             "src": {
                                 "start": {

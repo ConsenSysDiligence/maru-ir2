@@ -1,3 +1,4 @@
+import { copy } from "../copy";
 import { BooleanLiteral, NumberLiteral } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -29,5 +30,9 @@ export class ArrayLiteral extends Node {
 
     children(): Iterable<Node> {
         return [...this.values];
+    }
+
+    copy(): ArrayLiteral {
+        return new ArrayLiteral(this.src, this.values.map(copy));
     }
 }

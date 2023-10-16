@@ -20,4 +20,8 @@ export class MemVariableDeclaration extends Node {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): MemVariableDeclaration {
+        return new MemVariableDeclaration(this.src, this.name);
+    }
 }

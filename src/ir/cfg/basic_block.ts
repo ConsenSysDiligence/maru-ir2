@@ -1,21 +1,17 @@
 import { PPAble } from "../../utils";
+import { copy } from "../copy";
 import { Expression } from "../expressions";
 import { Statement } from "../statements";
 import { Edge } from "./edge";
 
 export class BasicBlock implements PPAble {
-    label: string;
-    statements: Statement[];
-    incoming: Edge[];
-    outgoing: Edge[];
+    incoming: Edge[] = [];
+    outgoing: Edge[] = [];
 
-    constructor(label: string, statements: Statement[] = []) {
-        this.label = label;
-        this.statements = statements;
-
-        this.incoming = [];
-        this.outgoing = [];
-    }
+    constructor(
+        public label: string,
+        public statements: Statement[] = []
+    ) {}
 
     addOutgoing(to: BasicBlock, predicate?: Expression): Edge {
         if (this.hasOutgoing(to)) {
@@ -93,6 +89,14 @@ export class BasicBlock implements PPAble {
 
     pp(): string {
         return `${this.label}:\n${this.statements.map((stmt) => `    ` + stmt.pp()).join("\n")}`;
+    }
+
+    /**
+     * Creates a new copy of current BasicBlock, also copying its statements.
+     * This method **does not copy any `Edge`s** to avoid possible confusion.
+     */
+    copy(): BasicBlock {
+        return new BasicBlock(this.label, this.statements.map(copy));
     }
 
     print(): string {

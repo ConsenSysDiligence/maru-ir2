@@ -21,4 +21,8 @@ export class ArrayType extends Type {
     children(): Iterable<Node> {
         return [this.baseType];
     }
+
+    copy(): ArrayType {
+        return new ArrayType(this.src, this.baseType.copy());
+    }
 }

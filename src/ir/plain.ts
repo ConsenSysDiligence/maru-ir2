@@ -152,13 +152,13 @@ function plainToCfg(plain: any): CFG {
         const from = getOrErr(
             cache,
             plainEdge.from,
-            `Missing basic block for edge "from" label "${plain.entry}"`
+            `Missing basic block for edge "from" label "${plainEdge.from}"`
         );
 
         const to = getOrErr(
             cache,
             plainEdge.to,
-            `Missing basic block for edge "from" label "${plain.entry}"`
+            `Missing basic block for edge "to" label "${plainEdge.to}"`
         );
 
         const predicate = plainEdge.predicate ? plainToNode(plainEdge.predicate) : undefined;

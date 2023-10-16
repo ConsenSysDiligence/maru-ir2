@@ -24,4 +24,8 @@ export class LoadField extends Statement {
     children(): Iterable<Node> {
         return [this.lhs, this.baseExpr];
     }
+
+    copy(): LoadField {
+        return new LoadField(this.src, this.lhs.copy(), this.baseExpr.copy(), this.member);
+    }
 }

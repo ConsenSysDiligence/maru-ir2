@@ -22,6 +22,13 @@ export class StructLiteral extends Node {
         return [...this.fields.map((x) => x[1])];
     }
 
+    copy(): StructLiteral {
+        return new StructLiteral(
+            this.src,
+            this.fields.map(([k, v]) => [k, v.copy()])
+        );
+    }
+
     field(needle: string): GlobalVarLiteral | undefined {
         for (const [name, lit] of this.fields) {
             if (needle === name) {

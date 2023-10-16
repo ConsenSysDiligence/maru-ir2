@@ -1,5 +1,6 @@
 import { ppPolyParams } from "../../utils";
 import { CFG } from "../cfg";
+import { copy } from "../copy";
 import { MemVariableDeclaration, TypeVariableDeclaration, VariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -7,47 +8,34 @@ import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class FunctionDefinition extends Definition {
-    public readonly memoryParameters: MemVariableDeclaration[];
-    public readonly typeParameters: TypeVariableDeclaration[];
-    public readonly name;
-    public readonly parameters: VariableDeclaration[];
-    public readonly locals: VariableDeclaration[];
-    public readonly returns: Type[];
-    public body?: CFG;
-
     constructor(
         src: BaseSrc,
-        memoryParameters: MemVariableDeclaration[],
-        typeParameters: TypeVariableDeclaration[],
-        name: string,
-        params: VariableDeclaration[],
-        locals: VariableDeclaration[],
-        returns: Type[],
-        body?: CFG
+        public readonly memoryParameters: MemVariableDeclaration[],
+        public readonly typeParameters: TypeVariableDeclaration[],
+        public readonly name: string,
+        public readonly parameters: VariableDeclaration[],
+        public readonly locals: VariableDeclaration[],
+        public readonly returns: Type[],
+        public body?: CFG
     ) {
         super(src);
-
-        this.memoryParameters = memoryParameters;
-        this.typeParameters = typeParameters;
-        this.name = name;
-        this.parameters = params;
-        this.locals = locals;
-        this.returns = returns;
-        this.body = body;
     }
 
     pp(): string {
         const memoryParamStr = ppPolyParams(this.memoryParameters, this.typeParameters);
+
         const returnStr =
             this.returns.length === 0
                 ? ""
                 : this.returns.length === 1
                 ? `: ${this.returns[0].pp()}`
                 : `: (${this.returns.map((x) => x.pp()).join(", ")})`;
+
         const localsStr =
             this.locals.length === 0
                 ? ""
                 : `\nlocals ${this.locals.map((d) => `${d.name}: ${d.type.pp()}`).join(", ")};`;
+
         const bodyStr = this.body ? " " + this.body.pp() : "";
 
         return `fun ${this.name}${memoryParamStr}(${this.parameters
@@ -65,6 +53,7 @@ export class FunctionDefinition extends Definition {
         if (this.body) {
             for (const bb of this.body.nodes.values()) {
                 bodyChildren.push(...bb.statements);
+
                 for (const edge of bb.outgoing) {
                     if (edge.predicate) {
                         bodyChildren.push(edge.predicate);
@@ -81,5 +70,18 @@ export class FunctionDefinition extends Definition {
             ...this.returns,
             ...bodyChildren
         ];
+    }
+
+    copy(): FunctionDefinition {
+        return new FunctionDefinition(
+            this.src,
+            this.memoryParameters.map(copy),
+            this.typeParameters.map(copy),
+            this.name,
+            this.parameters.map(copy),
+            this.locals.map(copy),
+            this.returns.map(copy),
+            this.body ? this.body.copy() : undefined
+        );
     }
 }

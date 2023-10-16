@@ -17,4 +17,8 @@ export class NeverType extends Type {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): NeverType {
+        return new NeverType(this.src);
+    }
 }

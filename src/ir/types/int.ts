@@ -3,14 +3,12 @@ import { BaseSrc } from "../source";
 import { Type } from "./type";
 
 export class IntType extends Type {
-    public readonly signed: boolean;
-    public readonly nbits: number;
-
-    constructor(src: BaseSrc, nbits: number, signed: boolean) {
+    constructor(
+        src: BaseSrc,
+        public readonly nbits: number,
+        public readonly signed: boolean
+    ) {
         super(src);
-
-        this.signed = signed;
-        this.nbits = nbits;
     }
 
     pp(): string {
@@ -23,6 +21,10 @@ export class IntType extends Type {
 
     children(): Iterable<Node> {
         return [];
+    }
+
+    copy(): IntType {
+        return new IntType(this.src, this.nbits, this.signed);
     }
 
     limits(): [bigint, bigint] {

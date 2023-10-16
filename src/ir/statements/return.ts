@@ -1,3 +1,4 @@
+import { copy } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -29,5 +30,9 @@ export class Return extends TerminatorStmt {
 
     children(): Iterable<Node> {
         return this.values;
+    }
+
+    copy(): Return {
+        return new Return(this.src, this.values.map(copy));
     }
 }

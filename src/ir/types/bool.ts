@@ -13,4 +13,8 @@ export class BoolType extends Type {
     children(): Iterable<Node> {
         return [];
     }
+
+    copy(): BoolType {
+        return new BoolType(this.src);
+    }
 }

@@ -135,6 +135,7 @@ export function buildCFG(
     }
 
     const bbMap = new Map(nodes.map((n) => [n.label, n]));
+
     const addBB = () => {
         const newBB = new BasicBlock(curLabel as string, curStmts);
 
@@ -187,6 +188,7 @@ export function buildCFG(
         }
 
         const lastStmt = bb.statements[bb.statements.length - 1];
+
         if (!isTerminator(lastStmt)) {
             throw new MIRSyntaxError(
                 lastStmt.src,
@@ -204,10 +206,10 @@ export function buildCFG(
             const trueBB = getBB(lastStmt.trueLabel, lastStmt.src);
             const falseBB = getBB(lastStmt.falseLabel, lastStmt.src);
 
-            bb.addOutgoing(trueBB, lastStmt.condition);
+            bb.addOutgoing(trueBB, lastStmt.condition.copy());
             bb.addOutgoing(
                 falseBB,
-                new UnaryOperation(lastStmt.condition.src, "!", lastStmt.condition)
+                new UnaryOperation(lastStmt.condition.src, "!", lastStmt.condition.copy())
             );
 
             continue;

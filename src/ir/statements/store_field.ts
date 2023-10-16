@@ -24,4 +24,8 @@ export class StoreField extends Statement {
     children(): Iterable<Node> {
         return [this.baseExpr, this.rhs];
     }
+
+    copy(): StoreField {
+        return new StoreField(this.src, this.baseExpr.copy(), this.member, this.rhs.copy());
+    }
 }

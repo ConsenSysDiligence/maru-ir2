@@ -24,4 +24,8 @@ export class Branch extends TerminatorStmt {
     children(): Iterable<Node> {
         return [this.condition];
     }
+
+    copy(): Branch {
+        return new Branch(this.src, this.condition.copy(), this.trueLabel, this.falseLabel);
+    }
 }
