@@ -12,10 +12,6 @@ export class GlobalVariable extends Definition {
         public readonly initialValue: GlobalVarLiteral
     ) {
         super(src);
-
-        this.name = name;
-        this.type = type;
-        this.initialValue = initialValue;
     }
 
     pp(): string {

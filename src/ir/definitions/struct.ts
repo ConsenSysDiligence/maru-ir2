@@ -15,10 +15,6 @@ export class StructDefinition extends Definition {
         public readonly fields: Array<[string, Type]>
     ) {
         super(src);
-        this.memoryParameters = memoryParameters;
-        this.typeParameters = typeParameters;
-        this.name = name;
-        this.fields = fields;
     }
 
     pp(): string {

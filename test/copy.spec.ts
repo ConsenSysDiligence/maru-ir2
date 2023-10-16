@@ -1,6 +1,6 @@
 import expect from "expect";
 import fse from "fs-extra";
-import { BasicBlock, CFG, copy, parseProgram, traverse } from "../src";
+import { Abort, BasicBlock, CFG, copy, noSrc, parseProgram, traverse } from "../src";
 import { searchRecursive } from "./utils";
 
 describe("copy() tests", () => {
@@ -28,6 +28,17 @@ describe("copy() tests", () => {
                 }
             });
         }
+    });
+
+    it("copy() on BasicBlock", () => {
+        const originalStmt = new Abort(noSrc);
+        const originalBb = new BasicBlock("test", [originalStmt]);
+        const copiedBb = copy(originalBb);
+
+        expect(originalBb !== copiedBb).toBeTruthy();
+        expect(copiedBb.statements).toHaveLength(originalBb.statements.length);
+        expect(originalBb.statements[0] !== copiedBb.statements[0]).toBeTruthy();
+        expect(copiedBb.pp()).toEqual(originalBb.pp());
     });
 
     it("copy() on CFG", () => {

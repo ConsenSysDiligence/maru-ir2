@@ -1,5 +1,4 @@
 import { PPAble, getOrErr } from "../../utils";
-import { copy } from "../copy";
 import { Expression } from "../expressions";
 import { BasicBlock } from "./basic_block";
 
@@ -37,7 +36,7 @@ export class CFG implements PPAble {
         const globalEdgeMap = new Map<BasicBlock, Map<string, Expression | undefined>>();
 
         for (const [name, originalBb] of this.nodes) {
-            const copyBb = new BasicBlock(name, originalBb.statements.map(copy));
+            const copyBb = originalBb.copy();
 
             copies.set(name, copyBb);
 
