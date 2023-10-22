@@ -651,10 +651,12 @@ export class Typing {
 
     tcInitLiteral(lit: GlobalVarLiteral, expectedType: Type): void {
         if (lit instanceof BooleanLiteral && eq(expectedType, boolT)) {
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
         if (lit instanceof NumberLiteral && eq(lit.type, expectedType)) {
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
@@ -669,6 +671,7 @@ export class Typing {
                 this.tcInitLiteral(el, elT);
             }
 
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
@@ -713,6 +716,7 @@ export class Typing {
                 this.tcInitLiteral(lit, concreteFieldT);
             }
 
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
@@ -729,6 +733,7 @@ export class Typing {
                 this.tcInitLiteral(valueLit, valueT);
             }
 
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
