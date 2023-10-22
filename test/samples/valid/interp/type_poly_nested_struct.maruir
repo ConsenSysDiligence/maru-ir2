@@ -1,0 +1,229 @@
+struct ArrWithLen<M; T> {
+	arr: T[] *M;
+	len: u256;
+}
+
+struct Grid<M; T> {
+	grid: ArrWithLen<M; ArrWithLen<M; T> *M> *M;
+}
+
+fun arrLen<M; T>(arg: ArrWithLen<M; T> *M): u256
+locals res: u256;
+{
+	entry:
+		load arg.len in res;
+		return res;
+}
+
+fun gridLen<M; T>(arg: Grid<M; T> *M): u256
+locals res: u256, t: ArrWithLen<M; ArrWithLen<M; T> *M> *M;
+{
+	entry:
+		load arg.grid in t;
+		res := call arrLen<M; ArrWithLen<M; T> *M>(t);
+		return res;
+}
+
+fun allocArr<M; T>(len: u256, fill: T): ArrWithLen<M; T> *M
+locals i: u256, res: ArrWithLen<M; T> *M, arr: T[] *M;
+{
+	entry:
+		i := 0_u256;
+		res := alloc ArrWithLen<M; T> in M;
+		store len in res.len;
+		arr := alloc T[len] in M;
+		store arr in res.arr;
+		jump header;
+
+	header:
+		branch i < len body exit;
+
+	body:
+		store fill in arr[i];
+		i := i + 1_u256;
+		jump header;
+
+	exit:
+		return res;
+}
+
+fun sumArr_16<M;>(arrS: ArrWithLen<M; u16> *M): u256
+locals i: u256, res: u256, t: u16, len: u256, arr: u16[] *M;
+{
+	entry:
+		i := 0_u256;
+		res := 0_u256;
+		load arrS.len in len;
+		load arrS.arr in arr;
+		jump header;
+
+	header:
+		branch i < len body exit;
+
+	body:
+		load arr[i] in t;
+		res := res + u256(t);
+		i := i + 1_u256;
+		jump header;
+
+	exit:
+		return res;
+}
+
+fun sumGrid_16<M;>(gridS: Grid<M; u16> *M): u256
+locals 
+	i: u256,
+	res: u256,
+	t: ArrWithLen<M; u16> *M,
+	t1: u256,
+	len: u256,
+	arrS: ArrWithLen<M; ArrWithLen<M; u16> *M> *M,
+	arr: (ArrWithLen<M; u16> *M)[] *M;
+{
+	entry:
+		i := 0_u256;
+		res := 0_u256;
+		load gridS.grid in arrS;
+		load arrS.len in len;
+		load arrS.arr in arr;
+		jump header;
+
+	header:
+		branch i < len body exit;
+
+	body:
+		load arr[i] in t;
+		t1 := call sumArr_16<M;>(t);
+		res := res + t1;
+		i := i + 1_u256;
+		jump header;
+
+	exit:
+		return res;
+}
+
+
+
+fun allocGrid<M; T>(len: u256, fill: T): Grid<M; T> *M
+locals
+	i: u256,
+	res: Grid<M; T> *M,
+	arrS: ArrWithLen<M; ArrWithLen<M; T> *M> *M,
+	arr: (ArrWithLen<M; T> *M)[] *M,
+	t: ArrWithLen<M; T> *M
+;
+{
+	entry:
+		i := 0_u256;
+		res := alloc Grid<M; T> in M;
+		arrS := alloc ArrWithLen<M; ArrWithLen<M; T> *M> in M;
+		store arrS in res.grid;
+		store len in arrS.len;
+		arr := alloc (ArrWithLen<M; T> *M)[len] in M;
+		store arr in arrS.arr;
+		jump header;
+
+	header:
+		branch i < len body exit;
+
+	body:
+		t := call allocArr<M; T>(len, fill);
+		store t in arr[i];
+		i := i + 1_u256;
+		jump header;
+
+	exit:
+		return res;
+}
+
+fun copyArr<SrcM, DstM; T>(arg: ArrWithLen<SrcM; T> *SrcM): ArrWithLen<DstM; T> *DstM
+locals i: u256, len: u256, res: ArrWithLen<DstM; T> *DstM, dstArr: T[] *DstM, srcArr: T[] *SrcM, t: T;
+{
+	entry:
+		i := 0_u256;
+		len := call arrLen<SrcM; T>(arg);
+		res := alloc ArrWithLen<DstM; T> in DstM;
+		store len in res.len;
+		dstArr := alloc T[len] in DstM;
+		store dstArr in res.arr;
+		load arg.arr in srcArr;
+		jump header;
+	
+	header:
+		branch i < len body exit;
+
+	body:
+		load srcArr[i] in t;
+		store t in dstArr[i];
+		i := i + 1_u256;
+		jump header;
+
+	exit:
+		return res;
+}
+
+fun copyGrid<SrcM, DstM; T>(arg: Grid<SrcM; T> *SrcM): Grid<DstM; T> *DstM
+locals 
+	i: u256,
+	len: u256,
+	res: Grid<DstM; T> *DstM,
+	dstArrS: ArrWithLen<DstM; ArrWithLen<DstM; T> *DstM> *DstM,
+	srcArrS: ArrWithLen<SrcM; ArrWithLen<SrcM; T> *SrcM> *SrcM,
+	dstArr: (ArrWithLen<DstM; T> *DstM)[] *DstM,
+	srcArr: (ArrWithLen<SrcM; T> *SrcM)[] *SrcM,
+	t: ArrWithLen<SrcM; T> *SrcM,
+	t1: ArrWithLen<DstM; T> *DstM;
+{
+	entry:
+		i := 0_u256;
+		len := call gridLen<SrcM; T>(arg);
+		res := alloc Grid<DstM; T> in DstM;
+		dstArrS := alloc ArrWithLen<DstM; ArrWithLen<DstM; T> *DstM> in DstM;
+		store dstArrS in res.grid;
+ 		store len in dstArrS.len;
+		dstArr := alloc (ArrWithLen<DstM; T> *DstM)[len] in DstM;
+		store dstArr in dstArrS.arr;
+
+		load arg.grid in srcArrS;
+		load srcArrS.arr in srcArr;
+
+		jump header;
+	
+	header:
+		branch i < len body exit;
+
+	body:
+		load srcArr[i] in t;
+		t1 := call copyArr<SrcM, DstM; T>(t);
+		store t1 in dstArr[i];
+		i := i + 1_u256;
+		jump header;
+
+	exit:
+		return res;
+}
+
+fun main()
+locals 
+	arr1: ArrWithLen<#memory; u16> *#memory,
+	sum1: u256,
+	arr2: ArrWithLen<#storage; u16> * #storage,
+	sum2: u256,
+	grid1: Grid<#memory; u16> *#memory,
+	grid2: Grid<#storage; u16> *#storage;
+{
+	entry:
+		arr1 := call allocArr<#memory; u16>(5_u256, 3_u16);
+		sum1 := call sumArr_16<#memory>(arr1);
+		assert sum1 == 15_u256;
+		arr2 := call copyArr<#memory, #storage; u16>(arr1);
+		sum2 := call sumArr_16<#storage>(arr2);
+		assert sum1 == sum2;
+		grid1 := call allocGrid<#memory; u16>(4_u256, 3_u16);
+		sum1 := call sumGrid_16<#memory>(grid1);
+		assert sum1 == 48_u256;
+		grid2 := call copyGrid<#memory, #storage; u16>(grid1);
+		sum2 := call sumGrid_16<#storage>(grid2);
+		assert sum1 == sum2;
+	return;
+}
