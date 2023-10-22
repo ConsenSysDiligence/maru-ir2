@@ -17,7 +17,7 @@
         "noImplicitThis": true,
         "alwaysStrict": true,
 
-        "noUnusedLocals": true,
+        "noUnusedLocals": false,
         "noImplicitReturns": true,
 
         "esModuleInterop": true,
