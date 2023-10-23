@@ -1,3 +1,5 @@
+import { PPIsh, fmt } from "./pretty_printing";
+
 export function getOrErr<K, V>(m: Map<K, V>, key: K, err: string): V {
     const res = m.get(key);
 
@@ -36,4 +38,26 @@ export function fill<T>(size: number, value: T): T[] {
     }
 
     return res;
+}
+
+export function assert(
+    condition: boolean,
+    message: string,
+    ...details: PPIsh[]
+): asserts condition {
+    if (condition) {
+        return;
+    }
+
+    throw new Error(fmt(message, ...details));
+}
+
+export function forAll<T>(iterable: Iterable<T>, cb: (v: T) => boolean): boolean {
+    for (const el of iterable) {
+        if (!cb(el)) {
+            return false;
+        }
+    }
+
+    return true;
 }
