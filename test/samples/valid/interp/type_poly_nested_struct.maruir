@@ -1,7 +1,14 @@
+struct NonPolyStruct {
+	f: u256;
+}
+
 struct ArrWithLen<M; T> {
 	arr: T[] *M;
 	len: u256;
 }
+
+var a: ArrWithLen<#foo; i128> *#foo = { len: 0_u256, arr: [] }
+var b: NonPolyStruct *#bar = { f: 0_u256 }
 
 struct Grid<M; T> {
 	grid: ArrWithLen<M; ArrWithLen<M; T> *M> *M;
