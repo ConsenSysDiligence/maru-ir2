@@ -118,6 +118,23 @@ export function makeSubst(
     return [makeMemSubst(arg, scope), makeTypeSubst(arg, scope)];
 }
 
+export function concretizeMemDesc(arg: MemDesc, memSubst: MemSubstitution, scope: Scope): MemDesc {
+    if (arg instanceof MemConstant) {
+        return arg;
+    }
+
+    const decl = scope.get(arg.name);
+
+    // Shouldn't happen at this point
+    if (!(decl instanceof MemVariableDeclaration)) {
+        throw new Error(`Internal error: Expected a memory desc for ${arg.pp()}, not ${pp(decl)}`);
+    }
+
+    const newVal = memSubst.get(decl);
+
+    return newVal ? newVal : arg;
+}
+
 export function concretizeType(t: Type, subst: Substitution, scope: Scope): Type {
     const [memSubst, typeSubst] = subst;
 
@@ -135,27 +152,10 @@ export function concretizeType(t: Type, subst: Substitution, scope: Scope): Type
         return t;
     }
 
-    const concretizeMemDesc = (arg: MemDesc): MemDesc => {
-        if (arg instanceof MemConstant) {
-            return arg;
-        }
-
-        const decl = scope.get(arg.name);
-
-        // Shouldn't happen at this point
-        if (!(decl instanceof MemVariableDeclaration)) {
-            throw new Error(
-                `Internal error: Expected a memory desc for ${arg.pp()}, not ${pp(decl)}`
-            );
-        }
-
-        const newVal = memSubst.get(decl);
-
-        return newVal ? newVal : arg;
-    };
-
     if (t instanceof UserDefinedType) {
-        const concreteMemArgs = t.memArgs.map(concretizeMemDesc);
+        const concreteMemArgs = t.memArgs.map((memArg) =>
+            concretizeMemDesc(memArg, memSubst, scope)
+        );
         const concreteTypeArgs = t.typeArgs.map((tArg) => concretizeType(tArg, subst, scope));
 
         const res = new UserDefinedType(t.src, t.name, concreteMemArgs, concreteTypeArgs);
@@ -168,7 +168,7 @@ export function concretizeType(t: Type, subst: Substitution, scope: Scope): Type
         return new PointerType(
             t.src,
             concretizeType(t.toType, subst, scope),
-            concretizeMemDesc(t.region)
+            concretizeMemDesc(t.region, memSubst, scope)
         );
     }
 
