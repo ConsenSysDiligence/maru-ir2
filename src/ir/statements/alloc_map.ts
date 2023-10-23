@@ -1,3 +1,4 @@
+import { TransformerF, transform } from "../copy";
 import { Identifier } from "../expressions";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
@@ -27,7 +28,12 @@ export class AllocMap extends Statement {
         return [this.lhs, this.type, this.mem];
     }
 
-    copy(): AllocMap {
-        return new AllocMap(this.src, this.lhs.copy(), this.type.copy(), this.mem.copy());
+    copy(t: TransformerF | undefined): AllocMap {
+        return new AllocMap(
+            this.src,
+            transform(this.lhs, t),
+            transform(this.type, t),
+            transform(this.mem, t)
+        );
     }
 }

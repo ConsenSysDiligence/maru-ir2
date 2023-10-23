@@ -1,3 +1,4 @@
+import { TransformerF, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Expression } from "./expression";
@@ -45,7 +46,12 @@ export class BinaryOperation extends Expression {
         return [this.leftExpr, this.rightExpr];
     }
 
-    copy(): BinaryOperation {
-        return new BinaryOperation(this.src, this.leftExpr.copy(), this.op, this.rightExpr.copy());
+    copy(t: TransformerF | undefined): BinaryOperation {
+        return new BinaryOperation(
+            this.src,
+            transform(this.leftExpr, t),
+            this.op,
+            transform(this.rightExpr, t)
+        );
     }
 }

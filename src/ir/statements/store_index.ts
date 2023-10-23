@@ -1,3 +1,4 @@
+import { TransformerF, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -25,12 +26,12 @@ export class StoreIndex extends Statement {
         return [this.baseExpr, this.indexExpr, this.rhs];
     }
 
-    copy(): StoreIndex {
+    copy(t: TransformerF | undefined): StoreIndex {
         return new StoreIndex(
             this.src,
-            this.baseExpr.copy(),
-            this.indexExpr.copy(),
-            this.rhs.copy()
+            transform(this.baseExpr, t),
+            transform(this.indexExpr, t),
+            transform(this.rhs, t)
         );
     }
 }

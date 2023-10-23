@@ -1,3 +1,4 @@
+import { TransformerF, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
@@ -24,7 +25,7 @@ export class Cast extends Expression {
         return [this.toType, this.subExpr];
     }
 
-    copy(): Cast {
-        return new Cast(this.src, this.toType.copy(), this.subExpr.copy());
+    copy(t: TransformerF | undefined): Cast {
+        return new Cast(this.src, transform(this.toType, t), transform(this.subExpr, t));
     }
 }

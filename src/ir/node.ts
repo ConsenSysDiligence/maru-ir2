@@ -1,4 +1,5 @@
 import { PPAble, StructEqualityComparable } from "../utils";
+import { TransformerF } from "./copy";
 import { BaseSrc } from "./source";
 
 let nodeCtr = 0;
@@ -16,5 +17,5 @@ export abstract class Node implements PPAble, StructEqualityComparable {
     abstract pp(): string;
     abstract getStructId(): any;
     abstract children(): Iterable<Node>;
-    abstract copy(): Node;
+    abstract copy(t: TransformerF | undefined): Node;
 }

@@ -50,7 +50,8 @@ import {
     MapType,
     AllocMap,
     Contains,
-    MapLiteral
+    MapLiteral,
+    copy
 } from "../ir";
 import { BasicBlock, CFG } from "../ir/cfg";
 import { MIRSyntaxError } from "../utils";
@@ -96,7 +97,11 @@ function buildBinaryExpression(
  * resolving pass.
  */
 function isTerminator(stmt: Statement): boolean {
-    return stmt instanceof TerminatorStmt || stmt instanceof FunctionCall || stmt instanceof TransactionCall
+    return (
+        stmt instanceof TerminatorStmt ||
+        stmt instanceof FunctionCall ||
+        stmt instanceof TransactionCall
+    );
 }
 
 /**
@@ -140,7 +145,7 @@ export function buildCFG(
         const newBB = new BasicBlock(curLabel as string, curStmts);
 
         if (bbMap.has(curLabel as string)) {
-            throw new MIRSyntaxError(curStmts[0].src, `Duplicate basic block label ${curLabel}`)
+            throw new MIRSyntaxError(curStmts[0].src, `Duplicate basic block label ${curLabel}`);
         }
 
         if (entry === undefined) {
@@ -206,10 +211,10 @@ export function buildCFG(
             const trueBB = getBB(lastStmt.trueLabel, lastStmt.src);
             const falseBB = getBB(lastStmt.falseLabel, lastStmt.src);
 
-            bb.addOutgoing(trueBB, lastStmt.condition.copy());
+            bb.addOutgoing(trueBB, copy(lastStmt.condition));
             bb.addOutgoing(
                 falseBB,
-                new UnaryOperation(lastStmt.condition.src, "!", lastStmt.condition.copy())
+                new UnaryOperation(lastStmt.condition.src, "!", copy(lastStmt.condition))
             );
 
             continue;

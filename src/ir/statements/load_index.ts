@@ -1,3 +1,4 @@
+import { TransformerF, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -25,12 +26,12 @@ export class LoadIndex extends Statement {
         return [this.lhs, this.baseExpr, this.indexExpr];
     }
 
-    copy(): LoadIndex {
+    copy(t: TransformerF | undefined): LoadIndex {
         return new LoadIndex(
             this.src,
-            this.lhs.copy(),
-            this.baseExpr.copy(),
-            this.indexExpr.copy()
+            transform(this.lhs, t),
+            transform(this.baseExpr, t),
+            transform(this.indexExpr, t)
         );
     }
 }

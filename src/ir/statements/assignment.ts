@@ -1,3 +1,4 @@
+import { TransformerF, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -24,7 +25,7 @@ export class Assignment extends Statement {
         return [this.lhs, this.rhs];
     }
 
-    copy(): Assignment {
-        return new Assignment(this.src, this.lhs.copy(), this.rhs.copy());
+    copy(t: TransformerF | undefined): Assignment {
+        return new Assignment(this.src, transform(this.lhs, t), transform(this.rhs, t));
     }
 }
