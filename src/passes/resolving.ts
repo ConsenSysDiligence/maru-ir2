@@ -178,7 +178,11 @@ export class Scope {
     }
 
     scopeOf(def: StructDefinition | FunctionDefinition): Scope {
-        const res = this.subScopes.get(def);
+        let res = this.subScopes.get(def);
+
+        if (res === undefined && this.parentScope) {
+            res = this.parentScope.scopeOf(def);
+        }
 
         if (res === undefined) {
             throw new MIRTypeError(def.src, `${def.constructor.name} ${def} doesn't have a scope`);
