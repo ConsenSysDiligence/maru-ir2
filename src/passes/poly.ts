@@ -12,7 +12,9 @@ import {
     BoolType,
     IntType,
     MemConstant,
-    PointerType
+    PointerType,
+    MapType,
+    NeverType
 } from "../ir";
 import { MIRTypeError, pp, walk, zip } from "../utils";
 import { TypeSubstitution, MemSubstitution, Substitution, Scope } from "./resolving";
@@ -215,6 +217,14 @@ export function isConcrete(t: Type, scope: Scope): boolean {
             }
         }
 
+        return true;
+    }
+
+    if (t instanceof MapType) {
+        return isConcrete(t.keyType, scope) && isConcrete(t.valueType, scope);
+    }
+
+    if (t instanceof NeverType) {
         return true;
     }
 

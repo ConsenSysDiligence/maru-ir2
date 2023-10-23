@@ -8,7 +8,6 @@ import {
     MIRTypeError,
     Monomorphize,
     parseProgram,
-    pp,
     Program,
     Resolving,
     Typing,
@@ -81,7 +80,11 @@ describe("Typing positive tests", () => {
             it(`Typing succeeds and covers all expressions after monomorphizing`, () => {
                 const mono = new Monomorphize(program, resolving);
                 const newProgram = mono.run();
-                console.error(`Mono program: `, pp(newProgram));
+
+                // Uncomment the below lines to dump the monomorphized program to disk
+                //const monoFile = file.replace(".maruir", ".mono.maruir");
+                //console.error(`Writing monomorphized file to ${monoFile}`);
+                //fse.writeFileSync(monoFile, newProgram.map(pp).join("\n"), { encoding: "utf-8" });
                 const newResolving = new Resolving(newProgram);
                 const newTyping = new Typing(newProgram, newResolving);
 
@@ -102,7 +105,6 @@ describe("Typing positive tests", () => {
 
                                 if (nd instanceof Expression) {
                                     const type = newTyping.typeOf(nd);
-                                    console.error(`Type of ${nd.pp()} is ${pp(type)}`);
                                     expect(type).toBeDefined();
                                 }
                             });

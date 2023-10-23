@@ -562,7 +562,7 @@ Keyword
     / MAP
 
 Identifier =
-    !((Keyword ![a-zA-Z0-9_]) / IntType) id:([a-zA-Z_][a-zA-Z0-9_]*) { return text(); }
+    !((Keyword ![a-zA-Z0-9_]) / IntType) id:([a-zA-Z_][a-zA-Z0-9_$]*) { return text(); }
 // Whitespace
 
 PrimitiveWhiteSpace =

@@ -1,22 +1,24 @@
 import { Program } from "../interp";
 import {
-    AllocArray,
-    AllocMap,
-    AllocStruct,
     ArrayType,
     BoolType,
+    CFG,
     FunctionCall,
     FunctionDefinition,
     GlobalVariable,
+    Identifier,
     IntType,
     MemConstant,
+    MemIdentifier,
+    Node,
     PointerType,
     StructDefinition,
     Type,
     UserDefinedType,
-    copy
+    copy,
+    transform
 } from "../ir";
-import { STOP_WALK, assert, forAll, walk, zip } from "../utils";
+import { assert, forAll, walk, zip } from "../utils";
 import { concretizeMemDesc, concretizeType, isConcrete, walkType } from "./poly";
 import { Resolving, Scope, Substitution } from "./resolving";
 
@@ -93,6 +95,8 @@ export class Monomorphize {
     private accumulateConcreteStructDefs(t: Type, scope: Scope): MonomorphicDefM {
         const res: MonomorphicDefM = new Map();
 
+        assert(isConcrete(t, scope), `Unexpected non-concrete type {0}`, t);
+
         walkType(
             t,
             (subT) => {
@@ -111,6 +115,7 @@ export class Monomorphize {
                     return;
                 }
 
+                assert(isConcrete(subT, scope), `Unexpected non-concrete sub type {0}`, t);
                 // subT is already concrete here (thanks to walkType)
                 const name = `${def.name}$${subT.memArgs
                     .map((m) => m.name)
@@ -138,6 +143,21 @@ export class Monomorphize {
                     this.resolving.global
                 )) {
                     monomorphicDefs.set(name, entry);
+                }
+            }
+
+            if (
+                def instanceof StructDefinition &&
+                def.memoryParameters.length === 0 &&
+                def.typeParameters.length === 0
+            ) {
+                for (const [, fieldT] of def.fields) {
+                    for (const [name, entry] of this.accumulateConcreteStructDefs(
+                        fieldT,
+                        this.resolving.global
+                    )) {
+                        monomorphicDefs.set(name, entry);
+                    }
                 }
             }
         }
@@ -215,46 +235,56 @@ export class Monomorphize {
         return monomorphicDefs;
     }
 
-    private replacePolymorphicNodes<T extends TopLevelDef>(
+    private replaceConcretPolyTypes(t: Type, scope: Scope): Type {
+        return transform(t, (subT) => {
+            if (
+                !(
+                    subT instanceof UserDefinedType &&
+                    (subT.memArgs.length > 0 || subT.typeArgs.length > 0)
+                )
+            ) {
+                return undefined;
+            }
+
+            const def = scope.get(subT.name);
+
+            if (!(def instanceof StructDefinition)) {
+                return undefined;
+            }
+
+            const concreteName = this.getMonoName(
+                def,
+                subT.memArgs as MemConstant[],
+                subT.typeArgs
+            );
+
+            return new UserDefinedType(subT.src, concreteName, [], []);
+        });
+    }
+
+    private replacePolymorphicNodes<T extends Node | CFG>(
         def: T,
         scope: Scope,
         subst: Substitution
-    ): void {
-        walk(def, (n) => {
-            if (n instanceof PointerType) {
-                n.region = concretizeMemDesc(n.region, subst[0], scope);
+    ): T {
+        return transform(def, (n) => {
+            if (n instanceof Type) {
+                const concreteT = concretizeType(n, subst, scope);
+
+                return this.replaceConcretPolyTypes(concreteT, scope);
             }
 
-            if (n instanceof AllocArray || n instanceof AllocMap || n instanceof AllocStruct) {
-                n.mem = concretizeMemDesc(n.mem, subst[0], scope);
-            }
-
-            // Polymorphic type def
-            if (n instanceof UserDefinedType && (n.memArgs.length > 0 || n.typeArgs.length > 0)) {
-                const concreteT = concretizeType(n, subst, scope) as UserDefinedType;
-                const nDef = scope.get(concreteT.name);
+            if (n instanceof MemIdentifier) {
+                const concreteMem = concretizeMemDesc(n, subst[0], scope);
 
                 assert(
-                    nDef instanceof StructDefinition,
-                    `Unexpected def {0} in replacePolymorphicNodes on type {1}`,
-                    def,
-                    n
-                );
-                assert(
-                    isConcrete(concreteT, scope),
-                    `Unexpected non-concrete type {0} in replacePolymorphicNodes`,
-                    n
+                    concreteMem instanceof MemConstant,
+                    `Unexpected non-concretized {0} in {1}`,
+                    n,
+                    def
                 );
 
-                n.name = this.getMonoName(
-                    nDef,
-                    concreteT.memArgs as MemConstant[],
-                    concreteT.typeArgs
-                );
-                n.memArgs = [];
-                n.typeArgs = [];
-
-                return STOP_WALK;
+                return concreteMem;
             }
 
             // Polymorphic fun call
@@ -285,36 +315,56 @@ export class Monomorphize {
                     n
                 );
 
-                n.callee.name = this.getMonoName(nDef, concreteMems as MemConstant[], concreteTs);
-                n.memArgs = [];
-                n.typeArgs = [];
-
-                return STOP_WALK;
+                const monoName = this.getMonoName(nDef, concreteMems as MemConstant[], concreteTs);
+                return new FunctionCall(
+                    n.src,
+                    n.lhss.map(copy),
+                    new Identifier(n.callee.src, monoName),
+                    [],
+                    [],
+                    n.args.map(copy)
+                );
             }
 
             return undefined;
         });
     }
 
-    private concretizeDef<T extends StructDefinition | FunctionDefinition>(
-        orig: T,
+    private concretizeDef(
+        orig: StructDefinition | FunctionDefinition,
+        newName: string,
         concreteMems: MemConstant[],
         concreteTypes: Type[]
-    ): T {
-        const newDef = copy(orig);
+    ): StructDefinition | FunctionDefinition {
         const subst: Substitution = [
             new Map(zip(orig.memoryParameters, concreteMems)),
             new Map(zip(orig.typeParameters, concreteTypes))
         ];
-
-        newDef.name = this.getMonoName(orig, concreteMems, concreteTypes);
-        newDef.memoryParameters = [];
-        newDef.typeParameters = [];
-
         const origScope = this.resolving.getScope(orig);
 
-        this.replacePolymorphicNodes(newDef, origScope, subst);
-        return newDef;
+        if (orig instanceof StructDefinition) {
+            return new StructDefinition(
+                orig.src,
+                [],
+                [],
+                newName,
+                orig.fields.map(([name, type]) => [
+                    name,
+                    this.replacePolymorphicNodes(type, origScope, subst)
+                ])
+            );
+        }
+
+        return new FunctionDefinition(
+            orig.src,
+            [],
+            [],
+            newName,
+            orig.parameters.map((param) => this.replacePolymorphicNodes(param, origScope, subst)),
+            orig.locals.map((local) => this.replacePolymorphicNodes(local, origScope, subst)),
+            orig.returns.map((retT) => this.replacePolymorphicNodes(retT, origScope, subst)),
+            orig.body ? this.replacePolymorphicNodes(orig.body, origScope, subst) : undefined
+        );
     }
 
     /**
@@ -329,8 +379,8 @@ export class Monomorphize {
         const newProg: Program = [];
 
         // 1. For all entries in the `monomorphicDefs` map, add the monomorphized instance to the new program
-        for (const [, [def, [concreteMems, concreteTypes]]] of monomorphicDefs) {
-            newProg.push(this.concretizeDef(def, concreteMems, concreteTypes));
+        for (const [newName, [def, [concreteMems, concreteTypes]]] of monomorphicDefs) {
+            newProg.push(this.concretizeDef(def, newName, concreteMems, concreteTypes));
         }
 
         // 2. For all non-polymorphic defs in the original program, copy them over, while replacing all references
@@ -339,14 +389,14 @@ export class Monomorphize {
                 continue;
             }
 
-            const newDef = copy(def);
             const scope =
                 def instanceof GlobalVariable
                     ? this.resolving.global
                     : this.resolving.getScope(def as StructDefinition | FunctionDefinition);
 
-            this.replacePolymorphicNodes(newDef as TopLevelDef, scope, [new Map(), new Map()]);
-            newProg.push(newDef);
+            newProg.push(
+                this.replacePolymorphicNodes(def as TopLevelDef, scope, [new Map(), new Map()])
+            );
         }
 
         return newProg;
@@ -354,14 +404,6 @@ export class Monomorphize {
 
     run(): Program {
         const monomorphicDefs: MonomorphicDefM = this.accumulateMonomorphicVariants(this.program);
-
-        for (const [name, [def, [concreteMemes, concreteTypes]]] of monomorphicDefs.entries()) {
-            console.error(
-                `${name} => ${def} ${concreteMemes.map((m) => m.name).join(", ")} ${concreteTypes
-                    .map((m) => m.pp())
-                    .join(", ")}`
-            );
-        }
 
         return this.monomorphize(this.program, monomorphicDefs);
     }

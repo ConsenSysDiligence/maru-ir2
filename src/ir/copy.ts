@@ -1,7 +1,7 @@
 import { BasicBlock, CFG } from "./cfg";
 import { Node } from "./node";
 
-export type TransformerF = (arg: Node) => Node;
+export type TransformerF = (arg: Node) => Node | undefined;
 
 /**
  * Make a copy of the `input` CFG/Block/Node
