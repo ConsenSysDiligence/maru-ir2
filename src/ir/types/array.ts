@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "./type";
@@ -23,7 +23,7 @@ export class ArrayType extends Type {
         return [this.baseType];
     }
 
-    copy(t: TransformerF | undefined): ArrayType {
+    copy(t: TransformerFn | undefined): ArrayType {
         return new ArrayType(this.src, transform(this.baseType, t));
     }
 }

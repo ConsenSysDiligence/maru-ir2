@@ -1,7 +1,7 @@
 import { BasicBlock, CFG } from "./cfg";
 import { Node } from "./node";
 
-export type TransformerF = (arg: Node) => Node | undefined;
+export type TransformerFn = (arg: Node) => Node | undefined;
 
 /**
  * Make a copy of the `input` CFG/Block/Node
@@ -16,7 +16,7 @@ export function copy<T extends CFG | BasicBlock | Node>(input: T): T {
  */
 export function transform<T extends CFG | BasicBlock | Node>(
     input: T,
-    transformer: TransformerF | undefined
+    transformer: TransformerFn | undefined
 ): T {
     if (transformer && input instanceof Node) {
         const res = transformer(input);

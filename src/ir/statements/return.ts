@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -32,7 +32,7 @@ export class Return extends TerminatorStmt {
         return this.values;
     }
 
-    copy(t: TransformerF | undefined): Return {
+    copy(t: TransformerFn | undefined): Return {
         return new Return(
             this.src,
             this.values.map((v) => transform(v, t))

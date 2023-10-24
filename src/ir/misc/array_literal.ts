@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { BooleanLiteral, NumberLiteral } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -32,7 +32,7 @@ export class ArrayLiteral extends Node {
         return [...this.values];
     }
 
-    copy(t: TransformerF | undefined): ArrayLiteral {
+    copy(t: TransformerFn | undefined): ArrayLiteral {
         return new ArrayLiteral(
             this.src,
             this.values.map((v) => transform(v, t))

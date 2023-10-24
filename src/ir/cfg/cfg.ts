@@ -1,5 +1,5 @@
 import { PPAble, getOrErr } from "../../utils";
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { BasicBlock } from "./basic_block";
 
@@ -32,7 +32,7 @@ export class CFG implements PPAble {
         return `{\n${strBbs.join("\n")}\n}`;
     }
 
-    copy(t: TransformerF | undefined): CFG {
+    copy(t: TransformerFn | undefined): CFG {
         const copies = new Map<string, BasicBlock>();
         const globalEdgeMap = new Map<BasicBlock, Map<string, Expression | undefined>>();
 

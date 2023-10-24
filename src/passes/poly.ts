@@ -16,7 +16,7 @@ import {
     MapType,
     NeverType
 } from "../ir";
-import { MIRTypeError, pp, walk, zip } from "../utils";
+import { MIRTypeError, assert, pp, walk, zip } from "../utils";
 import { TypeSubstitution, MemSubstitution, Substitution, Scope } from "./resolving";
 
 function makeTypeSubst(
@@ -128,9 +128,10 @@ export function concretizeMemDesc(arg: MemDesc, memSubst: MemSubstitution, scope
     const decl = scope.get(arg.name);
 
     // Shouldn't happen at this point
-    if (!(decl instanceof MemVariableDeclaration)) {
-        throw new Error(`Internal error: Expected a memory desc for ${arg.pp()}, not ${pp(decl)}`);
-    }
+    assert(
+        decl instanceof MemVariableDeclaration,
+        `Internal error: Expected a memory desc for ${arg.pp()}, not ${pp(decl)}`
+    );
 
     const newVal = memSubst.get(decl);
 

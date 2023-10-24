@@ -117,12 +117,7 @@ export class Monomorphize {
 
                 assert(isConcrete(subT, scope), `Unexpected non-concrete sub type {0}`, t);
                 // subT is already concrete here (thanks to walkType)
-                const name = `${def.name}$${subT.memArgs
-                    .map((m) => m.name)
-                    .join("_")}$${subT.typeArgs
-                    .map((t) => this.getConcreteTypeIdentifier(t))
-                    .join("_")}`;
-
+                const name = this.getMonoName(def, subT.memArgs, subT.typeArgs);
                 res.set(name, [def, [subT.memArgs, subT.typeArgs]]);
             },
             scope
@@ -235,7 +230,7 @@ export class Monomorphize {
         return monomorphicDefs;
     }
 
-    private replaceConcretPolyTypes(t: Type, scope: Scope): Type {
+    private replaceConcretePolyTypes(t: Type, scope: Scope): Type {
         return transform(t, (subT) => {
             if (
                 !(
@@ -271,7 +266,7 @@ export class Monomorphize {
             if (n instanceof Type) {
                 const concreteT = concretizeType(n, subst, scope);
 
-                return this.replaceConcretPolyTypes(concreteT, scope);
+                return this.replaceConcretePolyTypes(concreteT, scope);
             }
 
             if (n instanceof MemIdentifier) {
@@ -373,7 +368,7 @@ export class Monomorphize {
      *
      * 1. For all entries in the `monomorphicDefs` map, add the monomorphized instance to the new program
      * 2. For all non-polymorphic defs in the original program, copy them over, while replacing all references
-     *  to poloymorphic types iniside them with their monomorphic variants.
+     *  to polymorphic types inside them with their monomorphic variants.
      */
     private monomorphize(p: Program, monomorphicDefs: MonomorphicDefM): Program {
         const newProg: Program = [];

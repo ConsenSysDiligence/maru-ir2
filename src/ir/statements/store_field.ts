@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -26,7 +26,7 @@ export class StoreField extends Statement {
         return [this.baseExpr, this.rhs];
     }
 
-    copy(t: TransformerF | undefined): StoreField {
+    copy(t: TransformerFn | undefined): StoreField {
         return new StoreField(
             this.src,
             transform(this.baseExpr, t),

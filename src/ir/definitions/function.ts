@@ -1,6 +1,6 @@
 import { ppPolyParams } from "../../utils";
 import { CFG } from "../cfg";
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { MemVariableDeclaration, TypeVariableDeclaration, VariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -72,7 +72,7 @@ export class FunctionDefinition extends Definition {
         ];
     }
 
-    copy(t: TransformerF | undefined): FunctionDefinition {
+    copy(t: TransformerFn | undefined): FunctionDefinition {
         return new FunctionDefinition(
             this.src,
             this.memoryParameters.map((mParam) => transform(mParam, t)),

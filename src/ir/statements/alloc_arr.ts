@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
@@ -29,7 +29,7 @@ export class AllocArray extends Statement {
         return [this.lhs, this.type, this.size, this.mem];
     }
 
-    copy(t: TransformerF | undefined): AllocArray {
+    copy(t: TransformerFn | undefined): AllocArray {
         return new AllocArray(
             this.src,
             transform(this.lhs, t),

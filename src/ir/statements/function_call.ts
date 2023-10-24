@@ -1,5 +1,5 @@
 import { ppPolyArgs } from "../../utils";
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
@@ -36,7 +36,7 @@ export class FunctionCall extends Statement {
         return [...this.lhss, ...this.memArgs, ...this.typeArgs, this.callee, ...this.args];
     }
 
-    copy(t: TransformerF | undefined): FunctionCall {
+    copy(t: TransformerFn | undefined): FunctionCall {
         return new FunctionCall(
             this.src,
             this.lhss.map((lhs) => transform(lhs, t)),

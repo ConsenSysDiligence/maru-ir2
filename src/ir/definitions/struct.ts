@@ -1,5 +1,5 @@
 import { ppPolyParams } from "../../utils";
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { MemVariableDeclaration, TypeVariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -32,7 +32,7 @@ export class StructDefinition extends Definition {
         return [...this.fields.map((p) => p[1]), ...this.memoryParameters, ...this.typeParameters];
     }
 
-    copy(t: TransformerF | undefined): StructDefinition {
+    copy(t: TransformerFn | undefined): StructDefinition {
         return new StructDefinition(
             this.src,
             this.memoryParameters.map((mParam) => transform(mParam, t)),

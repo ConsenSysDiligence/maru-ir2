@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { GlobalVarLiteral } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -27,7 +27,7 @@ export class GlobalVariable extends Definition {
         return [this.type, this.initialValue];
     }
 
-    copy(t: TransformerF | undefined): GlobalVariable {
+    copy(t: TransformerFn | undefined): GlobalVariable {
         return new GlobalVariable(
             this.src,
             this.name,

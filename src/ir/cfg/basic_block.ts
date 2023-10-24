@@ -1,5 +1,5 @@
 import { PPAble } from "../../utils";
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Statement } from "../statements";
 import { Edge } from "./edge";
@@ -96,7 +96,7 @@ export class BasicBlock implements PPAble {
      * If the `t` argument is passed, it is applied to the child statements.
      * This method **does not copy any `Edge`s** to avoid possible confusion.
      */
-    copy(t: TransformerF | undefined): BasicBlock {
+    copy(t: TransformerFn | undefined): BasicBlock {
         return new BasicBlock(
             this.label,
             this.statements.map((stmt) => transform(stmt, t))

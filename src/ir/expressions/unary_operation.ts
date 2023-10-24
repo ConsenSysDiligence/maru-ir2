@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Expression } from "./expression";
@@ -26,7 +26,7 @@ export class UnaryOperation extends Expression {
         return [this.subExpr];
     }
 
-    copy(t: TransformerF | undefined): UnaryOperation {
+    copy(t: TransformerFn | undefined): UnaryOperation {
         return new UnaryOperation(this.src, this.op, transform(this.subExpr, t));
     }
 }

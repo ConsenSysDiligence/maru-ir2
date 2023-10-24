@@ -1,4 +1,4 @@
-import { TransformerF, transform } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -24,7 +24,7 @@ export class Assert extends Statement {
         return [this.condition];
     }
 
-    copy(t: TransformerF | undefined): Assert {
+    copy(t: TransformerFn | undefined): Assert {
         return new Assert(this.src, transform(this.condition, t));
     }
 }
