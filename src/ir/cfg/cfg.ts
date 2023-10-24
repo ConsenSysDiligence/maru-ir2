@@ -32,6 +32,12 @@ export class CFG implements PPAble {
         return `{\n${strBbs.join("\n")}\n}`;
     }
 
+    /**
+     * Creating a copy of this CFG. If `t` is define it may be used to transform some `Node`s in the CFG.
+     * The overall CFG structure will remain unchanged.
+     *
+     * NOTE: DON'T CALL DIRECTLY! Instead call `copy()` or `transform` from `copy.ts`.
+     */
     copy(t: TransformerFn | undefined): CFG {
         const copies = new Map<string, BasicBlock>();
         const globalEdgeMap = new Map<BasicBlock, Map<string, Expression | undefined>>();

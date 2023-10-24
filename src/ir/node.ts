@@ -17,5 +17,9 @@ export abstract class Node implements PPAble, StructEqualityComparable {
     abstract pp(): string;
     abstract getStructId(): any;
     abstract children(): Iterable<Node>;
+    /**
+     * Creating a (potentially transformed) copy of this node.
+     * NOTE: DON'T CALL DIRECTLY! Instead call `copy()` or `transform` from `copy.ts`.
+     */
     abstract copy(t: TransformerFn | undefined): Node;
 }
