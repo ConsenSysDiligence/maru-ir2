@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -25,7 +26,12 @@ export class LoadField extends Statement {
         return [this.lhs, this.baseExpr];
     }
 
-    copy(): LoadField {
-        return new LoadField(this.src, this.lhs.copy(), this.baseExpr.copy(), this.member);
+    copy(t: TransformerFn | undefined): LoadField {
+        return new LoadField(
+            this.src,
+            transform(this.lhs, t),
+            transform(this.baseExpr, t),
+            this.member
+        );
     }
 }

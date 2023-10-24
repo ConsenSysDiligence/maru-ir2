@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
@@ -23,7 +24,7 @@ export class VariableDeclaration extends Node {
         return [this.type];
     }
 
-    copy(): VariableDeclaration {
-        return new VariableDeclaration(this.src, this.name, this.type.copy());
+    copy(t: TransformerFn | undefined): VariableDeclaration {
+        return new VariableDeclaration(this.src, this.name, transform(this.type, t));
     }
 }

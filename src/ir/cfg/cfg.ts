@@ -1,4 +1,5 @@
 import { PPAble, getOrErr } from "../../utils";
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { BasicBlock } from "./basic_block";
 
@@ -31,12 +32,18 @@ export class CFG implements PPAble {
         return `{\n${strBbs.join("\n")}\n}`;
     }
 
-    copy(): CFG {
+    /**
+     * Creating a copy of this CFG. If `t` is define it may be used to transform some `Node`s in the CFG.
+     * The overall CFG structure will remain unchanged.
+     *
+     * NOTE: DON'T CALL DIRECTLY! Instead call `copy()` or `transform` from `copy.ts`.
+     */
+    copy(t: TransformerFn | undefined): CFG {
         const copies = new Map<string, BasicBlock>();
         const globalEdgeMap = new Map<BasicBlock, Map<string, Expression | undefined>>();
 
         for (const [name, originalBb] of this.nodes) {
-            const copyBb = originalBb.copy();
+            const copyBb = transform(originalBb, t);
 
             copies.set(name, copyBb);
 
@@ -45,7 +52,10 @@ export class CFG implements PPAble {
             globalEdgeMap.set(copyBb, edgeMap);
 
             for (const edge of originalBb.outgoing) {
-                edgeMap.set(edge.to.label, edge.predicate ? edge.predicate.copy() : edge.predicate);
+                edgeMap.set(
+                    edge.to.label,
+                    edge.predicate ? transform(edge.predicate, t) : edge.predicate
+                );
             }
         }
 

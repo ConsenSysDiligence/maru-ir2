@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { GlobalVarLiteral } from "./array_literal";
@@ -22,10 +23,10 @@ export class StructLiteral extends Node {
         return [...this.fields.map((x) => x[1])];
     }
 
-    copy(): StructLiteral {
+    copy(t: TransformerFn | undefined): StructLiteral {
         return new StructLiteral(
             this.src,
-            this.fields.map(([k, v]) => [k, v.copy()])
+            this.fields.map(([k, v]) => [k, transform(v, t)])
         );
     }
 

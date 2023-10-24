@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { GlobalVarLiteral } from "./array_literal";
@@ -28,10 +29,10 @@ export class MapLiteral extends Node {
         return res;
     }
 
-    copy(): MapLiteral {
+    copy(t: TransformerFn | undefined): MapLiteral {
         return new MapLiteral(
             this.src,
-            this.values.map(([k, v]) => [k.copy(), v.copy()])
+            this.values.map(([k, v]) => [transform(k, t), transform(v, t)])
         );
     }
 }

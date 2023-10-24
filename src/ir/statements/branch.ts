@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -25,7 +26,7 @@ export class Branch extends TerminatorStmt {
         return [this.condition];
     }
 
-    copy(): Branch {
-        return new Branch(this.src, this.condition.copy(), this.trueLabel, this.falseLabel);
+    copy(t: TransformerFn | undefined): Branch {
+        return new Branch(this.src, transform(this.condition, t), this.trueLabel, this.falseLabel);
     }
 }

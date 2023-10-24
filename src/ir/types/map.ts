@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "./type";
@@ -23,7 +24,7 @@ export class MapType extends Type {
         return [this.keyType, this.valueType];
     }
 
-    copy(): MapType {
-        return new MapType(this.src, this.keyType.copy(), this.valueType.copy());
+    copy(t: TransformerFn | undefined): MapType {
+        return new MapType(this.src, transform(this.keyType, t), transform(this.valueType, t));
     }
 }

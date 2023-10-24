@@ -1,5 +1,5 @@
 import { ppPolyArgs } from "../../utils";
-import { copy } from "../copy";
+import { TransformerFn, transform } from "../copy";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -27,12 +27,12 @@ export class UserDefinedType extends Type {
         return [...this.memArgs, ...this.typeArgs];
     }
 
-    copy(): UserDefinedType {
+    copy(t: TransformerFn | undefined): UserDefinedType {
         return new UserDefinedType(
             this.src,
             this.name,
-            this.memArgs.map(copy),
-            this.typeArgs.map(copy)
+            this.memArgs.map((mArg) => transform(mArg, t)),
+            this.typeArgs.map((tArg) => transform(tArg, t))
         );
     }
 }

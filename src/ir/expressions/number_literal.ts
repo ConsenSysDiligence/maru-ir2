@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { IntType } from "../types";
@@ -31,7 +32,7 @@ export class NumberLiteral extends Expression {
         return [];
     }
 
-    copy(): NumberLiteral {
-        return new NumberLiteral(this.src, this.value, this.radix, this.type.copy());
+    copy(t: TransformerFn | undefined): NumberLiteral {
+        return new NumberLiteral(this.src, this.value, this.radix, transform(this.type, t));
     }
 }
