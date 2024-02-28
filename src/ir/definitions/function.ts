@@ -28,8 +28,8 @@ export class FunctionDefinition extends Definition {
             this.returns.length === 0
                 ? ""
                 : this.returns.length === 1
-                ? `: ${this.returns[0].pp()}`
-                : `: (${this.returns.map((x) => x.pp()).join(", ")})`;
+                  ? `: ${this.returns[0].pp()}`
+                  : `: (${this.returns.map((x) => x.pp()).join(", ")})`;
 
         const localsStr =
             this.locals.length === 0
