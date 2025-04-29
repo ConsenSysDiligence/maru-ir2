@@ -2,7 +2,6 @@ import {
     BaseSrc,
     Definition,
     FunctionDefinition,
-    Identifier,
     MemConstant,
     MemIdentifier,
     Statement,
