@@ -1,9 +1,13 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "./type";
 
 export class ArrayType extends Type {
-    constructor(src: BaseSrc, public readonly baseType: Type) {
+    constructor(
+        src: BaseSrc,
+        public readonly baseType: Type
+    ) {
         super(src);
     }
 
@@ -17,5 +21,9 @@ export class ArrayType extends Type {
 
     children(): Iterable<Node> {
         return [this.baseType];
+    }
+
+    copy(t: TransformerFn | undefined): ArrayType {
+        return new ArrayType(this.src, transform(this.baseType, t));
     }
 }

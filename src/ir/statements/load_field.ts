@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -23,5 +24,14 @@ export class LoadField extends Statement {
 
     children(): Iterable<Node> {
         return [this.lhs, this.baseExpr];
+    }
+
+    copy(t: TransformerFn | undefined): LoadField {
+        return new LoadField(
+            this.src,
+            transform(this.lhs, t),
+            transform(this.baseExpr, t),
+            this.member
+        );
     }
 }

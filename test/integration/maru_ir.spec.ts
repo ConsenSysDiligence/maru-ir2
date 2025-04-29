@@ -70,7 +70,7 @@ entry:
         ["test/samples/valid/trans_call.maruir", "--ast"],
         undefined,
         0,
-        fse.readFileSync("test/samples/valid/trans_call.ast.json", { encoding: "utf-8" }).trimEnd(),
+        fse.readFileSync("test/samples/valid/trans_call.ast.json", { encoding: "utf-8" }),
         undefined
     ],
     [
@@ -105,27 +105,21 @@ entry:
         ["test/samples/valid/trans_call.ast.json", "--from-ast", "--run", "call gauss(5_i32);"],
         undefined,
         0,
-        fse
-            .readFileSync("test/samples/valid/trans_call.gauss.log", { encoding: "utf-8" })
-            .trimEnd(),
+        fse.readFileSync("test/samples/valid/trans_call.gauss.log", { encoding: "utf-8" }),
         undefined
     ],
     [
         ["test/samples/valid/trans_call.maruir", "--run", "call gauss(5_i32);"],
         undefined,
         0,
-        fse
-            .readFileSync("test/samples/valid/trans_call.gauss.log", { encoding: "utf-8" })
-            .trimEnd(),
+        fse.readFileSync("test/samples/valid/trans_call.gauss.log", { encoding: "utf-8" }),
         undefined
     ],
     [
         ["test/samples/invalid/interp/arr_oob.maruir", "--run", "call main();"],
         undefined,
         1,
-        fse
-            .readFileSync("test/samples/invalid/interp/arr_oob.main.log", { encoding: "utf-8" })
-            .trimEnd(),
+        fse.readFileSync("test/samples/invalid/interp/arr_oob.main.log", { encoding: "utf-8" }),
         `6:9: Index 3 OoB.
 main:entry:1 load arr[3_u8] in res;`
     ],
@@ -133,9 +127,7 @@ main:entry:1 load arr[3_u8] in res;`
         ["test/samples/valid/trans_call.maruir", "--dot", "gauss"],
         undefined,
         0,
-        fse
-            .readFileSync("test/samples/valid/trans_call.gauss.dot", { encoding: "utf-8" })
-            .trimEnd(),
+        fse.readFileSync("test/samples/valid/trans_call.gauss.dot", { encoding: "utf-8" }),
         undefined
     ],
     [
@@ -171,7 +163,7 @@ for (const [args, stdIn, expectedExitCode, expectedStdOut, expectedStdErr] of ca
             const proc = spawn("maru-ir", args);
 
             if (stdIn) {
-                proc.stdin.write(stdIn);
+                proc.stdin.end(stdIn);
             }
 
             proc.stdout.on("data", (data) => {
@@ -202,7 +194,7 @@ for (const [args, stdIn, expectedExitCode, expectedStdOut, expectedStdErr] of ca
             } else if (expectedStdOut instanceof RegExp) {
                 expect(stdOut).toMatch(expectedStdOut);
             } else {
-                expect(stdOut).toEqual(expectedStdOut);
+                expect(stdOut).toEqual(expectedStdOut.trimEnd());
             }
         });
 

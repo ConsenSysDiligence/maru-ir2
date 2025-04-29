@@ -2,7 +2,10 @@ import { Node } from "../node";
 import { BaseSrc } from "../source";
 
 export class MemIdentifier extends Node {
-    constructor(src: BaseSrc, public readonly name: string) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string
+    ) {
         super(src);
     }
 
@@ -16,5 +19,9 @@ export class MemIdentifier extends Node {
 
     children(): Iterable<Node> {
         return [];
+    }
+
+    copy(): MemIdentifier {
+        return new MemIdentifier(this.src, this.name);
     }
 }

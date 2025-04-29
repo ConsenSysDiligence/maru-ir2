@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -23,5 +24,9 @@ export class Branch extends TerminatorStmt {
 
     children(): Iterable<Node> {
         return [this.condition];
+    }
+
+    copy(t: TransformerFn | undefined): Branch {
+        return new Branch(this.src, transform(this.condition, t), this.trueLabel, this.falseLabel);
     }
 }

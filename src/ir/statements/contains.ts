@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -23,5 +24,14 @@ export class Contains extends Statement {
 
     children(): Iterable<Node> {
         return [this.lhs, this.baseExpr, this.keyExpr];
+    }
+
+    copy(t: TransformerFn | undefined): Contains {
+        return new Contains(
+            this.src,
+            transform(this.lhs, t),
+            transform(this.baseExpr, t),
+            transform(this.keyExpr, t)
+        );
     }
 }

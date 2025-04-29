@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Expression } from "./expression";
@@ -23,5 +24,9 @@ export class UnaryOperation extends Expression {
 
     children(): Iterable<Node> {
         return [this.subExpr];
+    }
+
+    copy(t: TransformerFn | undefined): UnaryOperation {
+        return new UnaryOperation(this.src, this.op, transform(this.subExpr, t));
     }
 }

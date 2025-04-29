@@ -58,7 +58,10 @@ export class Typing {
     typeCache: Map<Expression, Type>;
     curScope!: Scope;
 
-    constructor(public readonly program: Program, private readonly resolve: Resolving) {
+    constructor(
+        public readonly program: Program,
+        private readonly resolve: Resolving
+    ) {
         this.typeCache = new Map();
 
         this.runAnalysis();
@@ -648,10 +651,12 @@ export class Typing {
 
     tcInitLiteral(lit: GlobalVarLiteral, expectedType: Type): void {
         if (lit instanceof BooleanLiteral && eq(expectedType, boolT)) {
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
         if (lit instanceof NumberLiteral && eq(lit.type, expectedType)) {
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
@@ -666,6 +671,7 @@ export class Typing {
                 this.tcInitLiteral(el, elT);
             }
 
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
@@ -710,6 +716,7 @@ export class Typing {
                 this.tcInitLiteral(lit, concreteFieldT);
             }
 
+            this.typeCache.set(lit, expectedType);
             return;
         }
 
@@ -726,6 +733,7 @@ export class Typing {
                 this.tcInitLiteral(valueLit, valueT);
             }
 
+            this.typeCache.set(lit, expectedType);
             return;
         }
 

@@ -5,7 +5,10 @@ import { MemIdentifier } from "./mem_identifier";
 export type MemDesc = MemConstant | MemIdentifier;
 
 export class MemConstant extends Node {
-    constructor(src: BaseSrc, public readonly name: string) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string
+    ) {
         super(src);
     }
 
@@ -19,5 +22,9 @@ export class MemConstant extends Node {
 
     children(): Iterable<Node> {
         return [];
+    }
+
+    copy(): MemConstant {
+        return new MemConstant(this.src, this.name);
     }
 }

@@ -3,7 +3,10 @@ import { BaseSrc } from "../source";
 import { TerminatorStmt } from "./terminator";
 
 export class Jump extends TerminatorStmt {
-    constructor(src: BaseSrc, public readonly label: string) {
+    constructor(
+        src: BaseSrc,
+        public readonly label: string
+    ) {
         super(src);
     }
 
@@ -17,5 +20,9 @@ export class Jump extends TerminatorStmt {
 
     children(): Iterable<Node> {
         return [];
+    }
+
+    copy(): Jump {
+        return new Jump(this.src, this.label);
     }
 }

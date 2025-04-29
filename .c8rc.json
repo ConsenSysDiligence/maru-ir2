@@ -6,7 +6,8 @@
         "**/test/**",
         "**/coverage/**",
         "src/parser/maruir_parser.ts",
-        "src/parser/maruir_header.ts"
+        "src/parser/maruir_header.ts",
+        "src/bin/maru_ir.ts"
     ],
     "reporter": ["lcov", "text-summary"],
     "all": true,

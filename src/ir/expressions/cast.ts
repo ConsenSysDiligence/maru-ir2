@@ -1,10 +1,15 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
 import { Expression } from "./expression";
 
 export class Cast extends Expression {
-    constructor(src: BaseSrc, public readonly toType: Type, public readonly subExpr: Expression) {
+    constructor(
+        src: BaseSrc,
+        public readonly toType: Type,
+        public readonly subExpr: Expression
+    ) {
         super(src);
     }
 
@@ -18,5 +23,9 @@ export class Cast extends Expression {
 
     children(): Iterable<Node> {
         return [this.toType, this.subExpr];
+    }
+
+    copy(t: TransformerFn | undefined): Cast {
+        return new Cast(this.src, transform(this.toType, t), transform(this.subExpr, t));
     }
 }

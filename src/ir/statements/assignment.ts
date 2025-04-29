@@ -1,10 +1,15 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Statement } from "./statement";
 
 export class Assignment extends Statement {
-    constructor(src: BaseSrc, public readonly lhs: Identifier, public readonly rhs: Expression) {
+    constructor(
+        src: BaseSrc,
+        public readonly lhs: Identifier,
+        public readonly rhs: Expression
+    ) {
         super(src);
     }
 
@@ -18,5 +23,9 @@ export class Assignment extends Statement {
 
     children(): Iterable<Node> {
         return [this.lhs, this.rhs];
+    }
+
+    copy(t: TransformerFn | undefined): Assignment {
+        return new Assignment(this.src, transform(this.lhs, t), transform(this.rhs, t));
     }
 }

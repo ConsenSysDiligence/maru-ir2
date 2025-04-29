@@ -1,4 +1,5 @@
 export * from "./cfg";
+export * from "./copy";
 export * from "./definitions";
 export * from "./dot";
 export * from "./expressions";

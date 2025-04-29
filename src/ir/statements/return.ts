@@ -1,10 +1,14 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { TerminatorStmt } from "./terminator";
 
 export class Return extends TerminatorStmt {
-    constructor(src: BaseSrc, public readonly values: Expression[]) {
+    constructor(
+        src: BaseSrc,
+        public readonly values: Expression[]
+    ) {
         super(src);
     }
 
@@ -26,5 +30,12 @@ export class Return extends TerminatorStmt {
 
     children(): Iterable<Node> {
         return this.values;
+    }
+
+    copy(t: TransformerFn | undefined): Return {
+        return new Return(
+            this.src,
+            this.values.map((v) => transform(v, t))
+        );
     }
 }

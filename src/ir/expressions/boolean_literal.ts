@@ -3,7 +3,10 @@ import { BaseSrc } from "../source";
 import { Expression } from "./expression";
 
 export class BooleanLiteral extends Expression {
-    constructor(src: BaseSrc, public readonly value: boolean) {
+    constructor(
+        src: BaseSrc,
+        public readonly value: boolean
+    ) {
         super(src);
     }
 
@@ -17,5 +20,9 @@ export class BooleanLiteral extends Expression {
 
     children(): Iterable<Node> {
         return [];
+    }
+
+    copy(): BooleanLiteral {
+        return new BooleanLiteral(this.src, this.value);
     }
 }

@@ -1,9 +1,14 @@
+import { TransformerFn, transform } from "../copy";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
 import { Type } from "../types";
 
 export class VariableDeclaration extends Node {
-    constructor(src: BaseSrc, public readonly name: string, public readonly type: Type) {
+    constructor(
+        src: BaseSrc,
+        public readonly name: string,
+        public readonly type: Type
+    ) {
         super(src);
     }
 
@@ -17,5 +22,9 @@ export class VariableDeclaration extends Node {
 
     children(): Iterable<Node> {
         return [this.type];
+    }
+
+    copy(t: TransformerFn | undefined): VariableDeclaration {
+        return new VariableDeclaration(this.src, this.name, transform(this.type, t));
     }
 }

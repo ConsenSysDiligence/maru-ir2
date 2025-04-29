@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { BooleanLiteral, NumberLiteral } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -12,7 +13,10 @@ export type GlobalVarLiteral =
     | MapLiteral;
 
 export class ArrayLiteral extends Node {
-    constructor(src: BaseSrc, public readonly values: GlobalVarLiteral[]) {
+    constructor(
+        src: BaseSrc,
+        public readonly values: GlobalVarLiteral[]
+    ) {
         super(src);
     }
 
@@ -26,5 +30,12 @@ export class ArrayLiteral extends Node {
 
     children(): Iterable<Node> {
         return [...this.values];
+    }
+
+    copy(t: TransformerFn | undefined): ArrayLiteral {
+        return new ArrayLiteral(
+            this.src,
+            this.values.map((v) => transform(v, t))
+        );
     }
 }

@@ -178,7 +178,11 @@ export class Scope {
     }
 
     scopeOf(def: StructDefinition | FunctionDefinition): Scope {
-        const res = this.subScopes.get(def);
+        let res = this.subScopes.get(def);
+
+        if (res === undefined && this.parentScope) {
+            res = this.parentScope.scopeOf(def);
+        }
 
         if (res === undefined) {
             throw new MIRTypeError(def.src, `${def.constructor.name} ${def} doesn't have a scope`);
@@ -452,7 +456,7 @@ export class Resolving {
                 if (!this.isPrimitive(local.type)) {
                     throw new MIRTypeError(
                         def.src,
-                        `Cannot have non-primitive local ${def.name} in function ${def.name}`
+                        `Cannot have non-primitive local ${local.name} in function ${def.name}`
                     );
                 }
             }

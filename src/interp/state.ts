@@ -13,13 +13,21 @@ import { Substitution } from "../passes";
 import { pp, PPAble, walk, zip } from "../utils";
 
 export class InterpError extends Error {
-    constructor(public readonly src: BaseSrc, msg: string, state: State) {
+    constructor(
+        public readonly src: BaseSrc,
+        msg: string,
+        state: State
+    ) {
         super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
     }
 }
 
 export class InterpInternalError extends Error {
-    constructor(public readonly src: BaseSrc, msg: string, state: State) {
+    constructor(
+        public readonly src: BaseSrc,
+        msg: string,
+        state: State
+    ) {
         super(`${src.pp()}: ${msg}\n${state.stackTrace()}`);
     }
 }

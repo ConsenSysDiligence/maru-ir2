@@ -1,4 +1,5 @@
 import { ppPolyParams } from "../../utils";
+import { TransformerFn, transform } from "../copy";
 import { MemVariableDeclaration, TypeVariableDeclaration } from "../misc";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -6,23 +7,14 @@ import { Type } from "../types";
 import { Definition } from "./definition";
 
 export class StructDefinition extends Definition {
-    public readonly memoryParameters: MemVariableDeclaration[];
-    public readonly typeParameters: TypeVariableDeclaration[];
-    public readonly name: string;
-    public readonly fields: Array<[string, Type]>;
-
     constructor(
         src: BaseSrc,
-        memoryParameters: MemVariableDeclaration[],
-        typeParameters: TypeVariableDeclaration[],
-        name: string,
-        fields: Array<[string, Type]>
+        public readonly memoryParameters: MemVariableDeclaration[],
+        public readonly typeParameters: TypeVariableDeclaration[],
+        public readonly name: string,
+        public readonly fields: Array<[string, Type]>
     ) {
         super(src);
-        this.memoryParameters = memoryParameters;
-        this.typeParameters = typeParameters;
-        this.name = name;
-        this.fields = fields;
     }
 
     pp(): string {
@@ -38,6 +30,16 @@ export class StructDefinition extends Definition {
 
     children(): Iterable<Node> {
         return [...this.fields.map((p) => p[1]), ...this.memoryParameters, ...this.typeParameters];
+    }
+
+    copy(t: TransformerFn | undefined): StructDefinition {
+        return new StructDefinition(
+            this.src,
+            this.memoryParameters.map((mParam) => transform(mParam, t)),
+            this.typeParameters.map((tParam) => transform(tParam, t)),
+            this.name,
+            this.fields.map(([k, v]) => [k, transform(v, t)])
+        );
     }
 
     getFieldType(name: string): Type | undefined {

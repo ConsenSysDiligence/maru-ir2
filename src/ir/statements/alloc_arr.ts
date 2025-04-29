@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { MemDesc } from "../misc";
 import { Node } from "../node";
@@ -26,5 +27,15 @@ export class AllocArray extends Statement {
 
     children(): Iterable<Node> {
         return [this.lhs, this.type, this.size, this.mem];
+    }
+
+    copy(t: TransformerFn | undefined): AllocArray {
+        return new AllocArray(
+            this.src,
+            transform(this.lhs, t),
+            transform(this.type, t),
+            transform(this.size, t),
+            transform(this.mem, t)
+        );
     }
 }

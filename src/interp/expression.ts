@@ -14,7 +14,10 @@ import { InterpError, InterpInternalError, poison, PrimitiveValue, State } from 
 import { adjustIntToTypeSize } from "./utils";
 
 export class ExprEvaluator {
-    constructor(private readonly typing: Typing, private readonly state: State) {}
+    constructor(
+        private readonly typing: Typing,
+        private readonly state: State
+    ) {}
 
     private error(e: Expression, msg: string): never {
         throw new InterpError(e.src, msg, this.state);

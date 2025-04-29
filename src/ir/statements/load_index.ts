@@ -1,3 +1,4 @@
+import { TransformerFn, transform } from "../copy";
 import { Expression, Identifier } from "../expressions";
 import { Node } from "../node";
 import { BaseSrc } from "../source";
@@ -23,5 +24,14 @@ export class LoadIndex extends Statement {
 
     children(): Iterable<Node> {
         return [this.lhs, this.baseExpr, this.indexExpr];
+    }
+
+    copy(t: TransformerFn | undefined): LoadIndex {
+        return new LoadIndex(
+            this.src,
+            transform(this.lhs, t),
+            transform(this.baseExpr, t),
+            transform(this.indexExpr, t)
+        );
     }
 }

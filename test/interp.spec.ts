@@ -6,6 +6,7 @@ import {
     InterpInternalError,
     LiteralEvaluator,
     Memory,
+    Monomorphize,
     parseProgram,
     poison,
     Resolving,
@@ -19,10 +20,18 @@ import { searchRecursive } from "./utils";
 function runTest(
     file: string,
     rootTrans: boolean,
+    monomorphize: boolean,
     builtins = new Map<string, BuiltinFun>()
 ): State {
     const contents = fse.readFileSync(file, { encoding: "utf-8" });
-    const program = parseProgram(contents);
+    let program = parseProgram(contents);
+
+    if (monomorphize) {
+        const resolving = new Resolving(program);
+        const mono = new Monomorphize(program, resolving);
+        program = mono.run();
+    }
+
     const entryPoint = program.find(
         (def): def is FunctionDefinition => def instanceof FunctionDefinition && def.name === "main"
     );
@@ -61,7 +70,20 @@ describe("Interpreter tests", () => {
 
     for (const file of files) {
         it(file, () => {
-            const state = runTest(file, false);
+            const state = runTest(file, false, false);
+
+            expect(state.externalReturns).toBeDefined();
+            expect(state.failed).toEqual(false);
+        });
+    }
+});
+
+describe("Interpreter tests after monomorphization", () => {
+    const files = searchRecursive("test/samples/valid/interp", (name) => name.endsWith(".maruir"));
+
+    for (const file of files) {
+        it(file, () => {
+            const state = runTest(file, false, true);
 
             expect(state.externalReturns).toBeDefined();
             expect(state.failed).toEqual(false);
@@ -76,7 +98,7 @@ describe("Failing interpreter tests", () => {
 
     for (const file of files) {
         it(file, () => {
-            const state = runTest(file, false);
+            const state = runTest(file, false, false);
 
             expect(state.externalReturns).not.toBeDefined();
             expect(state.failed).toEqual(true);
@@ -86,7 +108,7 @@ describe("Failing interpreter tests", () => {
 
 describe("Abort on root call", () => {
     it("Normal call", () => {
-        const state = runTest("test/samples/valid/interp/root_abort.maruir", false);
+        const state = runTest("test/samples/valid/interp/root_abort.maruir", false, false);
 
         expect(state.externalReturns).toEqual([poison]);
         expect(state.failed).toEqual(false);
@@ -102,7 +124,7 @@ describe("Abort on root call", () => {
     });
 
     it("Transaction call", () => {
-        const state = runTest("test/samples/valid/interp/root_abort.maruir", true);
+        const state = runTest("test/samples/valid/interp/root_abort.maruir", true, false);
 
         expect(state.externalReturns).toEqual([poison, true]);
         expect(state.failed).toEqual(false);
@@ -130,7 +152,7 @@ describe("Builtins", () => {
             ]
         ]);
 
-        const state = runTest("test/samples/valid/builtin.maruir", false, builtins);
+        const state = runTest("test/samples/valid/builtin.maruir", false, false, builtins);
 
         expect(state.externalReturns).toEqual([]);
         expect(state.failed).toEqual(false);
@@ -141,7 +163,7 @@ describe("Builtins", () => {
     });
 
     it("Missing custom builtin", () => {
-        expect(() => runTest("test/samples/valid/builtin.maruir", false)).toThrow(
+        expect(() => runTest("test/samples/valid/builtin.maruir", false, false)).toThrow(
             InterpInternalError
         );
     });
